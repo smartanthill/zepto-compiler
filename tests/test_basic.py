@@ -14,7 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import unittest
-import compiler
+
+from smartanthill_zc import compiler
+
 
 class SimpleReturnTestCase(unittest.TestCase):
 
@@ -23,12 +25,10 @@ class SimpleReturnTestCase(unittest.TestCase):
         actual = compiler.tree_to_str(tree)
         expected = 'ProgramContext((((ReturnStatementContext((AdditiveExpressionContext(((NumericLiteralContext)),((NumericLiteralContext)))))))))'
         self.assertEqual(actual, expected)
-        
+
 
 class UnsupportedGrammarTestCase(unittest.TestCase):
 
     def runTest(self):
         tree = compiler.compile_js_string(u'function problem() {;}')
         self.assertRaises(compiler.NotTouchedError)
-
-
