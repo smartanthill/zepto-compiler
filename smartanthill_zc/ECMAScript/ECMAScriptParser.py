@@ -5951,9 +5951,9 @@ class ECMAScriptParser ( Parser ):
             elif la_ == 3:
                 self.enterOuterAlt(localctx, 3)
                 self.state = 607
-                if not self._input.LT(1).getType() == self.CloseBrace:
+                if not self._input.LT(1).type == self.CloseBrace:
                     from antlr4.error.Errors import FailedPredicateException
-                    raise FailedPredicateException(self, "self._input.LT(1).getType() == self.CloseBrace")
+                    raise FailedPredicateException(self, "self._input.LT(1).type == self.CloseBrace")
                 pass
 
 
@@ -6124,7 +6124,7 @@ class ECMAScriptParser ( Parser ):
 
     def eos_sempred(self, localctx, predIndex):
             if predIndex == 23:
-                return self._input.LT(1).getType() == self.CloseBrace
+                return self._input.LT(1).type == self.CloseBrace
          
 
 

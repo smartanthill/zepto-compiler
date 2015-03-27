@@ -618,7 +618,7 @@ eos
  : SemiColon
  | EOF
 // | {lineTerminatorAhead()}?
- | {self._input.LT(1).getType() == self.CloseBrace}?
+ | {self._input.LT(1).type == self.CloseBrace}?
  ;
 
 eof

@@ -13,12 +13,22 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.compiler import compile_program
+import unittest
+import compiler
+
+class SimpleReturnTestCase(unittest.TestCase):
+
+    def runTest(self):
+        tree = compiler.compile_js_string(u'return 2 + 3;')
+        actual = compiler.tree_to_str(tree)
+        expected = 'ProgramContext((((ReturnStatementContext((AdditiveExpressionContext(((NumericLiteralContext)),((NumericLiteralContext)))))))))'
+        self.assertEqual(actual, expected)
+        
+
+class UnsupportedGrammarTestCase(unittest.TestCase):
+
+    def runTest(self):
+        tree = compiler.compile_js_string(u'function problem() {;}')
+        self.assertRaises(compiler.NotTouchedError)
 
 
-def test_multiplication():
-    assert compile_program("2 + 3") == [
-        'LexToken(NUMBER,2,1,0)',
-        "LexToken(PLUS,'+',1,2)",
-        'LexToken(NUMBER,3,1,4)'
-    ]
