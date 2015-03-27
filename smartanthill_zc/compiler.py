@@ -21,17 +21,18 @@ from ECMAScript.ECMAScriptVisitor import ECMAScriptVisitor
 
 def parse_js_string(data):
 
-#    input = FileStream(argv[1])
-    istream = antlr4.InputStream.InputStream(data);
+    #    input = FileStream(argv[1])
+    istream = antlr4.InputStream.InputStream(data)
     lexer = ECMAScriptLexer(istream)
     stream = antlr4.CommonTokenStream(lexer)
     parser = ECMAScriptParser(stream)
     tree = parser.program()
-    
+
     return tree
 
 
 class ToStringVisitor(ECMAScriptVisitor):
+
     def visitChildren(self, node):
 
         n = node.getChildCount()
@@ -39,107 +40,109 @@ class ToStringVisitor(ECMAScriptVisitor):
         for i in range(n):
             c = node.getChild(i)
             childResult = c.accept(self)
-            if(childResult):
+            if childResult:
                 childs.append(childResult)
-        
+
         result = ''
         if not node.transparent:
             result += type(node).__name__
-        if len(childs) != 0:
-            result += '('
-            for i in range(len(childs)):
-                
-                if i != 0:
-                    result += ','
-                
-                result += childs[i]
-                
-            result += ')'
-             
-        if len(result) != 0:
-            return result
-        else:
-            return None
+        if childs:
+            result += '(%s)' % ','.join(childs)
+
+        return result if result else None
+
 
 def tree_to_str(tree):
     visitor = ToStringVisitor()
     result = visitor.visit(tree)
     return result
 
-#Test class 
+# Test class
+
+
 class TouchVisitor(ECMAScriptVisitor):
 
-    # Visit a parse tree produced by ECMAScriptParser#program.
     def visitProgram(self, ctx):
+        """ Visit a parse tree produced by ECMAScriptParser#program. """
+
         ctx.touched = True
         ctx.transparent = False
         return self.visitChildren(ctx)
 
-
-    # Visit a parse tree produced by ECMAScriptParser#sourceElements.
     def visitSourceElements(self, ctx):
+        """ Visit a parse tree produced by ECMAScriptParser#sourceElements. """
+
         ctx.touched = True
         ctx.transparent = True
         return self.visitChildren(ctx)
 
-
-    # Visit a parse tree produced by ECMAScriptParser#sourceElement.
     def visitSourceElement(self, ctx):
+        """ Visit a parse tree produced by ECMAScriptParser#sourceElement. """
+
         ctx.touched = True
         ctx.transparent = True
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#statement.
     def visitStatement(self, ctx):
+        """ Visit a parse tree produced by ECMAScriptParser#statement. """
+
         ctx.touched = True
         ctx.transparent = True
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#returnStatement.
     def visitReturnStatement(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#returnStatement. """
+
+        ctx.touched = True
         ctx.transparent = False
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#expressionSequence.
     def visitExpressionSequence(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#expressionSequence. """
+
+        ctx.touched = True
         ctx.transparent = True
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
     def visitAdditiveExpression(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#AdditiveExpression. """
+
+        ctx.touched = True
         ctx.transparent = False
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
     def visitMultiplicativeExpression(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#MultiplicativeExpression. """
+
+        ctx.touched = True
         ctx.transparent = False
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
     def visitLiteralExpression(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#LiteralExpression. """
+
+        ctx.touched = True
         ctx.transparent = True
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#literal.
     def visitLiteral(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#literal. """
+
+        ctx.touched = True
         ctx.transparent = True
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#numericLiteral.
     def visitNumericLiteral(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#numericLiteral. """
+
+        ctx.touched = True
         ctx.transparent = False
         return self.visitChildren(ctx)
 
-    # Visit a parse tree produced by ECMAScriptParser#eos.
     def visitEos(self, ctx):
-        ctx.touched = True;
+        """ Visit a parse tree produced by ECMAScriptParser#eos. """
+
+        ctx.touched = True
         ctx.transparent = True
         return self.visitChildren(ctx)
 
@@ -148,9 +151,10 @@ def touch_tree(tree):
 
     visitor = TouchVisitor()
     visitor.visit(tree)
- 
+
 
 class NotTouchedError(Exception):
+
     def __init__(self, node):
         self.node = node
 
@@ -160,8 +164,9 @@ class CheckTouchedVisitor(ECMAScriptVisitor):
     def visitChildren(self, node):
         if not node.touched:
             raise NotTouchedError(node)
-        
+
         return super(CheckTouchedVisitor, self).visitChildren(self, node)
+
 
 def check_touched_tree(tree):
 
