@@ -26,6 +26,7 @@ def main():
 
     tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
     root = syntax.ecma_script_parse_tree_to_syntax_tree(tree)
+    visitor.check_all_nodes_reachables(root)
     print '\n'.join(visitor.dump_tree(root))
 
 

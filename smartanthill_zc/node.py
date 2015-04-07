@@ -19,6 +19,23 @@ class Node(object):
     Base class for all tree nodes
     '''
 
+    _node_id = 0
+    
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.node_id = Node._node_id
+        Node._node_id += 1
+        self.parent = None
+
+    def get_root(self):
+        ''''
+        Returns the root of the tree
+        '''
+        assert self.parent
+        return self.parent.get_root()
+
     def set_parent(self, node):
         '''
         helper method for setting node parent
@@ -26,20 +43,25 @@ class Node(object):
         node.parent = self
    
 
-
-
 class StatementNode(Node):
     '''
     Base class for all statements nodes
     '''
-    
-    pass
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(StatementNode, self).__init__()
 
 class ExpressionNode(Node):
     '''
     Base class for all expressions nodes
     '''
-    pass
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ExpressionNode, self).__init__()
 
 
 class RootNode(Node):
@@ -50,8 +72,15 @@ class RootNode(Node):
         '''
         Constructor
         '''
+        super(RootNode, self).__init__()
         self.child_statement_list = None
     
+
+    def get_root(self):
+        ''''
+        Returns the root of the tree
+        '''
+        return self
 
     def set_statement_list(self, node):
         '''
@@ -70,6 +99,7 @@ class ArgumentListNode(Node):
         '''
         Constructor
         '''
+        super(ArgumentListNode, self).__init__()
         self.childs_arguments = []
 
     def add_argument(self, node):
@@ -89,6 +119,7 @@ class StatementListStmtNode(StatementNode):
         '''
         Constructor
         '''
+        super(StatementListStmtNode, self).__init__()
         self.childs_statements = []
     
     def add_statement(self, node):
@@ -108,7 +139,7 @@ class NopStmtNode(StatementNode):
         '''
         Constructor
         '''
-        pass
+        super(NopStmtNode, self).__init__()
     
 
 class ReturnStmtNode(StatementNode):
@@ -119,6 +150,7 @@ class ReturnStmtNode(StatementNode):
         '''
         Constructor
         '''
+        super(ReturnStmtNode, self).__init__()
         self.child_expression = None
         
     def set_expression(self, node):
@@ -138,6 +170,7 @@ class FunctionCallExprNode(ExpressionNode):
         '''
         Constructor
         '''
+        super(FunctionCallExprNode, self).__init__()
         self.ctx_name = None
         self.child_argument_list = None
         
@@ -158,8 +191,9 @@ class MethodCallExprNode(ExpressionNode):
         '''
         Constructor
         '''
-        self.ctx_base_name = None
-        self.ctx_name = None
+        super(MethodCallExprNode, self).__init__()
+        self.base_name = None
+        self.name = None
         self.child_argument_list = None
 
     def set_argument_list(self, node):
