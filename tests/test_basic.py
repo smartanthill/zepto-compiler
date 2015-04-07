@@ -22,10 +22,10 @@ from smartanthill_zc import visitor
 
 def test_js_simple_return():
     comp = compiler.Compiler()
-    parse_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
+    js_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
 #    print '\n'.join(compiler.dump_antlr_tree(parse_tree))
     comp = compiler.Compiler()
-    root = syntax.ecma_script_parse_tree_to_syntax_tree(comp, parse_tree)
+    root = syntax.js_tree_to_syntax_tree(comp, js_tree)
     visitor.check_all_nodes_reachables(comp, root)
  
     actual = visitor.dump_tree(root)

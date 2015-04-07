@@ -13,12 +13,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from node import Node
+from smartanthill_zc.node import Node
+
 
 def visit_node(visitor, node):
     '''
-    Dynamic version of node visitor
-    Trivial implementation 
+    Dynamic version of node visitor using reflection
+    Trivial implementation
     '''
     assert isinstance(node, Node)
     getattr(visitor, 'visit_' + type(node).__name__)()
@@ -26,46 +27,56 @@ def visit_node(visitor, node):
 
 def walk_node_childs(walker, node):
     '''
-    Dynamic version of node walker
+    Dynamic version of node walker using reflection
     Trivial implementation
     '''
     assert isinstance(node, Node)
     names = dir(node)
     for current in names:
-        if(current.startswith('child_')):
+        if current.startswith('child_'):
             ch = getattr(node, current)
             walker.walk_node(ch)
-        elif(current.startswith('childs_')):
+        elif current.startswith('childs_'):
             chs = getattr(node, current)
             for ch in chs:
                 walker.walk_node(ch)
-                
+
 
 class NodeWalker(object):
+
+    '''
+    Base class for walker
+    '''
     pass
 
+
 class NodeVisitor(object):
+
+    '''
+    Base class for visitor
+    '''
     pass
 
 
 def check_all_nodes_reachables(compiler, root):
     '''
-    This function walks a full syntax tree and checks that all nodes are reachable by walking
-    Is used as a self check to verify on common issues of the tree structure 
+    Checks a syntax tree walking it down and verifying that all node id are
+    reachable and verifying parenthood relationship
+    Is used as a self check to verify on common issues of the tree structure
     '''
-    walker = CheckReachableWalker(compiler.removed_nodes, compiler.next_node_id)
+    walker = _CheckReachableWalker(
+        compiler.removed_nodes, compiler.next_node_id)
     walker.walk_node(root)
     walker.finish()
 
-class CheckReachableWalker(NodeWalker):
+
+class _CheckReachableWalker(NodeWalker):
+
     '''
-    Walker class that will check that every node id is reached in a full tree walk
-    Used for consistency check
+    Walker class used by check_all_nodes_reachables function
     '''
+
     def __init__(self, removed_nodes, next_node_id):
-        '''
-        Constructor
-        '''
         self.dones = []
         self.parents = []
         self.removed_nodes = removed_nodes
@@ -92,35 +103,35 @@ class CheckReachableWalker(NodeWalker):
             elif self.dones[i] == expected - 1:
                 print 'Node %i has been reached again' % self.dones[i]
             elif self.dones[i] > expected:
-                print 'Node range %i to %i has not been reached' % (expected, self.dones[i] - 1)
-                expected = self.dones[i] + 1
+                print ('Node range %i to %i has not been reached' %
+                       (expected, self.dones[i] + 1))
             else:
                 assert False
-        
+
         if expected < self.next_node_id:
-            print 'Node range %i to %i has not been reached' % (expected, self.next_node_id - 1)
+            print ('Node range %i to %i has not been reached' %
+                   (expected, self.next_node_id - 1))
         elif expected > self.next_node_id:
             assert False
-            
+
 
 def dump_tree(node):
     '''
-    This function walks a full syntax tree and checks that all nodes are reachable by walking
-    Is used as a self check to verify on common issues of the tree structure 
+    Dump a syntax tree to a human readable text format
+    Used for debugging and testing
     '''
-    walker = DumpTreeWalker()
+    walker = _DumpTreeWalker()
     walker.walk_node(node)
     return walker.result
 
-class DumpTreeWalker(NodeWalker):
+
+class _DumpTreeWalker(NodeWalker):
+
     '''
-    Walker class that will dump  that every node id is reached in a full tree walk
-    Used for consistency check
+    Walker class used by dump_tree function
     '''
+
     def __init__(self):
-        '''
-        Constructor
-        '''
         self.result = []
         self.index = 0
 
@@ -128,13 +139,12 @@ class DumpTreeWalker(NodeWalker):
         ctx_attrs = ''
         names = dir(node)
         for current in names:
-            if(current.startswith('ctx_')):
-                ctx_attrs += " %s='%s'" % (current[4:], getattr(node, current).getText())
+            if current.startswith('ctx_'):
+                ctx_attrs += " %s='%s'" % (current[4:],
+                                           getattr(node, current).getText())
 
         s = '+-' * self.index + type(node).__name__ + ctx_attrs
         self.result.append(s)
         self.index += 1
         walk_node_childs(self, node)
         self.index -= 1
-
-            

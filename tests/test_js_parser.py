@@ -20,8 +20,8 @@ from smartanthill_zc import compiler
 
 def test_js_simple_return():
     comp = compiler.Compiler()
-    antlr_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
-    actual = compiler.dump_antlr_tree(antlr_tree)
+    js_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
+    actual = compiler.dump_antlr_tree(js_tree)
     expected = [
                 "ProgramContext '<EOF>'",
                 "+-SourceElementsContext",
