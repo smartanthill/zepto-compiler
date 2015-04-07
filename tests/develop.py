@@ -24,9 +24,12 @@ def main():
 #    tree = compiler.parse_js_string(u'return 2 + 3;')
 #    print compiler.tree_to_str(tree)
 
-    tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
-    root = syntax.ecma_script_parse_tree_to_syntax_tree(tree)
-    visitor.check_all_nodes_reachables(root)
+#    parse_tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
+    comp = compiler.Compiler()
+    parse_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
+    print '\n'.join(compiler.dump_antlr_tree(parse_tree))
+    root = syntax.ecma_script_parse_tree_to_syntax_tree(comp, parse_tree)
+    visitor.check_all_nodes_reachables(comp, root)
     print '\n'.join(visitor.dump_tree(root))
 
 

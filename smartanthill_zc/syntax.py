@@ -16,10 +16,12 @@
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.node import *
 
-def ecma_script_parse_tree_to_syntax_tree(tree):
+def ecma_script_parse_tree_to_syntax_tree(compiler, tree):
 
-    visitor = ECMAScriptSyntaxVisitor()
+    visitor = ECMAScriptSyntaxVisitor(compiler)
     root = visitor.visit(tree)
+
+    compiler.checkStage('syntax')
 
     return root
 
@@ -34,10 +36,13 @@ class ECMAScriptSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     The template for the visitor is copy&paste from ECMAScriptVisitor.ECMAScriptVisitor
     '''
       
+    def __init__(self, compiler):
+        self.compiler = compiler  
+      
     # Visit a parse tree produced by ECMAScriptParser#program.
     def visitProgram(self, ctx):
-        root = RootNode()
-        stmt_list = StatementListStmtNode()
+        root = self.compiler.init_node(RootNode())
+        stmt_list = self.compiler.init_node(StatementListStmtNode())
         stmt_list.ctx = ctx
         
         elems = ctx.sourceElements()
@@ -70,7 +75,7 @@ class ECMAScriptSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#block.
     def visitBlock(self, ctx):
-        stmt_list = StatementListStmtNode()
+        stmt_list = self.compiler.init_node(StatementListStmtNode())
         stmt_list.ctx = ctx
         
         st_list = ctx.statementList()
@@ -109,7 +114,7 @@ class ECMAScriptSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#emptyStatement.
     def visitEmptyStatement(self, ctx):
-        stmt = NopStmtNode()
+        stmt = self.compiler.init_node(NopStmtNode())
         stmt.ctx = ctx
         
         return stmt
@@ -167,7 +172,7 @@ class ECMAScriptSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#returnStatement.
     def visitReturnStatement(self, ctx):
-        stmt = ReturnStmtNode()
+        stmt = self.compiler.init_node(ReturnStmtNode())
         stmt.ctx = ctx
         exprCtx = ctx.expressionSequence()
         if exprCtx:
@@ -305,7 +310,7 @@ class ECMAScriptSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#arguments.
     def visitArguments(self, ctx):
-        node = ArgumentListNode()
+        node = self.compiler.init_node(ArgumentListNode())
         node.ctx = ctx
         al = ctx.argumentList()
         if al:
@@ -332,7 +337,7 @@ class ECMAScriptSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#MethodExpression.
     def visitMethodExpression(self, ctx):
-        expr = MethodCallExprNode()
+        expr = self.compiler.init_node(MethodCallExprNode())
         expr.ctx = ctx
         
         expr.ctx_base_name = ctx.Identifier()
@@ -345,7 +350,7 @@ class ECMAScriptSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
     def visitFunctionExpression(self, ctx):
-        expr = FunctionCallExprNode()
+        expr = self.compiler.init_node(FunctionCallExprNode())
         expr.ctx = ctx
         
         expr.ctx_name = ctx.Identifier()

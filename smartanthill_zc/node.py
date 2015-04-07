@@ -19,16 +19,6 @@ class Node(object):
     Base class for all tree nodes
     '''
 
-    _node_id = 0
-    
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        self.node_id = Node._node_id
-        Node._node_id += 1
-        self.parent = None
-
     def get_root(self):
         ''''
         Returns the root of the tree
@@ -47,22 +37,13 @@ class StatementNode(Node):
     '''
     Base class for all statements nodes
     '''
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(StatementNode, self).__init__()
+    pass
 
 class ExpressionNode(Node):
     '''
     Base class for all expressions nodes
     '''
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(ExpressionNode, self).__init__()
-
+    pass
 
 class RootNode(Node):
     '''
@@ -72,7 +53,6 @@ class RootNode(Node):
         '''
         Constructor
         '''
-        super(RootNode, self).__init__()
         self.child_statement_list = None
     
 
@@ -99,7 +79,6 @@ class ArgumentListNode(Node):
         '''
         Constructor
         '''
-        super(ArgumentListNode, self).__init__()
         self.childs_arguments = []
 
     def add_argument(self, node):
@@ -119,7 +98,6 @@ class StatementListStmtNode(StatementNode):
         '''
         Constructor
         '''
-        super(StatementListStmtNode, self).__init__()
         self.childs_statements = []
     
     def add_statement(self, node):
@@ -135,12 +113,7 @@ class NopStmtNode(StatementNode):
     '''
     Node class representing an empty statement
     '''
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(NopStmtNode, self).__init__()
-    
+    pass
 
 class ReturnStmtNode(StatementNode):
     '''
@@ -150,7 +123,6 @@ class ReturnStmtNode(StatementNode):
         '''
         Constructor
         '''
-        super(ReturnStmtNode, self).__init__()
         self.child_expression = None
         
     def set_expression(self, node):
@@ -170,7 +142,6 @@ class FunctionCallExprNode(ExpressionNode):
         '''
         Constructor
         '''
-        super(FunctionCallExprNode, self).__init__()
         self.ctx_name = None
         self.child_argument_list = None
         
@@ -191,7 +162,6 @@ class MethodCallExprNode(ExpressionNode):
         '''
         Constructor
         '''
-        super(MethodCallExprNode, self).__init__()
         self.base_name = None
         self.name = None
         self.child_argument_list = None

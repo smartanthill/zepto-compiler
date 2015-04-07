@@ -48,32 +48,42 @@ class NodeVisitor(object):
     pass
 
 
-def check_all_nodes_reachables(root):
+def check_all_nodes_reachables(compiler, root):
     '''
     This function walks a full syntax tree and checks that all nodes are reachable by walking
     Is used as a self check to verify on common issues of the tree structure 
     '''
-    walker = CheckReachableWalker()
+    walker = CheckReachableWalker(compiler.removed_nodes, compiler.next_node_id)
     walker.walk_node(root)
-    walker.check_node_ids([], root._node_id)
+    walker.finish()
 
 class CheckReachableWalker(NodeWalker):
     '''
     Walker class that will check that every node id is reached in a full tree walk
     Used for consistency check
     '''
-    def __init__(self):
+    def __init__(self, removed_nodes, next_node_id):
         '''
         Constructor
         '''
         self.dones = []
+        self.parents = []
+        self.removed_nodes = removed_nodes
+        self.next_node_id = next_node_id
 
     def walk_node(self, node):
-        self.dones.append(node.node_id)
-        walk_node_childs(self, node)
+        assert node
+        if len(self.parents) != 0:
+            assert self.parents[-1] == node.parent
 
-    def check_node_ids(self, unreachables, last):
-        self.dones += unreachables
+        self.dones.append(node.node_id)
+
+        self.parents.append(node)
+        walk_node_childs(self, node)
+        self.parents.pop()
+
+    def finish(self):
+        self.dones += self.removed_nodes
         self.dones.sort()
         expected = 0
         for i in self.dones:
@@ -87,9 +97,9 @@ class CheckReachableWalker(NodeWalker):
             else:
                 assert False
         
-        if expected < last:
-            print 'Node range %i to %i has not been reached' % (expected, last - 1)
-        elif expected > last:
+        if expected < self.next_node_id:
+            print 'Node range %i to %i has not been reached' % (expected, self.next_node_id - 1)
+        elif expected > self.next_node_id:
             assert False
             
 

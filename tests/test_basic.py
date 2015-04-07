@@ -16,15 +16,24 @@
 import pytest
 
 from smartanthill_zc import compiler
+from smartanthill_zc import syntax
+from smartanthill_zc import visitor
 
 
 def test_js_simple_return():
-    tree = compiler.compile_js_string(u'return 2 + 3;')
-    actual = compiler.tree_to_str(tree)
-    expected = "ProgramContext(SourceElementsContext(SourceElementContext(StatementContext(ReturnStatementContext(ExpressionSequenceContext(AdditiveExpressionContext(LiteralExpressionContext(LiteralContext(NumericLiteralContext)),LiteralExpressionContext(LiteralContext(NumericLiteralContext)))),EosContext)))))"
+    comp = compiler.Compiler()
+    parse_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
+#    print '\n'.join(compiler.dump_antlr_tree(parse_tree))
+    comp = compiler.Compiler()
+    root = syntax.ecma_script_parse_tree_to_syntax_tree(comp, parse_tree)
+    visitor.check_all_nodes_reachables(comp, root)
+ 
+    actual = visitor.dump_tree(root)
+    expected = [
+                "RootNode",
+                "+-StatementListStmtNode",
+                "+-+-ReturnStmtNode",
+                "+-+-+-MethodCallExprNode base_name='Some' name='Thing'",
+                "+-+-+-+-ArgumentListNode"]
     assert actual == expected
 
-def test_js_unsuported_grammar():
-    with pytest.raises(compiler.NotTouchedError):
-        compiler.compile_js_string(u'function problem() {;}')
-#    self.assertRaises(compiler.NotTouchedError)
