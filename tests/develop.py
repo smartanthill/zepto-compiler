@@ -16,10 +16,18 @@
 import sys
 
 from smartanthill_zc import compiler
+from smartanthill_zc import syntax
+from smartanthill_zc import visitor
 
 
 def main():
-    tree = compiler.compile_js_string(u'function problem() {}')
+#    tree = compiler.parse_js_string(u'return 2 + 3;')
+#    print compiler.tree_to_str(tree)
+
+    tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
+    root = syntax.ecma_script_parse_tree_to_syntax_tree(tree)
+    print '\n'.join(visitor.dump_tree(root))
+
 
 # temporary entrance
 if __name__ == "__main__":

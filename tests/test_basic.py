@@ -13,22 +13,18 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import unittest
+import pytest
 
 from smartanthill_zc import compiler
 
 
-class SimpleReturnTestCase(unittest.TestCase):
+def test_js_simple_return():
+    tree = compiler.compile_js_string(u'return 2 + 3;')
+    actual = compiler.tree_to_str(tree)
+    expected = "ProgramContext(SourceElementsContext(SourceElementContext(StatementContext(ReturnStatementContext(ExpressionSequenceContext(AdditiveExpressionContext(LiteralExpressionContext(LiteralContext(NumericLiteralContext)),LiteralExpressionContext(LiteralContext(NumericLiteralContext)))),EosContext)))))"
+    assert actual == expected
 
-    def runTest(self):
-        tree = compiler.compile_js_string(u'return 2 + 3;')
-        actual = compiler.tree_to_str(tree)
-        expected = 'ProgramContext((((ReturnStatementContext((AdditiveExpressionContext(((NumericLiteralContext)),((NumericLiteralContext)))))))))'
-        self.assertEqual(actual, expected)
-
-
-class UnsupportedGrammarTestCase(unittest.TestCase):
-
-    def runTest(self):
-        tree = compiler.compile_js_string(u'function problem() {;}')
-        self.assertRaises(compiler.NotTouchedError)
+def test_js_unsuported_grammar():
+    with pytest.raises(compiler.NotTouchedError):
+        compiler.compile_js_string(u'function problem() {;}')
+#    self.assertRaises(compiler.NotTouchedError)

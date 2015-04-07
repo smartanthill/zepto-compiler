@@ -50,7 +50,7 @@ sourceElements
 ///     FunctionDeclaration
 sourceElement
  : statement
- | functionDeclaration
+// | functionDeclaration
  ;
 
 /// Statement :
@@ -71,20 +71,20 @@ sourceElement
 ///     DebuggerStatement
 statement
  : block
- | variableStatement
+// | variableStatement
  | emptyStatement
- | expressionStatement
- | ifStatement
- | iterationStatement
- | continueStatement
- | breakStatement
+// | expressionStatement
+// | ifStatement
+// | iterationStatement
+// | continueStatement
+// | breakStatement
  | returnStatement
- | withStatement
- | labelledStatement
- | switchStatement
- | throwStatement
- | tryStatement
- | debuggerStatement
+// | withStatement
+// | labelledStatement
+// | switchStatement
+// | throwStatement
+// | tryStatement
+// | debuggerStatement
  ;
 
 /// Block :
@@ -110,7 +110,7 @@ variableStatement
 ///     VariableDeclaration
 ///     VariableDeclarationList , VariableDeclaration
 variableDeclarationList
- : variableDeclaration ( ',' variableDeclaration )*
+ : variableDeclaration /* ( ',' variableDeclaration )* */
  ;
 
 /// VariableDeclaration :
@@ -474,43 +474,45 @@ expressionSequence
  : singleExpression ( ',' singleExpression )*
  ;
 
-singleExpression
- : Function Identifier? '(' formalParameterList? ')' '{' functionBody '}' # FunctionExpression
- | singleExpression '[' expressionSequence ']'                            # MemberIndexExpression
- | singleExpression '.' identifierName                                    # MemberDotExpression
- | singleExpression arguments                                             # ArgumentsExpression
- | New singleExpression arguments?                                        # NewExpression
- | singleExpression /* {!here(LineTerminator)}? */ '++'                   # PostIncrementExpression
- | singleExpression /* {!here(LineTerminator)}? */ '--'                   # PostDecreaseExpression
- | Delete singleExpression                                                # DeleteExpression
- | Void singleExpression                                                  # VoidExpression
- | Typeof singleExpression                                                # TypeofExpression
- | '++' singleExpression                                                  # PreIncrementExpression
- | '--' singleExpression                                                  # PreDecreaseExpression
- | '+' singleExpression                                                   # UnaryPlusExpression
- | '-' singleExpression                                                   # UnaryMinusExpression
- | '~' singleExpression                                                   # BitNotExpression
- | '!' singleExpression                                                   # NotExpression
- | singleExpression ( '*' | '/' | '%' ) singleExpression                  # MultiplicativeExpression
- | singleExpression ( '+' | '-' ) singleExpression                        # AdditiveExpression
- | singleExpression ( '<<' | '>>' | '>>>' ) singleExpression              # BitShiftExpression
- | singleExpression ( '<' | '>' | '<=' | '>=' ) singleExpression          # RelationalExpression
- | singleExpression Instanceof singleExpression                           # InstanceofExpression
- | singleExpression In singleExpression                                   # InExpression
- | singleExpression ( '==' | '!=' | '===' | '!==' ) singleExpression      # EqualityExpression
- | singleExpression '&' singleExpression                                  # BitAndExpression
- | singleExpression '^' singleExpression                                  # BitXOrExpression
- | singleExpression '|' singleExpression                                  # BitOrExpression
- | singleExpression '&&' singleExpression                                 # LogicalAndExpression
- | singleExpression '||' singleExpression                                 # LogicalOrExpression
- | singleExpression '?' singleExpression ':' singleExpression             # TernaryExpression
- | singleExpression '=' expressionSequence                                # AssignmentExpression
- | singleExpression assignmentOperator expressionSequence                 # AssignmentOperatorExpression
- | This                                                                   # ThisExpression
- | Identifier                                                             # IdentifierExpression
- | literal                                                                # LiteralExpression
- | arrayLiteral                                                           # ArrayLiteralExpression
- | objectLiteral                                                          # ObjectLiteralExpression
+singleExpression // mb: oversimplified to begin with
+ : Identifier '.' identifierName arguments                              # MethodExpression
+ | Identifier arguments                                                 # FunctionExpression
+// : Function Identifier? '(' formalParameterList? ')' '{' functionBody '}' # FunctionExpression
+// | singleExpression '[' expressionSequence ']'                            # MemberIndexExpression
+// | singleExpression '.' identifierName                                    # MemberDotExpression
+// | singleExpression arguments                                             # ArgumentsExpression
+// | New singleExpression arguments?                                        # NewExpression
+// | singleExpression /* {!here(LineTerminator)}? */ '++'                   # PostIncrementExpression
+// | singleExpression /* {!here(LineTerminator)}? */ '--'                   # PostDecreaseExpression
+// | Delete singleExpression                                                # DeleteExpression
+// | Void singleExpression                                                  # VoidExpression
+// | Typeof singleExpression                                                # TypeofExpression
+// | '++' singleExpression                                                  # PreIncrementExpression
+// | '--' singleExpression                                                  # PreDecreaseExpression
+// | '+' singleExpression                                                   # UnaryPlusExpression
+// | '-' singleExpression                                                   # UnaryMinusExpression
+// | '~' singleExpression                                                   # BitNotExpression
+// | '!' singleExpression                                                   # NotExpression
+// | singleExpression ( '*' | '/' | '%' ) singleExpression                  # MultiplicativeExpression
+// | singleExpression ( '+' | '-' ) singleExpression                        # AdditiveExpression
+// | singleExpression ( '<<' | '>>' | '>>>' ) singleExpression              # BitShiftExpression
+// | singleExpression ( '<' | '>' | '<=' | '>=' ) singleExpression          # RelationalExpression
+// | singleExpression Instanceof singleExpression                           # InstanceofExpression
+// | singleExpression In singleExpression                                   # InExpression
+// | singleExpression ( '==' | '!=' | '===' | '!==' ) singleExpression      # EqualityExpression
+// | singleExpression '&' singleExpression                                  # BitAndExpression
+// | singleExpression '^' singleExpression                                  # BitXOrExpression
+// | singleExpression '|' singleExpression                                  # BitOrExpression
+// | singleExpression '&&' singleExpression                                 # LogicalAndExpression
+// | singleExpression '||' singleExpression                                 # LogicalOrExpression
+// | singleExpression '?' singleExpression ':' singleExpression             # TernaryExpression
+// | singleExpression '=' expressionSequence                                # AssignmentExpression
+// | singleExpression assignmentOperator expressionSequence                 # AssignmentOperatorExpression
+// | This                                                                   # ThisExpression
+// | Identifier                                                             # IdentifierExpression
+// | literal                                                                # LiteralExpression
+// | arrayLiteral                                                           # ArrayLiteralExpression
+// | objectLiteral                                                          # ObjectLiteralExpression
  | '(' expressionSequence ')'                                             # ParenthesizedExpression
  ;
 
@@ -530,19 +532,19 @@ assignmentOperator
  | '|='
  ;
 
-literal
+literal // mb: no strings and no regex
  : ( NullLiteral 
    | BooleanLiteral
-   | StringLiteral
-   | RegularExpressionLiteral
+//   | StringLiteral
+//   | RegularExpressionLiteral
    )
  | numericLiteral
  ;
 
-numericLiteral
+numericLiteral // mb: only decimal literals
  : DecimalLiteral
- | HexIntegerLiteral
- | OctalIntegerLiteral
+// | HexIntegerLiteral
+// | OctalIntegerLiteral
  ;
 
 identifierName
