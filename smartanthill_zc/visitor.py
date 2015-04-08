@@ -98,14 +98,14 @@ class _CheckReachableWalker(NodeWalker):
         self.dones += self.removed_nodes
         self.dones.sort()
         expected = 0
-        for i in self.dones:
-            if self.dones[i] == expected:
+        for current in self.dones:
+            if current == expected:
                 expected += 1
-            elif self.dones[i] == expected - 1:
-                print 'Node %i has been reached again' % self.dones[i]
-            elif self.dones[i] > expected:
+            elif current == expected - 1:
+                print 'Node %i has been reached again' % current
+            elif current > expected:
                 print ('Node range %i to %i has not been reached' %
-                       (expected, self.dones[i] + 1))
+                       (expected, current + 1))
             else:
                 assert False
 

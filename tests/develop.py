@@ -26,7 +26,7 @@ def main():
 
     #    parse_tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
     comp = compiler.Compiler()
-    js_tree = compiler.parse_js_string(comp, u'if(i,j);')
+    js_tree = compiler.parse_js_string(comp, u'for(var i = 0; i < 5; j++) ;')
     print '\n'.join(compiler.dump_antlr_tree(js_tree))
     root = syntax.js_tree_to_syntax_tree(comp, js_tree)
     visitor.check_all_nodes_reachables(comp, root)

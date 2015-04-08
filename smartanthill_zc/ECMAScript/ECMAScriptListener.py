@@ -148,6 +148,15 @@ class ECMAScriptListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by ECMAScriptParser#SimpleForStatement.
+    def enterSimpleForStatement(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#SimpleForStatement.
+    def exitSimpleForStatement(self, ctx):
+        pass
+
+
     # Enter a parse tree produced by ECMAScriptParser#ForStatement.
     def enterForStatement(self, ctx):
         pass

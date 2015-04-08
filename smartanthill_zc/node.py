@@ -127,6 +127,16 @@ class NopStmtNode(StatementNode):
     pass
 
 
+class ErrorStmtNode(StatementNode):
+
+    '''
+    Node class representing a syntax error
+    Used as a place holder when we can not return a real statement,
+    and returning None is neither possible
+    '''
+    pass
+
+
 class ReturnStmtNode(StatementNode):
 
     '''
@@ -228,6 +238,50 @@ class McuSleepStmtNode(StatementNode):
         assert isinstance(node, ArgumentListNode)
         self.set_parent(node)
         self.child_argument_list = node
+
+
+class SimpleForStmtNode(StatementNode):
+
+    '''
+    Node class representing a very simple for loop
+    declaring a counter variable, with begin and end as integer constants
+    incrementing by one at each loop.
+
+    for(int i = 0; i < *N*; i++) {}
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.ctx_name = None
+        self.child_begin_expression = None
+        self.child_end_expression = None
+        self.child_statement_list = None
+
+    def set_begin_expression(self, node):
+        '''
+        begin_expression setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        self.set_parent(node)
+        self.child_begin_expression = node
+
+    def set_end_expression(self, node):
+        '''
+        end_expression setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        self.set_parent(node)
+        self.child_end_expression = node
+
+    def set_statement_list(self, node):
+        '''
+        statement_list setter
+        '''
+        assert isinstance(node, StatementListStmtNode)
+        self.set_parent(node)
+        self.child_statement_list = node
 
 
 class FunctionCallExprNode(ExpressionNode):

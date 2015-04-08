@@ -124,3 +124,28 @@ def test_js_expr_multi_raise():
     with pytest.raises(compiler.CompilerError):
 
         common_test_run(u'if(i, j);', [])
+
+
+def test_js_trivial_loop():
+    expected = [
+        "RootNode",
+        "+-StatementListStmtNode",
+        "+-+-SimpleForStmtNode name='i'",
+        "+-+-+-NumberLiteralExprNode literal='0'",
+        "+-+-+-NumberLiteralExprNode literal='5'",
+        "+-+-+-StatementListStmtNode",
+        "+-+-+-+-NopStmtNode"]
+
+    common_test_run(u'for(var i = 0; i < 5; i++) ;', expected)
+
+
+def test_js_trivial_loop_raise1():
+    with pytest.raises(compiler.CompilerError):
+
+        common_test_run(u'for(var i = 0; x < 5; i++) ;', [])
+
+
+def test_js_trivial_loop_raise2():
+    with pytest.raises(compiler.CompilerError):
+
+        common_test_run(u'for(var i = 0; i < 5; x++) ;', [])

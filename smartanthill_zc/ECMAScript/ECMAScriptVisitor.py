@@ -85,6 +85,11 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by ECMAScriptParser#SimpleForStatement.
+    def visitSimpleForStatement(self, ctx):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by ECMAScriptParser#ForStatement.
     def visitForStatement(self, ctx):
         return self.visitChildren(ctx)

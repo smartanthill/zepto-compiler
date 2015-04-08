@@ -75,7 +75,7 @@ statement
  | emptyStatement
 // | expressionStatement
  | ifStatement
-// | iterationStatement
+ | iterationStatement
 // | continueStatement
 // | breakStatement
  | returnStatement
@@ -161,6 +161,8 @@ ifStatement
 iterationStatement
  : Do statement While '(' expressionSequence ')' eos                                                 # DoStatement
  | While '(' expressionSequence ')' statement                                                        # WhileStatement
+ | For '(' Var Identifier '=' expressionSequence ';' Identifier '<'  expressionSequence ';' 
+ Identifier '++' ')' statement                                                                       # SimpleForStatement
  | For '(' expressionSequence? ';' expressionSequence? ';' expressionSequence? ')' statement         # ForStatement
  | For '(' Var variableDeclarationList ';' expressionSequence? ';' expressionSequence? ')' statement # ForVarStatement
  | For '(' singleExpression In expressionSequence ')' statement                                      # ForInStatement

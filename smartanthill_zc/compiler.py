@@ -61,7 +61,7 @@ class Compiler(object):
         '''
         self.removed_nodes.append(node.node_id)
 
-    def reportError(self, ctx, fmt, args=None):
+    def report_error(self, ctx, fmt, args=None):
         '''
         Reports an error
         '''
@@ -71,7 +71,7 @@ class Compiler(object):
         else:
             print format_location(ctx) + fmt
 
-    def syntaxError(self):
+    def syntax_error(self):
         '''
         Reports an error from the parser,
         currently the parser reports the error itself because I can not make
@@ -80,7 +80,7 @@ class Compiler(object):
 #   print("line " + str(line) + ":" + str(column) + " " + msg, file=sys.stderr)
         self.error_flag = True
 
-    def checkStage(self, name):
+    def check_stage(self, name):
         '''
         Raises CompilerError if any error was reported on this stage
         '''
@@ -98,6 +98,9 @@ class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
     '''
 
     def __init__(self, compiler):
+        '''
+        Constructor
+        '''
         self.compiler = compiler
 
 # pylint: disable=unused-argument
@@ -105,7 +108,7 @@ class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
         '''
         Implements ErrorListener from antlr4
         '''
-        self.compiler.syntaxError()
+        self.compiler.syntax_error()
 
 
 def parse_js_string(compiler, data):
@@ -123,7 +126,7 @@ def parse_js_string(compiler, data):
     parser.addErrorListener(_ProxyAntlrErrorListener(compiler))
     tree = parser.program()
 
-    compiler.checkStage('parse_js')
+    compiler.check_stage('parse_js')
 
     return tree
 
@@ -145,10 +148,16 @@ class _DumpAntlrTreeVisitor(antlr4.ParseTreeVisitor):
     '''
 
     def __init__(self):
+        '''
+        Constructor
+        '''
         self.result = []
         self.stack = []
 
     def visitChildren(self, node):
+        '''
+        Overrides antlr4.ParseTreeVisitor method
+        '''
 
         s = '+-' * len(self.stack) + type(node).__name__
         self.stack.append(len(self.result))
@@ -160,4 +169,7 @@ class _DumpAntlrTreeVisitor(antlr4.ParseTreeVisitor):
         self.stack.pop()
 
     def visitTerminal(self, node):
+        '''
+        Overrides antlr4.ParseTreeVisitor method
+        '''
         self.result[self.stack[-1]] += " '" + node.getText() + "'"

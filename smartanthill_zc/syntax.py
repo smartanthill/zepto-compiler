@@ -14,17 +14,29 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
-from smartanthill_zc.node import *
+from smartanthill_zc.node import StatementListStmtNode, StatementNode,\
+    RootNode, McuSleepStmtNode, VariableDeclarationStmtNode, NopStmtNode,\
+    IfElseStmtNode, ErrorStmtNode, SimpleForStmtNode, ReturnStmtNode,\
+    MethodCallExprNode, FunctionCallExprNode, VariableExprNode,\
+    NumberLiteralExprNode, ArgumentListNode
 
 
-def make_statement_list(compiler, node):
-    assert isinstance(node, StatementNode)
+def make_statement_list(compiler, stmt):
+    '''
+    If stmt is instance of StatementListStmtNode, returns stmt.
+    Otherwise, creates and returns an StatementListStmtNode holding stmt
 
-    if isinstance(node, StatementListStmtNode):
-        return node
+    This helper function is used to always use StatementListStmtNode as child
+    of statements like if-else, or for loops, even when a single statement
+    (without braces) is used.
+    '''
+    assert isinstance(stmt, StatementNode)
 
-    stmt_list = compiler.init_node(StatementListStmtNode(), node.ctx)
-    stmt_list.add_statement(node)
+    if isinstance(stmt, StatementListStmtNode):
+        return stmt
+
+    stmt_list = compiler.init_node(StatementListStmtNode(), stmt.ctx)
+    stmt_list.add_statement(stmt)
 
     return stmt_list
 
@@ -45,7 +57,7 @@ def js_tree_to_syntax_tree(compiler, js_tree):
     visitor = _JsSyntaxVisitor(compiler)
     root = visitor.visit(js_tree)
 
-    compiler.checkStage('js_syntax')
+    compiler.check_stage('js_syntax')
 
     return root
 
@@ -126,9 +138,10 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         assert len(var_list) >= 1
 
         if len(var_list) > 1:
-            self.compiler.reportError(
+            self.compiler.report_error(
                 ctx,
-                "Multiple varible declarations in a single statement not supported")
+                "Multiple varible declarations in a single statement "
+                "not supported")
 
         stmt.ctx_name = var_list[0].Identifier()
         assert stmt.ctx_name
@@ -188,27 +201,77 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#DoStatement.
     def visitDoStatement(self, ctx):
-        return self.visitChildren(ctx)
+        self.compiler.report_error(ctx, "Loop 'do' not supported")
+
+        return self.compiler.init_node(ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#WhileStatement.
     def visitWhileStatement(self, ctx):
-        return self.visitChildren(ctx)
+        self.compiler.report_error(ctx, "Loop 'while' not supported")
+
+        return self.compiler.init_node(ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#ForStatement.
     def visitForStatement(self, ctx):
-        return self.visitChildren(ctx)
+        self.compiler.report_error(
+            ctx, "Loop 'for' only supported in the trivial form "
+            "'for(var i = ..; i < ..; i++) {..}'")
+
+        return self.compiler.init_node(ErrorStmtNode(), ctx)
+
+    # Visit a parse tree produced by ECMAScriptParser#ForVarTrivialStatement.
+    def visitSimpleForStatement(self, ctx):
+        stmt = self.compiler.init_node(SimpleForStmtNode(), ctx)
+
+        id_list = ctx.Identifier()
+        assert len(id_list) == 3
+
+        if(id_list[0].getText() == id_list[1].getText() and
+           id_list[0].getText() == id_list[2].getText()):
+
+            stmt.ctx_name = id_list[0]
+        else:
+            self.compiler.report_error(
+                ctx, "Loop 'for' only supported in the trivial form "
+                "'for(var i = ..; i < ..; i++) {..}'")
+
+        expr_list = ctx.expressionSequence()
+        assert len(expr_list) == 2
+
+        begin = self.visit(expr_list[0])
+        stmt.set_begin_expression(begin)
+
+        end = self.visit(expr_list[1])
+        stmt.set_end_expression(end)
+
+        sl = make_statement_list(self.compiler, self.visit(ctx.statement()))
+        stmt.set_statement_list(sl)
+
+        return stmt
 
     # Visit a parse tree produced by ECMAScriptParser#ForVarStatement.
     def visitForVarStatement(self, ctx):
-        return self.visitChildren(ctx)
+        self.compiler.report_error(
+            ctx, "Loop 'for' only supported in the trivial form "
+            "'for(var i = ..; i < ..; i++) {..}'")
+
+        return self.compiler.init_node(ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#ForInStatement.
     def visitForInStatement(self, ctx):
-        return self.visitChildren(ctx)
+        self.compiler.report_error(
+            ctx, "Loop 'for' only supported in the trivial form "
+            "'for(var i = ..; i < ..; i++) {..}'")
+
+        return self.compiler.init_node(ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#ForVarInStatement.
     def visitForVarInStatement(self, ctx):
-        return self.visitChildren(ctx)
+        self.compiler.report_error(
+            ctx, "Loop 'for' only supported in the trivial form "
+            "'for(var i = ..; i < ..; i++) {..}'")
+
+        return self.compiler.init_node(ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#continueStatement.
     def visitContinueStatement(self, ctx):
@@ -355,7 +418,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         assert len(expr_list) >= 1
 
         if len(expr_list) > 1:
-            self.compiler.reportError(
+            self.compiler.report_error(
                 ctx,
                 "Expression sequence not supported")
 
