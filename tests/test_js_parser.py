@@ -23,17 +23,18 @@ def test_js_simple_return():
     js_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
     actual = compiler.dump_antlr_tree(js_tree)
     expected = [
-                "ProgramContext '<EOF>'",
-                "+-SourceElementsContext",
-                "+-+-SourceElementContext",
-                "+-+-+-StatementContext",
-                "+-+-+-+-ReturnStatementContext 'return'",
-                "+-+-+-+-+-ExpressionSequenceContext",
-                "+-+-+-+-+-+-MethodExpressionContext 'Some' '.'",
-                "+-+-+-+-+-+-+-IdentifierNameContext 'Thing'",
-                "+-+-+-+-+-+-+-ArgumentsContext '(' ')'",
-                "+-+-+-+-+-EosContext ';'"]
+        "ProgramContext '<EOF>'",
+        "+-SourceElementsContext",
+        "+-+-SourceElementContext",
+        "+-+-+-StatementContext",
+        "+-+-+-+-ReturnStatementContext 'return'",
+        "+-+-+-+-+-ExpressionSequenceContext",
+        "+-+-+-+-+-+-MethodExpressionContext 'Some' '.'",
+        "+-+-+-+-+-+-+-IdentifierNameContext 'Thing'",
+        "+-+-+-+-+-+-+-ArgumentsContext '(' ')'",
+        "+-+-+-+-+-EosContext ';'"]
     assert actual == expected
+
 
 def test_js_unsuported_grammar():
     with pytest.raises(compiler.CompilerError):

@@ -21,14 +21,14 @@ from smartanthill_zc import visitor
 
 
 def main():
-#    tree = compiler.parse_js_string(u'return 2 + 3;')
-#    print compiler.tree_to_str(tree)
+    #    tree = compiler.parse_js_string(u'return 2 + 3;')
+    #    print compiler.tree_to_str(tree)
 
-#    parse_tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
+    #    parse_tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
     comp = compiler.Compiler()
-    js_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
+    js_tree = compiler.parse_js_string(comp, u'if(i,j);')
     print '\n'.join(compiler.dump_antlr_tree(js_tree))
-    root = syntax.ecma_script_parse_tree_to_syntax_tree(comp, js_tree)
+    root = syntax.js_tree_to_syntax_tree(comp, js_tree)
     visitor.check_all_nodes_reachables(comp, root)
     print '\n'.join(visitor.dump_tree(root))
 

@@ -40,6 +40,15 @@ class ECMAScriptListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by ECMAScriptParser#mcuSleepStatement.
+    def enterMcuSleepStatement(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#mcuSleepStatement.
+    def exitMcuSleepStatement(self, ctx):
+        pass
+
+
     # Enter a parse tree produced by ECMAScriptParser#block.
     def enterBlock(self, ctx):
         pass
@@ -469,6 +478,24 @@ class ECMAScriptListener(ParseTreeListener):
 
     # Exit a parse tree produced by ECMAScriptParser#FunctionExpression.
     def exitFunctionExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#IdentifierExpression.
+    def enterIdentifierExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#IdentifierExpression.
+    def exitIdentifierExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def enterLiteralExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def exitLiteralExpression(self, ctx):
         pass
 
 

@@ -25,6 +25,11 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by ECMAScriptParser#mcuSleepStatement.
+    def visitMcuSleepStatement(self, ctx):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by ECMAScriptParser#block.
     def visitBlock(self, ctx):
         return self.visitChildren(ctx)
@@ -262,6 +267,16 @@ class ECMAScriptVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
     def visitFunctionExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
+    def visitIdentifierExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def visitLiteralExpression(self, ctx):
         return self.visitChildren(ctx)
 
 

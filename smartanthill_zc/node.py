@@ -130,7 +130,7 @@ class NopStmtNode(StatementNode):
 class ReturnStmtNode(StatementNode):
 
     '''
-    Node class representing a return statement with expression
+    Node class representing 'return' statement
     '''
 
     def __init__(self):
@@ -146,6 +146,88 @@ class ReturnStmtNode(StatementNode):
         assert isinstance(node, ExpressionNode)
         self.set_parent(node)
         self.child_expression = node
+
+
+class VariableDeclarationStmtNode(StatementNode):
+
+    '''
+    Node class representing variable declaration statement
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.ctx_name = None
+        self.child_expression = None
+
+    def set_expression(self, node):
+        '''
+        expression setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        self.set_parent(node)
+        self.child_expression = node
+
+
+class IfElseStmtNode(StatementNode):
+
+    '''
+    Node class representing 'if' statement
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.child_expression = None
+        self.child_if_branch = None
+        self.child_else_branch = None
+
+    def set_expression(self, node):
+        '''
+        expression setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        self.set_parent(node)
+        self.child_expression = node
+
+    def set_if_branch(self, node):
+        '''
+        if_branch setter
+        '''
+        assert isinstance(node, StatementListStmtNode)
+        self.set_parent(node)
+        self.child_if_branch = node
+
+    def set_else_branch(self, node):
+        '''
+        else_branch setter
+        '''
+        assert isinstance(node, StatementListStmtNode)
+        self.set_parent(node)
+        self.child_else_branch = node
+
+
+class McuSleepStmtNode(StatementNode):
+
+    '''
+    Node class representing 'mcu_sleep' statement
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.child_argument_list = None
+
+    def set_argument_list(self, node):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(node, ArgumentListNode)
+        self.set_parent(node)
+        self.child_argument_list = node
 
 
 class FunctionCallExprNode(ExpressionNode):
@@ -180,8 +262,8 @@ class MethodCallExprNode(ExpressionNode):
         '''
         Constructor
         '''
-        self.base_name = None
-        self.name = None
+        self.ctx_base_name = None
+        self.ctx_name = None
         self.child_argument_list = None
 
     def set_argument_list(self, node):
@@ -191,3 +273,29 @@ class MethodCallExprNode(ExpressionNode):
         assert isinstance(node, ArgumentListNode)
         self.set_parent(node)
         self.child_argument_list = node
+
+
+class NumberLiteralExprNode(ExpressionNode):
+
+    '''
+    Node class representing a number literal
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.ctx_literal = None
+
+
+class VariableExprNode(ExpressionNode):
+
+    '''
+    Node class representing a variable use
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.ctx_name = None

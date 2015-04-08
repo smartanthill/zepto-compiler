@@ -35,7 +35,8 @@ def walk_node_childs(walker, node):
     for current in names:
         if current.startswith('child_'):
             ch = getattr(node, current)
-            walker.walk_node(ch)
+            if ch:
+                walker.walk_node(ch)
         elif current.startswith('childs_'):
             chs = getattr(node, current)
             for ch in chs:

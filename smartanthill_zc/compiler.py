@@ -19,6 +19,10 @@ from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
 
 
+def format_location(ctx):
+    return 'line %s, ' % str(ctx.start.line)
+
+
 class CompilerError(Exception):
 
     '''
@@ -42,12 +46,13 @@ class Compiler(object):
         self.removed_nodes = []
         self.error_flag = False
 
-    def init_node(self, node):
+    def init_node(self, node, ctx):
         '''
         Initializes a node by setting its node_id
         '''
         node.node_id = self.next_node_id
         self.next_node_id += 1
+        node.ctx = ctx
         return node
 
     def remove_node(self, node):
@@ -56,20 +61,15 @@ class Compiler(object):
         '''
         self.removed_nodes.append(node.node_id)
 
-    def reportError(self, fmt, args):
+    def reportError(self, ctx, fmt, args=None):
         '''
         Reports an error
         '''
         self.error_flag = True
-        print fmt % args
-
-    def raiseError(self, fmt, args):
-        '''
-        Reports an error and raises CompilerError
-        '''
-        self.error_flag = True
-        print fmt % args
-        raise CompilerError()
+        if args:
+            print format_location(ctx) + fmt % args
+        else:
+            print format_location(ctx) + fmt
 
     def syntaxError(self):
         '''
@@ -85,7 +85,7 @@ class Compiler(object):
         Raises CompilerError if any error was reported on this stage
         '''
         if self.error_flag:
-            print "Stage %s giving up because of previous errors" % name
+            print "Stage '%s' giving up" % name
             raise CompilerError()
 
 

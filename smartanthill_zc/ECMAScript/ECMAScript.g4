@@ -71,10 +71,10 @@ sourceElement
 ///     DebuggerStatement
 statement
  : block
-// | variableStatement
+ | variableStatement
  | emptyStatement
 // | expressionStatement
-// | ifStatement
+ | ifStatement
 // | iterationStatement
 // | continueStatement
 // | breakStatement
@@ -85,7 +85,14 @@ statement
 // | throwStatement
 // | tryStatement
 // | debuggerStatement
+  | mcuSleepStatement
  ;
+
+// mb: ad-hoc rule added for mcu_sleep function call
+mcuSleepStatement
+  : 'mcu_sleep' arguments eos
+;
+
 
 /// Block :
 ///     { StatementList? }
@@ -110,7 +117,7 @@ variableStatement
 ///     VariableDeclaration
 ///     VariableDeclarationList , VariableDeclaration
 variableDeclarationList
- : variableDeclaration /* ( ',' variableDeclaration )* */
+ : variableDeclaration ( ',' variableDeclaration )*
  ;
 
 /// VariableDeclaration :
@@ -509,8 +516,8 @@ singleExpression // mb: oversimplified to begin with
 // | singleExpression '=' expressionSequence                                # AssignmentExpression
 // | singleExpression assignmentOperator expressionSequence                 # AssignmentOperatorExpression
 // | This                                                                   # ThisExpression
-// | Identifier                                                             # IdentifierExpression
-// | literal                                                                # LiteralExpression
+ | Identifier                                                             # IdentifierExpression
+ | literal                                                                # LiteralExpression
 // | arrayLiteral                                                           # ArrayLiteralExpression
 // | objectLiteral                                                          # ObjectLiteralExpression
  | '(' expressionSequence ')'                                             # ParenthesizedExpression
@@ -533,12 +540,12 @@ assignmentOperator
  ;
 
 literal // mb: no strings and no regex
- : ( NullLiteral 
-   | BooleanLiteral
+// : ( NullLiteral 
+//   | BooleanLiteral
 //   | StringLiteral
 //   | RegularExpressionLiteral
-   )
- | numericLiteral
+//   )
+ : numericLiteral
  ;
 
 numericLiteral // mb: only decimal literals
