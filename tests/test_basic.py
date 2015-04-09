@@ -20,7 +20,7 @@ from smartanthill_zc import syntax
 from smartanthill_zc import visitor
 
 
-def common_test_run(code, expected):
+def common_test_run(code):
     comp = compiler.Compiler()
     js_tree = compiler.parse_js_string(comp, code)
 
@@ -30,7 +30,7 @@ def common_test_run(code, expected):
 
     actual = visitor.dump_tree(root)
 
-    assert actual == expected
+    return actual
 
 
 def test_js_simple_return():
@@ -40,21 +40,11 @@ def test_js_simple_return():
         "+-StatementListStmtNode",
         "+-+-ReturnStmtNode",
         "+-+-+-MethodCallExprNode base_name='Some' name='Thing'",
-        "+-+-+-+-ArgumentListNode"]
+        "+-+-+-+-ArgumentListNode"
+    ]
 
-    common_test_run(u'return Some.Thing();', expected)
-
-
-def test_js_if():
-    expected = [
-        "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-IfElseStmtNode",
-        "+-+-+-VariableExprNode name='i'",
-        "+-+-+-StatementListStmtNode",
-        "+-+-+-+-NopStmtNode"]
-
-    common_test_run(u'if(i);', expected)
+    actual = common_test_run(u'return Some.Thing();')
+    assert actual == expected
 
 
 def test_js_if_else():
@@ -68,9 +58,15 @@ def test_js_if_else():
         "+-+-+-VariableExprNode name='i'",
         "+-+-+-StatementListStmtNode",
         "+-+-+-+-ReturnStmtNode",
-        "+-+-+-+-+-NumberLiteralExprNode literal='15.5'"]
+        "+-+-+-+-+-NumberLiteralExprNode literal='15.5'"
+    ]
 
-    common_test_run(u'if(i) return 15.5; else {return 0;}', expected)
+    actual = common_test_run(u'if(i) return 15.5; else {return 0;}')
+    assert actual == expected
+
+
+def test_js_if_without_else():
+    common_test_run(u'if(i);')
 
 
 def test_js_nop():
@@ -79,9 +75,11 @@ def test_js_nop():
         "+-StatementListStmtNode",
         "+-+-NopStmtNode",
         "+-+-NopStmtNode",
-        "+-+-NopStmtNode"]
+        "+-+-NopStmtNode"
+    ]
 
-    common_test_run(u';;;', expected)
+    actual = common_test_run(u';;;')
+    assert actual == expected
 
 
 def test_js_mcu_sleep():
@@ -90,18 +88,11 @@ def test_js_mcu_sleep():
         "+-StatementListStmtNode",
         "+-+-McuSleepStmtNode",
         "+-+-+-ArgumentListNode",
-        "+-+-+-+-NumberLiteralExprNode literal='60'"]
+        "+-+-+-+-NumberLiteralExprNode literal='60'"
+    ]
 
-    common_test_run(u'mcu_sleep(60);', expected)
-
-
-def test_js_var():
-    expected = [
-        "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-VariableDeclarationStmtNode name='i'"]
-
-    common_test_run(u'var i;', expected)
+    actual = common_test_run(u'mcu_sleep(60);')
+    assert actual == expected
 
 
 def test_js_var_init():
@@ -109,21 +100,27 @@ def test_js_var_init():
         "RootNode",
         "+-StatementListStmtNode",
         "+-+-VariableDeclarationStmtNode name='i'",
-        "+-+-+-NumberLiteralExprNode literal='60'"]
+        "+-+-+-NumberLiteralExprNode literal='60'"
+    ]
 
-    common_test_run(u'var i = 60;', expected)
+    actual = common_test_run(u'var i = 60;')
+    assert actual == expected
+
+
+def test_js_var_without_init():
+    common_test_run(u'var i;')
 
 
 def test_js_var_multi_raise():
     with pytest.raises(compiler.CompilerError):
 
-        common_test_run(u'var i, j;', [])
+        common_test_run(u'var i, j;')
 
 
 def test_js_expr_multi_raise():
     with pytest.raises(compiler.CompilerError):
 
-        common_test_run(u'if(i, j);', [])
+        common_test_run(u'if(i, j);')
 
 
 def test_js_trivial_loop():
@@ -134,18 +131,77 @@ def test_js_trivial_loop():
         "+-+-+-NumberLiteralExprNode literal='0'",
         "+-+-+-NumberLiteralExprNode literal='5'",
         "+-+-+-StatementListStmtNode",
-        "+-+-+-+-NopStmtNode"]
+        "+-+-+-+-NopStmtNode"
+    ]
 
-    common_test_run(u'for(var i = 0; i < 5; i++) ;', expected)
+    actual = common_test_run(u'for(var i = 0; i < 5; i++) ;')
+    assert actual == expected
 
 
 def test_js_trivial_loop_raise1():
     with pytest.raises(compiler.CompilerError):
 
-        common_test_run(u'for(var i = 0; x < 5; i++) ;', [])
+        common_test_run(u'for(var i = 0; x < 5; i++) ;')
 
 
 def test_js_trivial_loop_raise2():
     with pytest.raises(compiler.CompilerError):
 
-        common_test_run(u'for(var i = 0; i < 5; x++) ;', [])
+        common_test_run(u'for(var i = 0; i < 5; x++) ;')
+
+
+def test_js_binary_operator():
+
+    expected = [
+        "RootNode",
+        "+-StatementListStmtNode",
+        "+-+-ReturnStmtNode",
+        "+-+-+-OperatorExprNode operator='&&'",
+        "+-+-+-+-ArgumentListNode",
+        "+-+-+-+-+-VariableExprNode name='some'",
+        "+-+-+-+-+-VariableExprNode name='other'"
+    ]
+
+    actual = common_test_run(u'return some && other;')
+    assert actual == expected
+
+
+def test_js_unary_operator():
+
+    expected = [
+        "RootNode",
+        "+-StatementListStmtNode",
+        "+-+-ReturnStmtNode",
+        "+-+-+-OperatorExprNode operator='!'",
+        "+-+-+-+-ArgumentListNode",
+        "+-+-+-+-+-VariableExprNode name='some'",
+    ]
+
+    actual = common_test_run(u'return !some;')
+    assert actual == expected
+
+
+def test_js_unsuported_operator_raise():
+    with pytest.raises(compiler.CompilerError):
+
+        common_test_run(u'return some === other;')
+
+
+def test_js_operator_plus():
+
+    common_test_run(u'return some + other;')
+
+
+def test_js_operator_modulus():
+
+    common_test_run(u'return some % other;')
+
+
+def test_js_operator_less_than():
+
+    common_test_run(u'return some < other;')
+
+
+def test_js_operator_equal():
+
+    common_test_run(u'return some == other;')

@@ -265,13 +265,18 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#MethodExpression.
-    def visitMethodExpression(self, ctx):
+    # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
+    def visitFunctionExpression(self, ctx):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
-    def visitFunctionExpression(self, ctx):
+    # Visit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
+    def visitLogicalOrExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#LogicalAndExpression.
+    def visitLogicalAndExpression(self, ctx):
         return self.visitChildren(ctx)
 
 
@@ -280,13 +285,43 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
-    def visitLiteralExpression(self, ctx):
+    # Visit a parse tree produced by ECMAScriptParser#NotExpression.
+    def visitNotExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#RelationalExpression.
+    def visitRelationalExpression(self, ctx):
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
     def visitParenthesizedExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#MethodExpression.
+    def visitMethodExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#EqualityExpression.
+    def visitEqualityExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def visitLiteralExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
+    def visitAdditiveExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
+    def visitMultiplicativeExpression(self, ctx):
         return self.visitChildren(ctx)
 
 

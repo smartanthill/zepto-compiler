@@ -353,3 +353,25 @@ class VariableExprNode(ExpressionNode):
         Constructor
         '''
         self.ctx_name = None
+
+
+class OperatorExprNode(ExpressionNode):
+
+    '''
+    Node class representing a operator expression
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.ctx_operator = None
+        self.child_argument_list = None
+
+    def set_argument_list(self, node):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(node, ArgumentListNode)
+        self.set_parent(node)
+        self.child_argument_list = node

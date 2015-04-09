@@ -472,21 +472,30 @@ class ECMAScriptListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by ECMAScriptParser#MethodExpression.
-    def enterMethodExpression(self, ctx):
-        pass
-
-    # Exit a parse tree produced by ECMAScriptParser#MethodExpression.
-    def exitMethodExpression(self, ctx):
-        pass
-
-
     # Enter a parse tree produced by ECMAScriptParser#FunctionExpression.
     def enterFunctionExpression(self, ctx):
         pass
 
     # Exit a parse tree produced by ECMAScriptParser#FunctionExpression.
     def exitFunctionExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#LogicalOrExpression.
+    def enterLogicalOrExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
+    def exitLogicalOrExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#LogicalAndExpression.
+    def enterLogicalAndExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#LogicalAndExpression.
+    def exitLogicalAndExpression(self, ctx):
         pass
 
 
@@ -499,12 +508,21 @@ class ECMAScriptListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by ECMAScriptParser#LiteralExpression.
-    def enterLiteralExpression(self, ctx):
+    # Enter a parse tree produced by ECMAScriptParser#NotExpression.
+    def enterNotExpression(self, ctx):
         pass
 
-    # Exit a parse tree produced by ECMAScriptParser#LiteralExpression.
-    def exitLiteralExpression(self, ctx):
+    # Exit a parse tree produced by ECMAScriptParser#NotExpression.
+    def exitNotExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#RelationalExpression.
+    def enterRelationalExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#RelationalExpression.
+    def exitRelationalExpression(self, ctx):
         pass
 
 
@@ -514,6 +532,51 @@ class ECMAScriptListener(ParseTreeListener):
 
     # Exit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
     def exitParenthesizedExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#MethodExpression.
+    def enterMethodExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#MethodExpression.
+    def exitMethodExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#EqualityExpression.
+    def enterEqualityExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#EqualityExpression.
+    def exitEqualityExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def enterLiteralExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def exitLiteralExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#AdditiveExpression.
+    def enterAdditiveExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#AdditiveExpression.
+    def exitAdditiveExpression(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
+    def enterMultiplicativeExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
+    def exitMultiplicativeExpression(self, ctx):
         pass
 
 

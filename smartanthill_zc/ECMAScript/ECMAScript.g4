@@ -501,19 +501,19 @@ singleExpression // mb: oversimplified to begin with
 // | '+' singleExpression                                                   # UnaryPlusExpression
 // | '-' singleExpression                                                   # UnaryMinusExpression
 // | '~' singleExpression                                                   # BitNotExpression
-// | '!' singleExpression                                                   # NotExpression
-// | singleExpression ( '*' | '/' | '%' ) singleExpression                  # MultiplicativeExpression
-// | singleExpression ( '+' | '-' ) singleExpression                        # AdditiveExpression
+ | '!' singleExpression                                                   # NotExpression
+ | singleExpression ( '*' | '/' | '%' ) singleExpression                  # MultiplicativeExpression
+ | singleExpression ( '+' | '-' ) singleExpression                        # AdditiveExpression
 // | singleExpression ( '<<' | '>>' | '>>>' ) singleExpression              # BitShiftExpression
-// | singleExpression ( '<' | '>' | '<=' | '>=' ) singleExpression          # RelationalExpression
+ | singleExpression ( '<' | '>' | '<=' | '>=' ) singleExpression          # RelationalExpression
 // | singleExpression Instanceof singleExpression                           # InstanceofExpression
 // | singleExpression In singleExpression                                   # InExpression
-// | singleExpression ( '==' | '!=' | '===' | '!==' ) singleExpression      # EqualityExpression
+ | singleExpression ( '==' | '!=' | '===' | '!==' ) singleExpression      # EqualityExpression
 // | singleExpression '&' singleExpression                                  # BitAndExpression
 // | singleExpression '^' singleExpression                                  # BitXOrExpression
 // | singleExpression '|' singleExpression                                  # BitOrExpression
-// | singleExpression '&&' singleExpression                                 # LogicalAndExpression
-// | singleExpression '||' singleExpression                                 # LogicalOrExpression
+ | singleExpression '&&' singleExpression                                 # LogicalAndExpression
+ | singleExpression '||' singleExpression                                 # LogicalOrExpression
 // | singleExpression '?' singleExpression ':' singleExpression             # TernaryExpression
 // | singleExpression '=' expressionSequence                                # AssignmentExpression
 // | singleExpression assignmentOperator expressionSequence                 # AssignmentOperatorExpression

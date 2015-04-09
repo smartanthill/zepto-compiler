@@ -13,12 +13,14 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import antlr4
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
+from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
 from smartanthill_zc.node import StatementListStmtNode, StatementNode,\
     RootNode, McuSleepStmtNode, VariableDeclarationStmtNode, NopStmtNode,\
     IfElseStmtNode, ErrorStmtNode, SimpleForStmtNode, ReturnStmtNode,\
     MethodCallExprNode, FunctionCallExprNode, VariableExprNode,\
-    NumberLiteralExprNode, ArgumentListNode
+    NumberLiteralExprNode, ArgumentListNode, OperatorExprNode
 
 
 def make_statement_list(compiler, stmt):
@@ -73,6 +75,47 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     def __init__(self, compiler):
         self.compiler = compiler
+
+    def init_operator(self, node, node_ctx, op_ctx, expr_list_ctx):
+        '''
+        Initializes a very generic operator expression.
+        Operands go into an argument list exactly the same as methods,
+        this should make easier argument match algorithms
+        '''
+
+        node = self.compiler.init_node(node, node_ctx)
+
+        assert isinstance(op_ctx, antlr4.TerminalNode)
+        if op_ctx.getSymbol().type in [
+                ECMAScriptParser.Not,
+                ECMAScriptParser.Multiply,
+                ECMAScriptParser.Divide,
+                ECMAScriptParser.Modulus,
+                ECMAScriptParser.Plus,
+                ECMAScriptParser.Minus,
+                ECMAScriptParser.LessThan,
+                ECMAScriptParser.MoreThan,
+                ECMAScriptParser.LessThanEquals,
+                ECMAScriptParser.GreaterThanEquals,
+                ECMAScriptParser.Equals,
+                ECMAScriptParser.NotEquals,
+                ECMAScriptParser.And,
+                ECMAScriptParser.Or]:
+            node.ctx_operator = op_ctx
+        else:
+            node.ctx_operator = op_ctx  # set it anyway, but report error
+            self.compiler.report_error(
+                node_ctx, "Operator '%s' not supported", op_ctx.getText())
+
+        arg_list = self.compiler.init_node(ArgumentListNode(), node_ctx)
+
+        for e in expr_list_ctx:
+            expr = self.visit(e)
+            arg_list.add_argument(expr)
+
+        node.set_argument_list(arg_list)
+
+        return node
 
     # Visit a parse tree produced by ECMAScriptParser#program.
     def visitProgram(self, ctx):
@@ -424,6 +467,47 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         return self.visit(expr_list[0])
 
+    # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
+    def visitFunctionExpression(self, ctx):
+        expr = self.compiler.init_node(FunctionCallExprNode(), ctx)
+
+        expr.ctx_name = ctx.Identifier()
+        args = self.visit(ctx.arguments())
+        expr.set_argument_list(args)
+
+        return expr
+
+    # Visit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
+    def visitLogicalOrExpression(self, ctx):
+        return self.init_operator(OperatorExprNode(), ctx, ctx.getChild(1),
+                                  ctx.singleExpression())
+
+    # Visit a parse tree produced by ECMAScriptParser#LogicalAndExpression.
+    def visitLogicalAndExpression(self, ctx):
+        return self.init_operator(OperatorExprNode(), ctx, ctx.getChild(1),
+                                  ctx.singleExpression())
+
+    # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
+    def visitIdentifierExpression(self, ctx):
+        expr = self.compiler.init_node(VariableExprNode(), ctx)
+        expr.ctx_name = ctx
+
+        return expr
+
+    # Visit a parse tree produced by ECMAScriptParser#NotExpression.
+    def visitNotExpression(self, ctx):
+        return self.init_operator(OperatorExprNode(), ctx, ctx.getChild(0),
+                                  [ctx.singleExpression()])
+
+    # Visit a parse tree produced by ECMAScriptParser#RelationalExpression.
+    def visitRelationalExpression(self, ctx):
+        return self.init_operator(OperatorExprNode(), ctx, ctx.getChild(1),
+                                  ctx.singleExpression())
+
+    # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
+    def visitParenthesizedExpression(self, ctx):
+        return self.visit(ctx.expressionSequence())
+
     # Visit a parse tree produced by ECMAScriptParser#MethodExpression.
     def visitMethodExpression(self, ctx):
         expr = self.compiler.init_node(MethodCallExprNode(), ctx)
@@ -435,22 +519,10 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         return expr
 
-    # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
-    def visitFunctionExpression(self, ctx):
-        expr = self.compiler.init_node(FunctionCallExprNode(), ctx)
-
-        expr.ctx_name = ctx.Identifier()
-        args = self.visit(ctx.arguments())
-        expr.set_argument_list(args)
-
-        return expr
-
-    # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
-    def visitIdentifierExpression(self, ctx):
-        expr = self.compiler.init_node(VariableExprNode(), ctx)
-        expr.ctx_name = ctx
-
-        return expr
+    # Visit a parse tree produced by ECMAScriptParser#EqualityExpression.
+    def visitEqualityExpression(self, ctx):
+        return self.init_operator(OperatorExprNode(), ctx, ctx.getChild(1),
+                                  ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
     def visitLiteralExpression(self, ctx):
@@ -461,9 +533,15 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         return expr
 
-    # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
-    def visitParenthesizedExpression(self, ctx):
-        return self.visit(ctx.expressionSequence())
+    # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
+    def visitAdditiveExpression(self, ctx):
+        return self.init_operator(OperatorExprNode(), ctx, ctx.getChild(1),
+                                  ctx.singleExpression())
+
+    # Visit a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
+    def visitMultiplicativeExpression(self, ctx):
+        return self.init_operator(OperatorExprNode(), ctx, ctx.getChild(1),
+                                  ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#assignmentOperator.
     def visitAssignmentOperator(self, ctx):
