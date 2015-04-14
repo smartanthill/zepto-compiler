@@ -488,7 +488,7 @@ singleExpression // mb: oversimplified to begin with
  | Identifier arguments                                                 # FunctionExpression
 // : Function Identifier? '(' formalParameterList? ')' '{' functionBody '}' # FunctionExpression
 // | singleExpression '[' expressionSequence ']'                            # MemberIndexExpression
-// | singleExpression '.' identifierName                                    # MemberDotExpression
+ | singleExpression '.' identifierName                                    # MemberDotExpression
 // | singleExpression arguments                                             # ArgumentsExpression
 // | New singleExpression arguments?                                        # NewExpression
 // | singleExpression /* {!here(LineTerminator)}? */ '++'                   # PostIncrementExpression

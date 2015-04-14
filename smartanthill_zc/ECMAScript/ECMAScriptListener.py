@@ -481,6 +481,15 @@ class ECMAScriptListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by ECMAScriptParser#MemberDotExpression.
+    def enterMemberDotExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#MemberDotExpression.
+    def exitMemberDotExpression(self, ctx):
+        pass
+
+
     # Enter a parse tree produced by ECMAScriptParser#LogicalOrExpression.
     def enterLogicalOrExpression(self, ctx):
         pass

@@ -19,7 +19,7 @@ from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
 from smartanthill_zc.node import ExpressionNode
 from smartanthill_zc.visitor import NodeWalker, walk_node_childs
-from smartanthill_zc.errors import CompilerError, format_location
+from smartanthill_zc.errors import CompilerError, format_location, BuiltinCtx
 
 
 class Compiler(object):
@@ -29,6 +29,8 @@ class Compiler(object):
     provides some helper methods
     '''
 
+    BUILTIN = BuiltinCtx('<builtin>')
+
     def __init__(self):
         '''
         Constructor
@@ -36,7 +38,6 @@ class Compiler(object):
         self.next_node_id = 0
         self.removed_nodes = []
         self.error_flag = False
-        self._replacement = None
 
     def init_node(self, node, ctx):
         '''
@@ -54,18 +55,12 @@ class Compiler(object):
         '''
         self.removed_nodes.append(node.node_id)
 
-    def replace_self(self, node):
-        '''
-        Helper method used at resolution for node replacement
-        '''
-        self._replacement = node
-
     def resolve_node(self, node):
         '''
         Generic node resolution
         '''
-
-        node.resolve(self)
+        if node:
+            node.resolve(self)
 
     def resolve_expression(self, parent, child_name):
         '''
@@ -76,10 +71,10 @@ class Compiler(object):
         expr = getattr(parent, child_name)
         if expr:
             replacement = expr.resolve_expr(self)
-            if replacement:
+            if replacement and replacement != expr:
                 assert isinstance(replacement, ExpressionNode)
                 replacement.set_parent(parent)
-                setattr(parent, child_name, self._replacement)
+                setattr(parent, child_name, replacement)
 
                 # resolve again (replacement)
                 self.resolve_expression(parent, child_name)
@@ -93,9 +88,9 @@ class Compiler(object):
         '''
         replacement = expr_list[i].resolve_expr(self)
 
-        if replacement:
+        if replacement and replacement != expr_list[i]:
             assert isinstance(replacement, ExpressionNode)
-            replacement .set_parent(parent)
+            replacement.set_parent(parent)
             expr_list[i] = replacement
 
             # resolve again (replacement)
@@ -145,11 +140,11 @@ class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
         '''
         self.compiler = compiler
 
-# pylint: disable=unused-argument
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
         '''
         Implements ErrorListener from antlr4
         '''
+        # pylint: disable=unused-argument
         self.compiler.syntax_error()
 
 

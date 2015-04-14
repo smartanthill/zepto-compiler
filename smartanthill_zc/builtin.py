@@ -13,9 +13,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.node import Node, DeclarationHelper
-from smartanthill_zc.errors import BuiltinCtx
-from smartanthill_zc.errors import ResolutionError
+from smartanthill_zc.node import Node, DeclarationHelper,\
+    StaticEvaluatedExprNode
 
 
 def create_builtins(compiler, root):
@@ -23,7 +22,7 @@ def create_builtins(compiler, root):
     Creates all built in nodes and adds them to the root
     '''
 
-    ctx = BuiltinCtx()
+    ctx = compiler.BUILTIN
 
     root.add_declaration(
         compiler.init_node(BasicTypeDeclNode(u'_zc_void',
@@ -42,7 +41,7 @@ def create_builtins(compiler, root):
 
     mcu = compiler.init_node(McuSleepDeclNode(), ctx)
     mcu.set_parameter_list(
-        _create_parameter_list(compiler, ctx, [u'_zc_number']))
+        _create_parameter_list(compiler, ctx, [u'_zc_number_literal']))
     root.add_declaration(mcu)
 
     root.add_declaration(
@@ -51,11 +50,18 @@ def create_builtins(compiler, root):
     root.add_declaration(
         _create_test_plugin(compiler, ctx, u'TemperatureSensor'))
 
+    _create_literal_operators(compiler, ctx, root, [u'+', u'-', u'*', u'/'],
+                              u'_zc_number_literal',
+                              [u'_zc_number_literal', u'_zc_number_literal'])
+
     _create_operators(compiler, ctx, root, [u'+', u'-', u'*', u'/'],
                       u'_zc_number', [u'_zc_number', u'_zc_number'])
 
     _create_operators(compiler, ctx, root, [u'<', u'>', u'<=', u'>='],
                       u'_zc_bool', [u'_zc_number', u'_zc_number'])
+
+    _create_operators(compiler, ctx, root, [u'<', u'>', u'<=', u'>='],
+                      u'_zc_bool', [u'_zc_number', u'_zc_number_literal'])
 
     _create_operators(compiler, ctx, root, [u'==', u'!='],
                       u'_zc_bool', [u'_zc_bool', u'_zc_bool'])
@@ -76,8 +82,9 @@ class _TypeCode(object):
     VOID = 0
     OTHER = 1
     BOOL = 2
-    NUMBER = 3
-    NUMBER_LITERAL = 4
+    BOOL_LITERAL = 3
+    NUMBER = 4
+    NUMBER_LITERAL = 5
 
 
 class TypeDeclNode(Node):
@@ -92,8 +99,22 @@ class TypeDeclNode(Node):
         '''
         super(TypeDeclNode, self).__init__()
 
-    def get_type(self):
-        return self
+    def can_initialize(self, compiler, rhs):
+        '''
+        Returns true if an instance of this type can be initialized with rhs
+        '''
+        del compiler
+
+        return self == rhs
+
+    def lookup_member(self, name):
+        '''
+        Returns member by name
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+
+        return None
 
 
 class BasicTypeDeclNode(TypeDeclNode):
@@ -123,27 +144,15 @@ class BasicTypeDeclNode(TypeDeclNode):
         '''
         Returns true if an instance of this type can be initialized with rhs
         '''
+        del compiler
 
         if self.is_void() or rhs.is_void():
             return False
-        elif self == rhs:
-            return True
-        elif self.is_number() and rhs.is_number_lieral():
-            return True
         else:
-            return False
+            return self == rhs
 
     def is_void(self):
         return self._type_code == _TypeCode.VOID
-
-    def is_bool(self):
-        return self._type_code == _TypeCode.BOOL
-
-    def is_number(self):
-        return self._type_code == _TypeCode.NUMBER
-
-    def is_number_lieral(self):
-        return self._type_code == _TypeCode.NUMBER_LITERAL
 
 
 class AggregateTypeElementDeclNode(Node, DeclarationHelper):
@@ -164,6 +173,7 @@ class AggregateTypeElementDeclNode(Node, DeclarationHelper):
         '''
         Template method from DeclarationHelper
         '''
+        del compiler
         return self.get_root_scope().lookup_type(self.str_type_name)
 
 
@@ -201,19 +211,12 @@ class AggregateTypeDeclNode(TypeDeclNode):
         self.get_root_scope().add_type(compiler, self.str_name, self)
         self._already_resolved = True
 
-    def lookup_attribute(self, name):
+    def lookup_member(self, name):
         for current in self.childs_elements:
-            if current.name == name:
+            if current.str_name == name:
                 return current
 
         return None
-
-    def can_initialize(self, compiler, rhs):
-        '''
-        Returns true if an instance of this type can be initialized with rhs
-        '''
-
-        return self == rhs
 
 
 class ParameterDeclNode(Node, DeclarationHelper):
@@ -233,6 +236,8 @@ class ParameterDeclNode(Node, DeclarationHelper):
         '''
         Template method from DeclarationHelper
         '''
+        del compiler
+
         return self.get_root_scope().lookup_type(self.str_type_name)
 
     def can_initialize(self, compiler, rhs):
@@ -273,21 +278,20 @@ class ParameterListNode(Node):
             compiler.resolve_node(param)
         self._already_resolved = True
 
-    def match_arguments(self, compiler, arg_list):
+    def can_match_arguments(self, compiler, arg_list):
         '''
         If this parameter list can not be initialized with given argument list,
         error is raised
         '''
-        if len(self.childs_parameters) != len(arg_list.childs_arguments):
-            compiler.report_error(arg_list.ctx, "Argument number mismatch")
-            raise ResolutionError()
+        if len(self.childs_parameters) != arg_list.get_size():
+            return False
 
         for i in range(len(self.childs_parameters)):
-            t = arg_list.childs_arguments[i].get_type()
+            t = arg_list.get_arg(i).get_type()
             if not self.childs_parameters[i].can_initialize(compiler, t):
-                compiler.report_error(
-                    arg_list.ctx, "Argument %s type mismatch" % str(i))
-                raise ResolutionError()
+                return False
+
+        return True
 
 
 def _create_parameter_list(compiler, ctx, type_list):
@@ -351,8 +355,74 @@ class OperatorDeclNode(Node, DeclarationHelper):
     def match_arguments(self, compiler, arg_list):
         '''
         Checks if the given arguments can be used to call this function
+        If false, it raises
         '''
         self.child_parameter_list.match_arguments(compiler, arg_list)
+
+    def can_match_arguments(self, compiler, arg_list):
+        '''
+        Returns if the given arguments can be used to call this function
+        '''
+        return self.child_parameter_list.can_match_arguments(compiler,
+                                                             arg_list)
+
+    def static_evaluate(self, compiler, node, arg_list):
+        '''
+        Do static evaluation of expressions when possible
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+        return None
+
+
+def _create_literal_operators(compiler, ctx, root, operator_list, ret_type,
+                              type_list):
+
+    for current in operator_list:
+        op = compiler.init_node(
+            NumberLiteralOpDeclNode(current, ret_type), ctx)
+        op.set_parameter_list(_create_parameter_list(compiler, ctx, type_list))
+        root.add_declaration(op)
+
+
+class NumberLiteralOpDeclNode(OperatorDeclNode):
+
+    '''
+    Node class to represent an operator declaration
+    '''
+
+    def __init__(self, operator, type_name):
+        '''
+        Constructor
+        '''
+        super(NumberLiteralOpDeclNode, self).__init__(operator, type_name)
+
+    def static_evaluate(self, compiler, node, arg_list):
+        '''
+        Do static evaluation of expressions when possible
+        '''
+        assert arg_list.get_size() == 2
+
+        lhs = arg_list.get_arg(0).get_static_value()
+        rhs = arg_list.get_arg(1).get_static_value()
+
+        result = compiler.init_node(StaticEvaluatedExprNode(), node.ctx)
+
+        if self.str_operator == u'+':
+            result.set_static_value(lhs + rhs)
+        elif self.str_operator == u'-':
+            result.set_static_value(lhs - rhs)
+        elif self.str_operator == u'*':
+            result.set_static_value(lhs - rhs)
+        elif self.str_operator == u'/':
+            result.set_static_value(lhs - rhs)
+        else:
+            assert False
+
+        result.set_type(self.get_type())
+        result.set_replaced(node)
+
+        return result
 
 
 class McuSleepDeclNode(Node, DeclarationHelper):
@@ -380,13 +450,6 @@ class McuSleepDeclNode(Node, DeclarationHelper):
         '''
         Template method from DeclarationHelper
         '''
-
-        self.set_parameter_list(
-            compiler.init_node(ParameterListNode(), self.ctx))
-
-        self.child_parameter_list.add_parameter(
-            compiler.init_node(ParameterDeclNode(u'_zc_number'), self.ctx))
-
         compiler.resolve_node(self.child_parameter_list)
 
         scope = self.get_root_scope()
@@ -394,11 +457,12 @@ class McuSleepDeclNode(Node, DeclarationHelper):
 
         return scope.lookup_type(u'_zc_void')
 
-    def match_arguments(self, compiler, arg_list):
+    def can_match_arguments(self, compiler, arg_list):
         '''
-        Checks if the given arguments can be used to call this function
+        Returns if the given arguments can be used to call this function
         '''
-        self.child_parameter_list.match_arguments(compiler, arg_list)
+        return self.child_parameter_list.can_match_arguments(compiler,
+                                                             arg_list)
 
 
 def _create_test_plugin_type(compiler, ctx, name):
@@ -412,6 +476,11 @@ def _create_test_plugin_type(compiler, ctx, name):
 
     a.add_element(
         compiler.init_node(AggregateTypeElementDeclNode('value', '_zc_number'),
+                           ctx))
+
+    a.add_element(
+        compiler.init_node(AggregateTypeElementDeclNode('Temperature',
+                                                        '_zc_number'),
                            ctx))
 
     return a
@@ -468,8 +537,9 @@ class PluginDeclNode(Node, DeclarationHelper):
     def lookup_method(self, name):
         return self if name == "Execute" else None
 
-    def match_arguments(self, compiler, arg_list):
+    def can_match_arguments(self, compiler, arg_list):
         '''
-        Checks if the given arguments can be used to call this function
+        Returns if the given arguments can be used to call this function
         '''
-        self.child_parameter_list.match_arguments(compiler, arg_list)
+        return self.child_parameter_list.can_match_arguments(compiler,
+                                                             arg_list)

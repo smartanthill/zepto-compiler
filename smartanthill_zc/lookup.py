@@ -27,7 +27,11 @@ def lookup_variable(scope, name):
     if v:
         return v
     else:
-        return lookup_variable(scope.get_container_scope(), name)
+        p = scope.get_owner().get_parent()
+        if p:
+            return lookup_variable(p.get_stmt_scope(), name)
+        else:
+            return None
 
 
 class StatementListScope(object):
@@ -42,6 +46,9 @@ class StatementListScope(object):
         '''
         self._owner = owner
         self._variables = {}
+
+    def get_owner(self):
+        return self._owner
 
     def add_variable(self, compiler, name, node):
         '''
@@ -118,6 +125,8 @@ class RootScope(object):
         '''
         Adds an operator
         '''
+        del compiler
+
         if name not in self._operators:
             self._operators[name] = []
 
@@ -127,7 +136,7 @@ class RootScope(object):
         '''
         Looks up an operator
         '''
-        return self._operators[name] if name in self._operators else None
+        return self._operators[name] if name in self._operators else []
 
     def add_function(self, compiler, name, node):
         '''

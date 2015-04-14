@@ -270,6 +270,11 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
+    def visitMemberDotExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
     def visitLogicalOrExpression(self, ctx):
         return self.visitChildren(ctx)

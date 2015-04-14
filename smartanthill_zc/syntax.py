@@ -20,7 +20,8 @@ from smartanthill_zc.node import StatementListStmtNode, StatementNode,\
     RootNode, McuSleepStmtNode, VariableDeclarationStmtNode, NopStmtNode,\
     IfElseStmtNode, ErrorStmtNode, SimpleForStmtNode, ReturnStmtNode,\
     MethodCallExprNode, FunctionCallExprNode, VariableExprNode,\
-    NumberLiteralExprNode, ArgumentListNode, OperatorExprNode
+    NumberLiteralExprNode, ArgumentListNode, OperatorExprNode,\
+    MemberAccessExprNode
 
 
 def make_statement_list(compiler, stmt):
@@ -476,6 +477,16 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         expr.set_argument_list(args)
 
         return expr
+
+    # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
+    def visitMemberDotExpression(self, ctx):
+        member_name = ctx.identifierName()
+        node = self.compiler.init_node(MemberAccessExprNode(member_name), ctx)
+
+        e = self.visit(ctx.singleExpression())
+        node.set_expression(e)
+
+        return node
 
     # Visit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
     def visitLogicalOrExpression(self, ctx):

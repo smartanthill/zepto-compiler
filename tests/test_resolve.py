@@ -13,8 +13,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import pytest
-
 from smartanthill_zc import compiler
 from smartanthill_zc import syntax
 from smartanthill_zc import visitor
@@ -36,6 +34,15 @@ def common_test_run(code):
     return actual
 
 
-def test_js_simple_return():
+def test_js_resolve():
 
-    common_test_run(u'mcu_sleep(25);')
+    code = (u'for (var i = 0; i < 5; i++) {'
+            u'  var temp = TemperatureSensor.Execute();'
+            u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
+            u'    return temp;'
+
+            u'  mcu_sleep(5*60);'
+            u'}'
+            u'return TemperatureSensor.Execute();')
+
+    common_test_run(code)

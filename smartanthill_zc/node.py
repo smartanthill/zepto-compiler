@@ -41,6 +41,7 @@ class DeclarationHelper(object):
         '''
         Never actually called, just let pylint happy
         '''
+        super(DeclarationHelper, self).__init__()
         self._resolved_flag = _ResolveStatus.NOT_RESOLVED
         self._resolved_type = None
 
@@ -96,6 +97,7 @@ class Node(object):
         '''
         Constructor
         '''
+        super(Node, self).__init__()
         self._parent = None
 
     def get_stmt_scope(self):
@@ -253,9 +255,40 @@ class ArgumentListNode(Node):
         node.set_parent(self)
         self.childs_arguments.append(node)
 
+    def get_size(self):
+        return len(self.childs_arguments)
+
+    def get_arg(self, i):
+        return self.childs_arguments[i]
+
     def resolve(self, compiler):
         for i in range(len(self.childs_arguments)):
             compiler.resolve_expression_list(self, self.childs_arguments, i)
+
+    def overload_filter(self, compiler, decl_list):
+
+        filtered_list = []
+        for current in decl_list:
+            if current.can_match_arguments(compiler, self):
+                filtered_list.append(current)
+
+        if len(filtered_list) > 1:
+            compiler.report_error(
+                self.ctx, "More than one candidate matches the arguments")
+            raise ResolutionError()
+        elif len(filtered_list) == 0:
+            compiler.report_error(
+                self.ctx, "None of candidates matches the arguments")
+            raise ResolutionError()
+        else:
+            return filtered_list[0]
+
+    def check_match(self, compiler, decl):
+
+        if not decl.can_match_arguments(compiler, self):
+            compiler.report_error(
+                self.ctx, "Arguments mismatch")
+            raise ResolutionError()
 
 
 class StatementListStmtNode(StatementNode):
@@ -276,6 +309,8 @@ class StatementListStmtNode(StatementNode):
         '''
         statement adder
         '''
+        if not node:
+            assert False
         assert isinstance(node, StatementNode)
         node.set_parent(self)
         self.childs_statements.append(node)
@@ -368,7 +403,7 @@ class VariableDeclarationStmtNode(StatementNode, DeclarationHelper):
 
     def do_resolve_declaration(self, compiler):
 
-        compiler.resolved_expression(self, 'child_initializer')
+        compiler.resolve_expression(self, 'child_initializer')
         # we are adding variable name after resolution of initializer
         # because we need avoid posible resolution cycle
         self.get_stmt_scope().add_variable(
@@ -417,7 +452,7 @@ class IfElseStmtNode(StatementNode):
         self.child_else_branch = node
 
     def resolve(self, compiler):
-        compiler.resolved_expression(self, 'child_expression')
+        compiler.resolve_expression(self, 'child_expression')
         compiler.resolve_node(self.child_if_branch)
         compiler.resolve_node(self.child_else_branch)
 
@@ -450,8 +485,9 @@ class McuSleepStmtNode(StatementNode):
         compiler.resolve_node(self.child_argument_list)
         decl = self.get_root_scope().lookup_function(
             u'mcu_sleep')
-        assert decl
-        decl.match_arguments(compiler, self.child_argument_list)
+        assert decl  # is built in function
+
+        self.child_argument_list.check_match(compiler, decl)
 
         self._declaration = decl
 
@@ -509,8 +545,8 @@ class SimpleForStmtNode(StatementNode):
         return self._scope
 
     def resolve(self, compiler):
-        compiler.resolved_expression(self, 'child_begin_expression')
-        compiler.resolved_expression(self, 'child_end_expression')
+        compiler.resolve_expression(self, 'child_begin_expression')
+        compiler.resolve_expression(self, 'child_end_expression')
         compiler.resolve_node(self.child_statement_list)
 
 
@@ -556,7 +592,8 @@ class MethodCallExprNode(ExpressionNode):
         self.ctx_base_name = None
         self.ctx_name = None
         self.child_argument_list = None
-        self._declaration = None
+        self._plugin_declaration = None
+        self._method_declaration = None
 
     def set_argument_list(self, node):
         '''
@@ -570,22 +607,66 @@ class MethodCallExprNode(ExpressionNode):
         compiler.resolve_node(self.child_argument_list)
 
         plugin = self.get_root_scope().lookup_plugin(
-            compiler, self.ctx_base_name.getText())
+            self.ctx_base_name.getText())
 
         if not plugin:
             compiler.report_error(self.ctx, "Unresolved plug-in '%s'",
                                   self.ctx_base_name.getText())
             raise ResolutionError()
 
-        if self.ctx_name.getText() != u'Execute':
-            compiler.report_error(self.ctx, "Plug-in method '%s' not found",
-                                  self.ctx_name.getText())
+        method = plugin.lookup_method(self.ctx_name.getText())
+        if not method:
+            compiler.report_error(self.ctx,
+                                  "Method '%s' not found at plug-in '%s'" %
+                                  (self.ctx_name.getText(),
+                                   self.ctx_base_name.getText()))
             raise ResolutionError()
 
-        # check arguemnt list
-        self._declaration = plugin
+        self.child_argument_list.check_match(compiler, method)
 
-        self.set_type(self._declaration.get_type())
+        self._plugin_declaration = plugin
+        self._method_declaration = method
+
+        self.set_type(self._method_declaration.get_type())
+        return None
+
+
+class MemberAccessExprNode(ExpressionNode):
+
+    '''
+    Node class representing a method call
+    '''
+
+    def __init__(self, member_name):
+        '''
+        Constructor
+        '''
+        super(MemberAccessExprNode, self).__init__()
+        self.txt_member_name = member_name
+        self.child_expression = None
+        self._member_declaration = None
+
+    def set_expression(self, node):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        node.set_parent(self)
+        self.child_expression = node
+
+    def resolve_expr(self, compiler):
+        compiler.resolve_expression(self, 'child_expression')
+
+        t = self.child_expression.get_type()
+        m = t.lookup_member(self.txt_member_name.getText())
+        if not m:
+            compiler.report_error(self.ctx, "Member '%s' not found",
+                                  self.txt_member_name.getText())
+            raise ResolutionError()
+
+        self._member_declaration = m
+
+        self.set_type(self._member_declaration.get_type())
         return None
 
 
@@ -603,10 +684,63 @@ class NumberLiteralExprNode(ExpressionNode):
         self.ctx_literal = None
 
     def resolve_expr(self, compiler):
+
+        del compiler
+
         scope = self.get_root_scope()
 
         self.set_type(scope.lookup_type(u'_zc_number_literal'))
         return None
+
+    def get_static_value(self):
+        '''
+        Returns the float value of this literal
+        Used for complile-time evaluation of expressions
+        '''
+        return float(self.ctx_literal.getText())
+
+
+class StaticEvaluatedExprNode(ExpressionNode):
+
+    '''
+    Node class representing an statically (compile-time) evaluated expression
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(StaticEvaluatedExprNode, self).__init__()
+        self.child_replaced = None
+        self._static_value = None
+
+    def set_replaced(self, node):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        node.set_parent(self)
+        self.child_replaced = node
+
+    def resolve_expr(self, compiler):
+
+        del compiler
+
+        self.get_type()  # Type must already be setted
+        return None
+
+    def set_static_value(self, static_value):
+        '''
+        Value setter
+        Sets the evaluated value for the replaced expression
+        '''
+        self._static_value = static_value
+
+    def get_static_value(self):
+        '''
+        Value getter
+        '''
+        return self._static_value
 
 
 class VariableExprNode(ExpressionNode):
@@ -666,7 +800,16 @@ class OperatorExprNode(ExpressionNode):
         compiler.resolve_node(self.child_argument_list)
         candidates = self.get_root_scope().lookup_operator(
             self.ctx_operator.getText())
-        self._declaration = self.child_argument_list.filter(candidates)
+
+        if len(candidates) == 0:
+            compiler.report_error(
+                self.ctx, "Unresolved operator '%s'" %
+                self.ctx_operator.getText())
+            raise ResolutionError()
+
+        self._declaration = self.child_argument_list.overload_filter(
+            compiler, candidates)
 
         self.set_type(self._declaration.get_type())
-        return None
+        return self._declaration.static_evaluate(compiler, self,
+                                                 self.child_argument_list)

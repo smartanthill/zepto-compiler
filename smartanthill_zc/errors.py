@@ -20,7 +20,8 @@ class BuiltinCtx(object):
     This class is used as context on built in code, to allow format_location
     '''
 
-    CTX = '<builtin>'
+    def __init__(self, text):
+        self.text = text
 
 
 def format_location(ctx):
@@ -29,7 +30,7 @@ def format_location(ctx):
     '''
 
     if isinstance(ctx, BuiltinCtx):
-        return ctx.CTX
+        return ctx.text
     else:
         return 'line %s, ' % str(ctx.start.line)
 

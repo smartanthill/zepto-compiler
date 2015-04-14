@@ -22,12 +22,18 @@ from smartanthill_zc import builtin
 
 
 def main():
-    #    tree = compiler.parse_js_string(u'return 2 + 3;')
-    #    print compiler.tree_to_str(tree)
 
-    #    parse_tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
+    code = (u'for (var i = 0; i < 5; i++) {'
+            u'  var temp = TemperatureSensor.Execute();'
+            u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
+            u'    return temp;'
+
+            u'  mcu_sleep(5*60);'
+            u'}'
+            u'return TemperatureSensor.Execute();')
+
     comp = compiler.Compiler()
-    js_tree = compiler.parse_js_string(comp, u'mcu_sleep( 60 );')
+    js_tree = compiler.parse_js_string(comp, code)
     print '\n'.join(compiler.dump_antlr_tree(js_tree))
     root = syntax.js_tree_to_syntax_tree(comp, js_tree)
 

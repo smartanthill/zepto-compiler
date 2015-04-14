@@ -146,6 +146,9 @@ class _DumpTreeWalker(NodeWalker):
             elif current.startswith('str_'):
                 ctx_attrs += " %s='%s'" % (current[4:],
                                            getattr(node, current))
+            elif current.startswith('txt_'):
+                ctx_attrs += " %s='%s'" % (current[4:],
+                                           getattr(node, current).getText())
 
         s = '+-' * self.index + type(node).__name__ + ctx_attrs
         self.result.append(s)
