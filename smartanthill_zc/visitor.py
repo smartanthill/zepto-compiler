@@ -86,7 +86,7 @@ class _CheckReachableWalker(NodeWalker):
     def walk_node(self, node):
         assert node
         if len(self.parents) != 0:
-            assert self.parents[-1] == node.parent
+            assert self.parents[-1] == node.get_parent()
 
         self.dones.append(node.node_id)
 
@@ -143,6 +143,9 @@ class _DumpTreeWalker(NodeWalker):
             if current.startswith('ctx_'):
                 ctx_attrs += " %s='%s'" % (current[4:],
                                            getattr(node, current).getText())
+            elif current.startswith('str_'):
+                ctx_attrs += " %s='%s'" % (current[4:],
+                                           getattr(node, current))
 
         s = '+-' * self.index + type(node).__name__ + ctx_attrs
         self.result.append(s)

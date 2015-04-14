@@ -17,18 +17,9 @@
 import antlr4.error.ErrorListener
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-
-
-def format_location(ctx):
-    return 'line %s, ' % str(ctx.start.line)
-
-
-class CompilerError(Exception):
-
-    '''
-    Generic error raised when compilation problem occurs
-    '''
-    pass
+from smartanthill_zc.node import ExpressionNode
+from smartanthill_zc.visitor import NodeWalker, walk_node_childs
+from smartanthill_zc.errors import CompilerError, format_location
 
 
 class Compiler(object):
@@ -45,6 +36,7 @@ class Compiler(object):
         self.next_node_id = 0
         self.removed_nodes = []
         self.error_flag = False
+        self._replacement = None
 
     def init_node(self, node, ctx):
         '''
@@ -58,8 +50,58 @@ class Compiler(object):
     def remove_node(self, node):
         '''
         Keeps a record of removed node_id
+        Later checks may try to verify no refereces are kept
         '''
         self.removed_nodes.append(node.node_id)
+
+    def replace_self(self, node):
+        '''
+        Helper method used at resolution for node replacement
+        '''
+        self._replacement = node
+
+    def resolve_node(self, node):
+        '''
+        Generic node resolution
+        '''
+
+        node.resolve(self)
+
+    def resolve_expression(self, parent, child_name):
+        '''
+        Resolve child expression by attribute name, to allow expression
+        replacement
+        '''
+
+        expr = getattr(parent, child_name)
+        if expr:
+            replacement = expr.resolve_expr(self)
+            if replacement:
+                assert isinstance(replacement, ExpressionNode)
+                replacement.set_parent(parent)
+                setattr(parent, child_name, self._replacement)
+
+                # resolve again (replacement)
+                self.resolve_expression(parent, child_name)
+            else:
+                expr.get_type()  # has assert inside get_type
+
+    def resolve_expression_list(self, parent, expr_list, i):
+        '''
+        Resolve child expression list by index, to allow expression
+        replacement
+        '''
+        replacement = expr_list[i].resolve_expr(self)
+
+        if replacement:
+            assert isinstance(replacement, ExpressionNode)
+            replacement .set_parent(parent)
+            expr_list[i] = replacement
+
+            # resolve again (replacement)
+            self.resolve_expression_list(parent, expr_list, i)
+        else:
+            expr_list[i].get_type()
 
     def report_error(self, ctx, fmt, args=None):
         '''
@@ -173,3 +215,42 @@ class _DumpAntlrTreeVisitor(antlr4.ParseTreeVisitor):
         Overrides antlr4.ParseTreeVisitor method
         '''
         self.result[self.stack[-1]] += " '" + node.getText() + "'"
+
+
+def process_syntax_tree(compiler, root):
+    '''
+    Process a syntax tree, doing all lookup tables, resolution,
+    and type checks required
+    After this function the tree is fully resolved and ready for intermediate
+    code generation
+    Resolution of the tree may trigger node replacements,
+    and other modifications of the tree, as semantic meaning is needed
+    '''
+
+    compiler.resolve_node(root)
+    compiler.check_stage('resolve')
+
+    walker = _ResolutionCheckWalker()
+    walker.walk_node(root)
+
+
+class _ResolutionCheckWalker(NodeWalker):
+
+    '''
+    Walker class that will check all reachable nodes do not raise when
+    get_type() is called and that something is returned
+    '''
+
+    def walk_node(self, node):
+        assert node
+        try:
+            m = getattr(node, 'get_type')
+            if m:
+                t = m()
+                if not t:
+                    print type(node)
+                    assert False
+        except AttributeError:
+            pass
+
+        walk_node_childs(self, node)

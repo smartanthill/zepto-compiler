@@ -18,6 +18,7 @@ import sys
 from smartanthill_zc import compiler
 from smartanthill_zc import syntax
 from smartanthill_zc import visitor
+from smartanthill_zc import builtin
 
 
 def main():
@@ -26,10 +27,14 @@ def main():
 
     #    parse_tree = compiler.parse_js_string(u'return Some.break(); return Some.Thing();')
     comp = compiler.Compiler()
-    js_tree = compiler.parse_js_string(comp, u'return 60 * 5;')
+    js_tree = compiler.parse_js_string(comp, u'mcu_sleep( 60 );')
     print '\n'.join(compiler.dump_antlr_tree(js_tree))
     root = syntax.js_tree_to_syntax_tree(comp, js_tree)
+
+    builtin.create_builtins(comp, root)
     visitor.check_all_nodes_reachables(comp, root)
+    compiler.process_syntax_tree(comp, root)
+
     print '\n'.join(visitor.dump_tree(root))
 
 

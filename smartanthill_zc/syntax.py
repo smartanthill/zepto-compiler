@@ -192,7 +192,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         ini = var_list[0].initialiser()
         if ini:
             expr = self.visit(ini)
-            stmt.set_expression(expr)
+            stmt.set_initializer(expr)
 
         return stmt
 
