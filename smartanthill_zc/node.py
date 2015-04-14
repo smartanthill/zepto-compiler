@@ -152,6 +152,16 @@ class ExpressionNode(Node):
         super(ExpressionNode, self).__init__()
         self._resolved_type = None
 
+    def resolve_expr(self, compiler):
+        '''
+        Base implementation of expression resolution template method
+        Must be overrided or resolution type must be externally assigned
+        '''
+        del compiler
+
+        self.assert_resolved()
+        return None
+
     def init_expression(self):
         '''
         Constructor
@@ -176,6 +186,72 @@ class ExpressionNode(Node):
         assert self._resolved_type
 
         return self._resolved_type
+
+    def assert_resolved(self):
+        '''
+        Asserts this instance has a resolved type
+        '''
+        assert self._resolved_type
+
+    def get_static_value(self):
+        # pylint: disable=no-self-use
+        return None
+
+
+class TypeDeclNode(Node):
+
+    '''
+    Base class for types
+    '''
+
+    NO_MATCH = 0
+    EXACT_MATCH = 1
+    CAST_MATCH = 2
+
+    def __init__(self, type_name):
+        '''
+        Constructor
+        '''
+        super(TypeDeclNode, self).__init__()
+        self.str_type_name = type_name
+        self._resolved = False
+
+    def resolve(self, compiler):
+        '''
+        Resolve
+        '''
+        assert not self._resolved
+        self.get_root_scope().add_type(compiler, self.str_type_name, self)
+        self._resolved = True
+
+    def can_initialize(self, rhs):
+        '''
+        Returns true if an instance of this type can be initialized with rhs
+        Base implementation returns true if both types are the same instance,
+        otherwise false
+        '''
+        if self == rhs:
+            return self.EXACT_MATCH
+        else:
+            return self.NO_MATCH
+
+    def insert_cast(self, compiler, rhs_expr):
+        '''
+        Base method for cast insertion
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+
+        assert False
+
+    def lookup_member(self, name):
+        '''
+        Base method for type member look up
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+
+        return None
 
 
 class RootNode(Node):
@@ -255,40 +331,102 @@ class ArgumentListNode(Node):
         node.set_parent(self)
         self.childs_arguments.append(node)
 
-    def get_size(self):
-        return len(self.childs_arguments)
-
-    def get_arg(self, i):
-        return self.childs_arguments[i]
-
     def resolve(self, compiler):
         for i in range(len(self.childs_arguments)):
             compiler.resolve_expression_list(self, self.childs_arguments, i)
 
     def overload_filter(self, compiler, decl_list):
-
-        filtered_list = []
+        '''
+        From a list declarations, returns one that can match the arguments,
+        if no candidate is found, reports error an raises
+        '''
+        exact_match = []
+        cast_match = []
         for current in decl_list:
-            if current.can_match_arguments(compiler, self):
-                filtered_list.append(current)
+            r = self.can_match(current.child_parameter_list)
 
-        if len(filtered_list) > 1:
-            compiler.report_error(
-                self.ctx, "More than one candidate matches the arguments")
-            raise ResolutionError()
-        elif len(filtered_list) == 0:
-            compiler.report_error(
-                self.ctx, "None of candidates matches the arguments")
-            raise ResolutionError()
+            if r == TypeDeclNode.NO_MATCH:
+                pass
+            elif r == TypeDeclNode.EXACT_MATCH:
+                exact_match.append(current)
+            elif r == TypeDeclNode.CAST_MATCH:
+                cast_match.append(current)
+            else:
+                assert False
+
+        if len(exact_match) == 1:
+            return exact_match[0]
+        elif len(exact_match) == 0:
+            if len(cast_match) == 1:
+                self.make_match(compiler, cast_match[0].child_parameter_list)
+                return cast_match[0]
+            elif len(cast_match) == 0:
+                compiler.report_error(
+                    self.ctx, "None of candidates can match the arguments")
+                raise ResolutionError()
+            elif len(cast_match) > 1:
+                compiler.report_error(
+                    self.ctx, "More than a candidate can match the arguments")
+                raise ResolutionError()
+            else:
+                assert False
         else:
-            return filtered_list[0]
+            assert False
 
-    def check_match(self, compiler, decl):
+    def can_match(self, decl):
+        '''
+        If this argument list can not used to initialize given argument list
+        Returns TypeDeclNode.NO_MATCH when there is no chance to make it match
+        TypeDeclNode.EXACT_MATCH when match does not need any cast
+        and TypeDeclNode.CAST_MATCH when it can match but casting needed
+        '''
+        if len(self.childs_arguments) != decl.get_size():
+            return TypeDeclNode.NO_MATCH
 
-        if not decl.can_match_arguments(compiler, self):
+        result = TypeDeclNode.EXACT_MATCH
+        for i in range(len(self.childs_arguments)):
+            t = decl.get_type_at(i)
+            r = t.can_initialize(self.childs_arguments[i].get_type())
+
+            if r == TypeDeclNode.NO_MATCH:
+                return TypeDeclNode.NO_MATCH
+            elif r == TypeDeclNode.EXACT_MATCH:
+                pass
+            elif r == TypeDeclNode.CAST_MATCH:
+                result = TypeDeclNode.CAST_MATCH
+            else:
+                assert False
+
+        return result
+
+    def make_match(self, compiler, decl):
+        '''
+        Makes this argument list to initialize given declaration,
+        inserting casts if required.
+        '''
+
+        if len(self.childs_arguments) != decl.get_size():
             compiler.report_error(
-                self.ctx, "Arguments mismatch")
+                self.ctx, "Wrong number of arguments, given %s but need %s" %
+                str(decl.get_size()), str(len(self.childs_arguments)))
             raise ResolutionError()
+
+        for i in range(len(self.childs_arguments)):
+            t = decl.get_type_at(i)
+            r = t.can_initialize(self.childs_arguments[i].get_type())
+
+            if r == TypeDeclNode.NO_MATCH:
+                compiler.report_error(
+                    self.ctx, "Argument type mismatch at position %s" & str(i))
+                raise ResolutionError()
+            elif r == TypeDeclNode.EXACT_MATCH:
+                pass
+            elif r == TypeDeclNode.CAST_MATCH:
+                e = t.insert_cast(compiler, self.childs_arguments[i])
+                e.set_parent(self)
+                self.childs_arguments[i] = e
+            else:
+                assert False
 
 
 class StatementListStmtNode(StatementNode):
@@ -487,7 +625,8 @@ class McuSleepStmtNode(StatementNode):
             u'mcu_sleep')
         assert decl  # is built in function
 
-        self.child_argument_list.check_match(compiler, decl)
+        self.child_argument_list.make_match(compiler,
+                                            decl.child_parameter_list)
 
         self._declaration = decl
 
@@ -622,7 +761,8 @@ class MethodCallExprNode(ExpressionNode):
                                    self.ctx_base_name.getText()))
             raise ResolutionError()
 
-        self.child_argument_list.check_match(compiler, method)
+        self.child_argument_list.make_match(compiler,
+                                            method.child_parameter_list)
 
         self._plugin_declaration = plugin
         self._method_declaration = method
@@ -644,7 +784,6 @@ class MemberAccessExprNode(ExpressionNode):
         super(MemberAccessExprNode, self).__init__()
         self.txt_member_name = member_name
         self.child_expression = None
-        self._member_declaration = None
 
     def set_expression(self, node):
         '''
@@ -658,15 +797,13 @@ class MemberAccessExprNode(ExpressionNode):
         compiler.resolve_expression(self, 'child_expression')
 
         t = self.child_expression.get_type()
-        m = t.lookup_member(self.txt_member_name.getText())
+        m = t.lookup_member_type(self.txt_member_name.getText())
         if not m:
             compiler.report_error(self.ctx, "Member '%s' not found",
                                   self.txt_member_name.getText())
             raise ResolutionError()
 
-        self._member_declaration = m
-
-        self.set_type(self._member_declaration.get_type())
+        self.set_type(m)
         return None
 
 
@@ -722,13 +859,6 @@ class StaticEvaluatedExprNode(ExpressionNode):
         node.set_parent(self)
         self.child_replaced = node
 
-    def resolve_expr(self, compiler):
-
-        del compiler
-
-        self.get_type()  # Type must already be setted
-        return None
-
     def set_static_value(self, static_value):
         '''
         Value setter
@@ -741,6 +871,31 @@ class StaticEvaluatedExprNode(ExpressionNode):
         Value getter
         '''
         return self._static_value
+
+
+class LiteralCastExprNode(ExpressionNode):
+
+    '''
+    Node class representing an automatic cast from literal to non-literal type
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(LiteralCastExprNode, self).__init__()
+        self.child_expression = None
+
+    def set_expression(self, node):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        node.set_parent(self)
+        self.child_expression = node
+
+    def get_static_value(self):
+        return self.child_expression.get_static_value()
 
 
 class VariableExprNode(ExpressionNode):

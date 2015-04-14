@@ -14,7 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc.node import Node, DeclarationHelper,\
-    StaticEvaluatedExprNode
+    StaticEvaluatedExprNode, LiteralCastExprNode, TypeDeclNode, \
+    OperatorExprNode
 
 
 def create_builtins(compiler, root):
@@ -25,19 +26,19 @@ def create_builtins(compiler, root):
     ctx = compiler.BUILTIN
 
     root.add_declaration(
-        compiler.init_node(BasicTypeDeclNode(u'_zc_void',
-                                             _TypeCode.VOID), ctx))
+        compiler.init_node(VoidTypeDeclNode(u'_zc_void'), ctx))
+
+    num_lit = compiler.init_node(BasicTypeDeclNode(u'_zc_number_literal'), ctx)
+    root.add_declaration(num_lit)
 
     root.add_declaration(
-        compiler.init_node(BasicTypeDeclNode(u'_zc_bool',
-                                             _TypeCode.BOOL), ctx))
+        compiler.init_node(NumberTypeDeclNode(u'_zc_number', num_lit), ctx))
+
+    bool_lit = compiler.init_node(BasicTypeDeclNode(u'_zc_bool_literal'), ctx)
+    root.add_declaration(bool_lit)
+
     root.add_declaration(
-        compiler.init_node(BasicTypeDeclNode(u'_zc_number', _TypeCode.NUMBER),
-                           ctx))
-    root.add_declaration(
-        compiler.init_node(
-            BasicTypeDeclNode(u'_zc_number_literal', _TypeCode.NUMBER_LITERAL),
-            ctx))
+        compiler.init_node(NumberTypeDeclNode(u'_zc_bool', bool_lit), ctx))
 
     mcu = compiler.init_node(McuSleepDeclNode(), ctx)
     mcu.set_parameter_list(
@@ -59,9 +60,6 @@ def create_builtins(compiler, root):
 
     _create_operators(compiler, ctx, root, [u'<', u'>', u'<=', u'>='],
                       u'_zc_bool', [u'_zc_number', u'_zc_number'])
-
-    _create_operators(compiler, ctx, root, [u'<', u'>', u'<=', u'>='],
-                      u'_zc_bool', [u'_zc_number', u'_zc_number_literal'])
 
     _create_operators(compiler, ctx, root, [u'==', u'!='],
                       u'_zc_bool', [u'_zc_bool', u'_zc_bool'])
@@ -87,72 +85,74 @@ class _TypeCode(object):
     NUMBER_LITERAL = 5
 
 
-class TypeDeclNode(Node):
-
-    '''
-    Base class for types
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(TypeDeclNode, self).__init__()
-
-    def can_initialize(self, compiler, rhs):
-        '''
-        Returns true if an instance of this type can be initialized with rhs
-        '''
-        del compiler
-
-        return self == rhs
-
-    def lookup_member(self, name):
-        '''
-        Returns member by name
-        '''
-        # pylint: disable=no-self-use
-        # pylint: disable=unused-argument
-
-        return None
-
-
 class BasicTypeDeclNode(TypeDeclNode):
 
     '''
     Basic, built-in types are implemented using this class
     '''
 
-    def __init__(self, name, type_code=_TypeCode.OTHER):
+    def __init__(self, type_name):
         '''
         Constructor
         '''
-        super(BasicTypeDeclNode, self).__init__()
-        self.str_name = name
-        self._type_code = type_code
-        self._resolved = False
+        super(BasicTypeDeclNode, self).__init__(type_name)
 
-    def resolve(self, compiler):
-        '''
-        Resolve
-        '''
-        assert not self._resolved
-        self.get_root_scope().add_type(compiler, self.str_name, self)
-        self._resolved = True
 
-    def can_initialize(self, compiler, rhs):
+class VoidTypeDeclNode(TypeDeclNode):
+
+    '''
+    Basic, built-in types are implemented using this class
+    '''
+
+    def __init__(self, type_name):
+        '''
+        Constructor
+        '''
+        super(VoidTypeDeclNode, self).__init__(type_name)
+
+    def can_initialize(self, rhs):
         '''
         Returns true if an instance of this type can be initialized with rhs
         '''
-        del compiler
+        return self.NO_MATCH
 
-        if self.is_void() or rhs.is_void():
-            return False
+
+class NumberTypeDeclNode(TypeDeclNode):
+
+    '''
+    Basic, built-in types are implemented using this class
+    '''
+
+    def __init__(self, type_name, literal_type):
+        '''
+        Constructor
+        '''
+        super(NumberTypeDeclNode, self).__init__(type_name)
+        self._literal_type = literal_type
+
+    def can_initialize(self, rhs):
+        '''
+        Returns true if an instance of this type can be initialized with rhs
+        '''
+        if self == rhs:
+            return self.EXACT_MATCH
+        elif rhs == self._literal_type:
+            return self.CAST_MATCH
         else:
-            return self == rhs
+            return self.NO_MATCH
 
-    def is_void(self):
-        return self._type_code == _TypeCode.VOID
+    def insert_cast(self, compiler, rhs_expr):
+        '''
+        Base method for cast insertion
+        '''
+
+        assert rhs_expr.get_type() == self._literal_type
+
+        c = compiler.init_node(LiteralCastExprNode(), rhs_expr.ctx)
+        c.set_expression(rhs_expr)
+        c.set_type(self)
+
+        return c
 
 
 class AggregateTypeElementDeclNode(Node, DeclarationHelper):
@@ -183,12 +183,11 @@ class AggregateTypeDeclNode(TypeDeclNode):
     Aggregate type, used as plug-in method return type
     '''
 
-    def __init__(self, name):
+    def __init__(self, type_name):
         '''
         Constructor
         '''
-        super(AggregateTypeDeclNode, self).__init__()
-        self.str_name = name
+        super(AggregateTypeDeclNode, self).__init__(type_name)
         self.childs_elements = []
         self._already_resolved = False
 
@@ -208,13 +207,13 @@ class AggregateTypeDeclNode(TypeDeclNode):
         for elem in self.childs_elements:
             compiler.resolve_node(elem)
 
-        self.get_root_scope().add_type(compiler, self.str_name, self)
+        self.get_root_scope().add_type(compiler, self.str_type_name, self)
         self._already_resolved = True
 
-    def lookup_member(self, name):
+    def lookup_member_type(self, name):
         for current in self.childs_elements:
             if current.str_name == name:
-                return current
+                return current.get_type()
 
         return None
 
@@ -239,12 +238,6 @@ class ParameterDeclNode(Node, DeclarationHelper):
         del compiler
 
         return self.get_root_scope().lookup_type(self.str_type_name)
-
-    def can_initialize(self, compiler, rhs):
-        '''
-        Check if this parameter can be initialized with given type
-        '''
-        return self.get_type().can_initialize(compiler, rhs)
 
 
 class ParameterListNode(Node):
@@ -278,20 +271,11 @@ class ParameterListNode(Node):
             compiler.resolve_node(param)
         self._already_resolved = True
 
-    def can_match_arguments(self, compiler, arg_list):
-        '''
-        If this parameter list can not be initialized with given argument list,
-        error is raised
-        '''
-        if len(self.childs_parameters) != arg_list.get_size():
-            return False
+    def get_size(self):
+        return len(self.childs_parameters)
 
-        for i in range(len(self.childs_parameters)):
-            t = arg_list.get_arg(i).get_type()
-            if not self.childs_parameters[i].can_initialize(compiler, t):
-                return False
-
-        return True
+    def get_type_at(self, i):
+        return self.childs_parameters[i].get_type()
 
 
 def _create_parameter_list(compiler, ctx, type_list):
@@ -401,10 +385,12 @@ class NumberLiteralOpDeclNode(OperatorDeclNode):
         '''
         Do static evaluation of expressions when possible
         '''
-        assert arg_list.get_size() == 2
 
-        lhs = arg_list.get_arg(0).get_static_value()
-        rhs = arg_list.get_arg(1).get_static_value()
+        assert isinstance(node, OperatorExprNode)
+        assert len(node.child_argument_list.childs_arguments) == 2
+
+        lhs = node.child_argument_list.childs_arguments[0].get_static_value()
+        rhs = node.child_argument_list.childs_arguments[1].get_static_value()
 
         result = compiler.init_node(StaticEvaluatedExprNode(), node.ctx)
 

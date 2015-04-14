@@ -79,7 +79,7 @@ class Compiler(object):
                 # resolve again (replacement)
                 self.resolve_expression(parent, child_name)
             else:
-                expr.get_type()  # has assert inside get_type
+                expr.assert_resolved()
 
     def resolve_expression_list(self, parent, expr_list, i):
         '''
@@ -96,7 +96,7 @@ class Compiler(object):
             # resolve again (replacement)
             self.resolve_expression_list(parent, expr_list, i)
         else:
-            expr_list[i].get_type()
+            expr_list[i].assert_resolved()
 
     def report_error(self, ctx, fmt, args=None):
         '''
