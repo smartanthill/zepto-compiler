@@ -17,6 +17,7 @@ from smartanthill_zc import compiler
 from smartanthill_zc import syntax
 from smartanthill_zc import visitor
 from smartanthill_zc import builtin
+import pytest
 
 
 def common_test_run(code):
@@ -46,3 +47,51 @@ def test_js_resolve():
             u'return TemperatureSensor.Execute();')
 
     common_test_run(code)
+
+def test_js_bool_literal():
+
+    code = (u'if (true) {\n'
+            u'  return false;\n'
+            u'}\n')
+
+    common_test_run(code)
+
+def test_js_return_raise():
+    with pytest.raises(compiler.CompilerError):
+
+        code = (u'if (true) {\n'
+                u'  return false;\n'
+                u'}\n'
+                u'return 0;\n')
+
+        common_test_run(code)
+
+def test_js_if_raise():
+    with pytest.raises(compiler.CompilerError):
+
+        code = (
+                u'var temp = TemperatureSensor.Execute();\n'
+                u'if (temp) {\n'
+                u'  ;\n'
+                u'}\n'
+                u'return 0;\n')
+
+        common_test_run(code)
+
+
+def test_js_var_assignment():
+
+    code = (
+        u'var temp = TemperatureSensor.Execute();\n'
+        u'temp = TemperatureSensor.Execute();\n')
+
+    common_test_run(code)
+
+def test_js_var_assignment_raise():
+    with pytest.raises(compiler.CompilerError):
+
+        code = (
+            u'var temp = 0;\n'
+            u'temp = TemperatureSensor.Execute();\n')
+
+        common_test_run(code)

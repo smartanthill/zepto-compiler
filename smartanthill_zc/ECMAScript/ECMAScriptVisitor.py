@@ -270,8 +270,8 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
-    def visitMemberDotExpression(self, ctx):
+    # Visit a parse tree produced by ECMAScriptParser#AssignmentExpression.
+    def visitAssignmentExpression(self, ctx):
         return self.visitChildren(ctx)
 
 
@@ -285,8 +285,18 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
-    def visitIdentifierExpression(self, ctx):
+    # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
+    def visitParenthesizedExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def visitLiteralExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
+    def visitMemberDotExpression(self, ctx):
         return self.visitChildren(ctx)
 
 
@@ -295,13 +305,13 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#RelationalExpression.
-    def visitRelationalExpression(self, ctx):
+    # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
+    def visitIdentifierExpression(self, ctx):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
-    def visitParenthesizedExpression(self, ctx):
+    # Visit a parse tree produced by ECMAScriptParser#RelationalExpression.
+    def visitRelationalExpression(self, ctx):
         return self.visitChildren(ctx)
 
 
@@ -312,11 +322,6 @@ class ECMAScriptVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#EqualityExpression.
     def visitEqualityExpression(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
-    def visitLiteralExpression(self, ctx):
         return self.visitChildren(ctx)
 
 

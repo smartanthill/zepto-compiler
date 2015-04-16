@@ -73,7 +73,7 @@ statement
  : block
  | variableStatement
  | emptyStatement
-// | expressionStatement
+ | expressionStatement
  | ifStatement
  | iterationStatement
 // | continueStatement
@@ -516,6 +516,7 @@ singleExpression // mb: oversimplified to begin with
  | singleExpression '||' singleExpression                                 # LogicalOrExpression
 // | singleExpression '?' singleExpression ':' singleExpression             # TernaryExpression
 // | singleExpression '=' expressionSequence                                # AssignmentExpression
+ | Identifier '=' expressionSequence                                        # AssignmentExpression
 // | singleExpression assignmentOperator expressionSequence                 # AssignmentOperatorExpression
 // | This                                                                   # ThisExpression
  | Identifier                                                             # IdentifierExpression
@@ -542,12 +543,11 @@ assignmentOperator
  ;
 
 literal // mb: no strings and no regex
-// : ( NullLiteral 
-//   | BooleanLiteral
-//   | StringLiteral
-//   | RegularExpressionLiteral
-//   )
- : numericLiteral
+// :  NullLiteral 
+ : BooleanLiteral
+// | StringLiteral
+// | RegularExpressionLiteral
+ | numericLiteral
  ;
 
 numericLiteral // mb: only decimal literals

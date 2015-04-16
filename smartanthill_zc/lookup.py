@@ -70,6 +70,40 @@ class StatementListScope(object):
         return self._variables[name] if name in self._variables else None
 
 
+class ReturnStmtScope(object):
+
+    '''
+    The scope a 'return' will exit
+    Used for tracking return statements, and type compatibility check when
+    more than one return is found
+    '''
+
+    def __init__(self, owner):
+        '''
+        Constructor
+        '''
+        self._owner = owner
+        self._previous_return_type = None
+        self._previous_ctx = None
+
+    def add_return_stmt(self, compiler, ctx, return_type):
+        '''
+        Adds a return statement to this scope, check type compatibility with
+        previous ones
+        '''
+
+        if not self._previous_return_type:
+            self._previous_return_type = return_type
+            self._previous_ctx = ctx
+        elif self._previous_return_type == return_type:
+            pass
+        else:
+            compiler.report_error(
+                ctx,
+                "Return statement type does not exactly match previous one")
+            compiler.report_error(
+                self._previous_ctx, "Previous was here")
+
 class RootScope(object):
 
     '''

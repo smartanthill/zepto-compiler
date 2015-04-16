@@ -13,9 +13,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.lookup import StatementListScope, RootScope,\
-    lookup_variable
-from smartanthill_zc.errors import CompilerError, ResolutionCycleError,\
+from smartanthill_zc.lookup import StatementListScope, RootScope, \
+    lookup_variable, ReturnStmtScope
+from smartanthill_zc.errors import CompilerError, ResolutionCycleError, \
     UnresolvedError, PreviousResolutionError, ResolutionError
 
 
@@ -108,9 +108,15 @@ class Node(object):
 
     def get_root_scope(self):
         ''''
-         Walks the tree up, until a RootScop to return
+         Walks the tree up, until a RootScope to return
          '''
         return self._parent.get_root_scope()
+
+    def get_return_scope(self):
+        '''
+         Walks the tree up, until a ReturnStmtScope to return
+        '''
+        return self._parent.get_return_scope()
 
     def set_parent(self, parent):
         '''
@@ -135,10 +141,6 @@ class StatementNode(Node):
     def __init__(self):
         super(StatementNode, self).__init__()
 
-    def resolve_stmt(self, logger):
-        pass
-
-
 class ExpressionNode(Node):
 
     '''
@@ -158,15 +160,8 @@ class ExpressionNode(Node):
         Must be overrided or resolution type must be externally assigned
         '''
         del compiler
-
-        self.assert_resolved()
+        assert self._resolved_type
         return None
-
-    def init_expression(self):
-        '''
-        Constructor
-        '''
-        self._resolved_type = None
 
     def set_type(self, resolved_type):
         '''
@@ -184,7 +179,6 @@ class ExpressionNode(Node):
         Returns the type of this expression
         '''
         assert self._resolved_type
-
         return self._resolved_type
 
     def assert_resolved(self):
@@ -253,6 +247,28 @@ class TypeDeclNode(Node):
 
         return None
 
+def expression_type_match(compiler, lhs_type, parent, child_name):
+    '''
+    Helper function for expression type matching
+    If no match possible just returns false
+    If exact match returns true
+    If can match but needs cast, inserts cast and returns true
+    '''
+    expr = getattr(parent, child_name)
+
+    ini = lhs_type.can_initialize(expr.get_type())
+    if ini == TypeDeclNode.NO_MATCH:
+        return False
+    elif ini == TypeDeclNode.EXACT_MATCH:
+        return True
+    elif ini == TypeDeclNode.CAST_MATCH:
+        cast = lhs_type.insert_cast(compiler, expr)
+        cast.set_parent(parent)
+        setattr(parent, child_name, cast)
+        return True
+    else:
+        assert False
+
 
 class RootNode(Node):
 
@@ -268,6 +284,7 @@ class RootNode(Node):
         self.childs_declarations = []
         self.child_statement_list = None
         self._scope = RootScope(self)
+        self._return_scope = ReturnStmtScope(self)
 
 #     def get_root(self):
 #         ''''
@@ -286,6 +303,14 @@ class RootNode(Node):
         Returns None, since there is no more tree to walk up
         '''
         return None
+
+    def get_return_scope(self):
+        '''
+        Returns return scope
+        Since we don't currently support a function node, RootNode will
+        make its job
+        '''
+        return self._return_scope
 
     def add_declaration(self, node):
         '''
@@ -476,6 +501,11 @@ class NopStmtNode(StatementNode):
         '''
         super(NopStmtNode, self).__init__()
 
+    def resolve(self, compiler):
+        # pylint: disable=unused-argument
+        # pylint: disable=no-self-use
+        pass
+
 
 class ErrorStmtNode(StatementNode):
 
@@ -491,6 +521,10 @@ class ErrorStmtNode(StatementNode):
         '''
         super(ErrorStmtNode, self).__init__()
 
+    def resolve(self, compiler):
+        # pylint: disable=unused-argument
+        # pylint: disable=no-self-use
+        assert False
 
 class ReturnStmtNode(StatementNode):
 
@@ -515,6 +549,9 @@ class ReturnStmtNode(StatementNode):
 
     def resolve(self, compiler):
         compiler.resolve_expression(self, 'child_expression')
+
+        self.get_return_scope().add_return_stmt(
+            compiler, self.ctx, self.child_expression.get_type())
 
 
 class VariableDeclarationStmtNode(StatementNode, DeclarationHelper):
@@ -548,6 +585,32 @@ class VariableDeclarationStmtNode(StatementNode, DeclarationHelper):
             compiler, self.ctx_name.getText(), self)
 
         return self.child_initializer.get_type()
+
+
+class ExpressionStmtNode(StatementNode):
+
+    '''
+    Node class representing an statement that is an expression
+    Used for assignments
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ExpressionStmtNode, self).__init__()
+        self.child_expression = None
+
+    def set_expression(self, node):
+        '''
+        expression setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        node.set_parent(self)
+        self.child_expression = node
+
+    def resolve(self, compiler):
+        compiler.resolve_expression(self, 'child_expression')
 
 
 class IfElseStmtNode(StatementNode):
@@ -594,7 +657,12 @@ class IfElseStmtNode(StatementNode):
         compiler.resolve_node(self.child_if_branch)
         compiler.resolve_node(self.child_else_branch)
 
-        # add expression type check
+        t = self.get_root_scope().lookup_type(u'_zc_bool')
+
+        if not expression_type_match(compiler, t, self, 'child_expression'):
+            compiler.report_error(
+                self.ctx, "Condition can not be evaluated to boolean")
+            # no need to raise here
 
 
 class McuSleepStmtNode(StatementNode):
@@ -837,6 +905,35 @@ class NumberLiteralExprNode(ExpressionNode):
         return float(self.ctx_literal.getText())
 
 
+class BooleanLiteralExprNode(ExpressionNode):
+
+    '''
+    Node class representing a boolean literal
+    '''
+
+    def __init__(self, value):
+        '''
+        Constructor
+        '''
+        super(BooleanLiteralExprNode, self).__init__()
+        self._value = value
+
+    def resolve_expr(self, compiler):
+
+        del compiler
+
+        scope = self.get_root_scope()
+        self.set_type(scope.lookup_type(u'_zc_bool_literal'))
+
+        return None
+
+    def get_static_value(self):
+        '''
+        Returns the float value of this literal
+        Used for complile-time evaluation of expressions
+        '''
+        return self._value
+
 class StaticEvaluatedExprNode(ExpressionNode):
 
     '''
@@ -914,8 +1011,6 @@ class VariableExprNode(ExpressionNode):
 
     def resolve_expr(self, compiler):
 
-        assert not self._declaration
-
         decl = lookup_variable(self.get_stmt_scope(), self.ctx_name.getText())
         if not decl:
             compiler.report_error(
@@ -927,6 +1022,51 @@ class VariableExprNode(ExpressionNode):
         self.set_type(self._declaration.get_type())
         return None
 
+
+class AssignmentExprNode(ExpressionNode):
+
+    '''
+    Node class representing a variable assignment
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(AssignmentExprNode, self).__init__()
+        self.ctx_name = None
+        self.child_rhs = None
+        self._declaration = None
+
+    def set_rhs(self, node):
+        '''
+        rhs setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        node.set_parent(self)
+        self.child_rhs = node
+
+    def resolve_expr(self, compiler):
+
+        compiler.resolve_expression(self, 'child_rhs')
+
+        decl = lookup_variable(self.get_stmt_scope(), self.ctx_name.getText())
+        if not decl:
+            compiler.report_error(
+                self.ctx, "Unresolved variable '%s'" % self.ctx_name.getText())
+            raise ResolutionError()
+
+        self._declaration = decl
+        t = self._declaration.get_type()
+
+        if not expression_type_match(compiler, t, self, 'child_rhs'):
+            compiler.report_error(
+                self.ctx, "Type mismatch on assignment of variable '%s'" %
+                self.ctx_name.getText())
+            # no need to raise here
+
+        self.set_type(self.get_root_scope().lookup_type(u'_zc_void'))
+        return None
 
 class OperatorExprNode(ExpressionNode):
 

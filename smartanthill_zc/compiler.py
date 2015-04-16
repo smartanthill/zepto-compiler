@@ -126,6 +126,7 @@ class Compiler(object):
             raise CompilerError()
 
 
+
 class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
 
     '''

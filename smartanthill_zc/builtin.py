@@ -72,19 +72,6 @@ def create_builtins(compiler, root):
     compiler.check_stage('built-in')
 
 
-class _TypeCode(object):
-
-    '''
-    Enum like for all basic types
-    '''
-    VOID = 0
-    OTHER = 1
-    BOOL = 2
-    BOOL_LITERAL = 3
-    NUMBER = 4
-    NUMBER_LITERAL = 5
-
-
 class BasicTypeDeclNode(TypeDeclNode):
 
     '''
@@ -120,7 +107,7 @@ class VoidTypeDeclNode(TypeDeclNode):
 class NumberTypeDeclNode(TypeDeclNode):
 
     '''
-    Basic, built-in types are implemented using this class
+    Built-in number and bool types are implemented using this class
     '''
 
     def __init__(self, type_name, literal_type):
