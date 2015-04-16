@@ -13,7 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.node import Node, DeclarationHelper,\
+from smartanthill_zc.node import Node, ResolutionHelper, \
     StaticEvaluatedExprNode, LiteralCastExprNode, TypeDeclNode, \
     OperatorExprNode
 
@@ -142,7 +142,7 @@ class NumberTypeDeclNode(TypeDeclNode):
         return c
 
 
-class AggregateTypeElementDeclNode(Node, DeclarationHelper):
+class AggregateTypeElementDeclNode(Node, ResolutionHelper):
 
     '''
     Aggregate type element
@@ -158,7 +158,7 @@ class AggregateTypeElementDeclNode(Node, DeclarationHelper):
 
     def do_resolve_declaration(self, compiler):
         '''
-        Template method from DeclarationHelper
+        Template method from ResolutionHelper
         '''
         del compiler
         return self.get_root_scope().lookup_type(self.str_type_name)
@@ -205,7 +205,7 @@ class AggregateTypeDeclNode(TypeDeclNode):
         return None
 
 
-class ParameterDeclNode(Node, DeclarationHelper):
+class ParameterDeclNode(Node, ResolutionHelper):
 
     '''
     Node class used as container of a parameter in a function declaration
@@ -220,7 +220,7 @@ class ParameterDeclNode(Node, DeclarationHelper):
 
     def do_resolve_declaration(self, compiler):
         '''
-        Template method from DeclarationHelper
+        Template method from ResolutionHelper
         '''
         del compiler
 
@@ -289,7 +289,7 @@ def _create_operators(compiler, ctx, root, operator_list, ret_type, type_list):
         root.add_declaration(op)
 
 
-class OperatorDeclNode(Node, DeclarationHelper):
+class OperatorDeclNode(Node, ResolutionHelper):
 
     '''
     Node class to represent an operator declaration
@@ -314,7 +314,7 @@ class OperatorDeclNode(Node, DeclarationHelper):
 
     def do_resolve_declaration(self, compiler):
         '''
-        Template method from DeclarationHelper
+        Template method from ResolutionHelper
         '''
         compiler.resolve_node(self.child_parameter_list)
 
@@ -398,7 +398,7 @@ class NumberLiteralOpDeclNode(OperatorDeclNode):
         return result
 
 
-class McuSleepDeclNode(Node, DeclarationHelper):
+class McuSleepDeclNode(Node, ResolutionHelper):
 
     '''
     Declaration of built in 'mcu_sleep' function
@@ -421,7 +421,7 @@ class McuSleepDeclNode(Node, DeclarationHelper):
 
     def do_resolve_declaration(self, compiler):
         '''
-        Template method from DeclarationHelper
+        Template method from ResolutionHelper
         '''
         compiler.resolve_node(self.child_parameter_list)
 
@@ -472,7 +472,7 @@ def _create_test_plugin(compiler, ctx, name):
     return p
 
 
-class PluginDeclNode(Node, DeclarationHelper):
+class PluginDeclNode(Node, ResolutionHelper):
 
     '''
     Declaration of plug-in
@@ -497,7 +497,7 @@ class PluginDeclNode(Node, DeclarationHelper):
 
     def do_resolve_declaration(self, compiler):
         '''
-        Template method from DeclarationHelper
+        Template method from ResolutionHelper
         '''
 
         compiler.resolve_node(self.child_parameter_list)

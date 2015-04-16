@@ -14,27 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-class BuiltinCtx(object):
-
-    '''
-    This class is used as context on built in code, to allow format_location
-    '''
-
-    def __init__(self, text):
-        self.text = text
-
-
-def format_location(ctx):
-    '''
-    Returns formated string with location in source code of given ctx
-    '''
-
-    if isinstance(ctx, BuiltinCtx):
-        return ctx.text
-    else:
-        return 'line %s, ' % str(ctx.start.line)
-
-
 class CompilerError(Exception):
 
     '''

@@ -15,34 +15,29 @@
 
 from smartanthill_zc.lookup import StatementListScope, RootScope, \
     lookup_variable, ReturnStmtScope
-from smartanthill_zc.errors import CompilerError, ResolutionCycleError, \
+from smartanthill_zc.errors import ResolutionCycleError, \
     UnresolvedError, PreviousResolutionError, ResolutionError
 
 
-class _ResolveStatus(object):
+class ResolutionHelper(object):
 
     '''
-    Enum like class for states of resolution
+    Helper base class provides resolution cycle safety
+    It must be used by all classes that can be called to resolve
+    on demand (as the result of some look-up)
     '''
-    NOT_RESOLVED = 0
-    RESOLVING_NOW = 1
-    RESOLVED_OK = 2
-    RESOLUTION_ERROR = 3
 
-
-class DeclarationHelper(object):
-
-    '''
-    Helper base class used by declarations for resolution
-    It provides logic to detect resolution cycles
-    '''
+    _NOT_RESOLVED = 0
+    _RESOLVING_NOW = 1
+    _RESOLVED_OK = 2
+    _RESOLUTION_ERROR = 3
 
     def __init__(self):
         '''
-        Never actually called, just let pylint happy
+        Constructor
         '''
-        super(DeclarationHelper, self).__init__()
-        self._resolved_flag = _ResolveStatus.NOT_RESOLVED
+        super(ResolutionHelper, self).__init__()
+        self._resolved_flag = self._NOT_RESOLVED
         self._resolved_type = None
 
     def resolve(self, compiler):
@@ -51,21 +46,21 @@ class DeclarationHelper(object):
         be at implementing class
         '''
         try:
-            if self._resolved_flag == _ResolveStatus.NOT_RESOLVED:
-                self._resolved_flag = _ResolveStatus.RESOLVING_NOW
+            if self._resolved_flag == self._NOT_RESOLVED:
+                self._resolved_flag = self._RESOLVING_NOW
                 self._resolved_type = self.do_resolve_declaration(compiler)
                 assert self._resolved_type
-                self._resolved_flag = _ResolveStatus.RESOLVED_OK
-            elif self._resolved_flag == _ResolveStatus.RESOLVING_NOW:
+                self._resolved_flag = self._RESOLVED_OK
+            elif self._resolved_flag == self._RESOLVING_NOW:
                 raise ResolutionCycleError()
-            elif self._resolved_flag == _ResolveStatus.RESOLVED_OK:
+            elif self._resolved_flag == self._RESOLVED_OK:
                 pass
-            elif self.resolved_flag == _ResolveStatus.RESOLUTION_ERROR:
+            elif self.resolved_flag == self._RESOLUTION_ERROR:
                 pass
             else:
                 assert False
-        except CompilerError:
-            self._resolved_flag = _ResolveStatus.RESOLUTION_ERROR
+        except:
+            self._resolved_flag = self._RESOLUTION_ERROR
             self._resolved_type = None
             raise
 
@@ -75,13 +70,13 @@ class DeclarationHelper(object):
         or it did not complete properly, it will raise an error
         '''
 
-        if self._resolved_flag == _ResolveStatus.NOT_RESOLVED:
+        if self._resolved_flag == self._NOT_RESOLVED:
             raise UnresolvedError()
-        elif self._resolved_flag == _ResolveStatus.RESOLVING_NOW:
+        elif self._resolved_flag == self._RESOLVING_NOW:
             raise ResolutionCycleError()
-        elif self._resolved_flag == _ResolveStatus.RESOLVED_OK:
+        elif self._resolved_flag == self._RESOLVED_OK:
             return self._resolved_type
-        elif self._resolved_flag == _ResolveStatus.RESOLUTION_ERROR:
+        elif self._resolved_flag == self._RESOLUTION_ERROR:
             raise PreviousResolutionError()
         else:
             assert False
@@ -141,6 +136,7 @@ class StatementNode(Node):
     def __init__(self):
         super(StatementNode, self).__init__()
 
+
 class ExpressionNode(Node):
 
     '''
@@ -190,6 +186,44 @@ class ExpressionNode(Node):
     def get_static_value(self):
         # pylint: disable=no-self-use
         return None
+
+
+def resolve_expression(compiler, parent, child_name):
+    '''
+    Resolve child expression by attribute name, to allow expression
+    replacement
+    '''
+
+    expr = getattr(parent, child_name)
+    if expr:
+        replacement = expr.resolve_expr(compiler)
+        if replacement and replacement != expr:
+            assert isinstance(replacement, ExpressionNode)
+            replacement.set_parent(parent)
+            setattr(parent, child_name, replacement)
+
+            # resolve again (replacement)
+            resolve_expression(compiler, parent, child_name)
+        else:
+            expr.assert_resolved()
+
+
+def resolve_expression_list(compiler, parent, expr_list, i):
+    '''
+    Resolve child expression list by index, to allow expression
+    replacement
+    '''
+    replacement = expr_list[i].resolve_expr(compiler)
+
+    if replacement and replacement != expr_list[i]:
+        assert isinstance(replacement, ExpressionNode)
+        replacement.set_parent(parent)
+        expr_list[i] = replacement
+
+        # resolve again (replacement)
+        resolve_expression_list(compiler, parent, expr_list, i)
+    else:
+        expr_list[i].assert_resolved()
 
 
 class TypeDeclNode(Node):
@@ -246,6 +280,7 @@ class TypeDeclNode(Node):
         # pylint: disable=unused-argument
 
         return None
+
 
 def expression_type_match(compiler, lhs_type, parent, child_name):
     '''
@@ -358,7 +393,7 @@ class ArgumentListNode(Node):
 
     def resolve(self, compiler):
         for i in range(len(self.childs_arguments)):
-            compiler.resolve_expression_list(self, self.childs_arguments, i)
+            resolve_expression_list(compiler, self, self.childs_arguments, i)
 
     def overload_filter(self, compiler, decl_list):
         '''
@@ -489,6 +524,26 @@ class StatementListStmtNode(StatementNode):
         return self._scope
 
 
+def make_statement_list(compiler, stmt):
+    '''
+    If stmt is instance of StatementListStmtNode, returns stmt.
+    Otherwise, creates and returns an StatementListStmtNode holding stmt
+
+    This helper function is used to always use StatementListStmtNode as child
+    of statements like if-else, or for loops, even when a single statement
+    (without braces) is used.
+    '''
+    assert isinstance(stmt, StatementNode)
+
+    if isinstance(stmt, StatementListStmtNode):
+        return stmt
+
+    stmt_list = compiler.init_node(StatementListStmtNode(), stmt.ctx)
+    stmt_list.add_statement(stmt)
+
+    return stmt_list
+
+
 class NopStmtNode(StatementNode):
 
     '''
@@ -526,6 +581,7 @@ class ErrorStmtNode(StatementNode):
         # pylint: disable=no-self-use
         assert False
 
+
 class ReturnStmtNode(StatementNode):
 
     '''
@@ -548,13 +604,13 @@ class ReturnStmtNode(StatementNode):
         self.child_expression = node
 
     def resolve(self, compiler):
-        compiler.resolve_expression(self, 'child_expression')
+        resolve_expression(compiler, self, 'child_expression')
 
         self.get_return_scope().add_return_stmt(
             compiler, self.ctx, self.child_expression.get_type())
 
 
-class VariableDeclarationStmtNode(StatementNode, DeclarationHelper):
+class VariableDeclarationStmtNode(StatementNode, ResolutionHelper):
 
     '''
     Node class representing variable declaration statement
@@ -578,7 +634,7 @@ class VariableDeclarationStmtNode(StatementNode, DeclarationHelper):
 
     def do_resolve_declaration(self, compiler):
 
-        compiler.resolve_expression(self, 'child_initializer')
+        resolve_expression(compiler, self, 'child_initializer')
         # we are adding variable name after resolution of initializer
         # because we need avoid posible resolution cycle
         self.get_stmt_scope().add_variable(
@@ -610,7 +666,7 @@ class ExpressionStmtNode(StatementNode):
         self.child_expression = node
 
     def resolve(self, compiler):
-        compiler.resolve_expression(self, 'child_expression')
+        resolve_expression(compiler, self, 'child_expression')
 
 
 class IfElseStmtNode(StatementNode):
@@ -653,7 +709,7 @@ class IfElseStmtNode(StatementNode):
         self.child_else_branch = node
 
     def resolve(self, compiler):
-        compiler.resolve_expression(self, 'child_expression')
+        resolve_expression(compiler, self, 'child_expression')
         compiler.resolve_node(self.child_if_branch)
         compiler.resolve_node(self.child_else_branch)
 
@@ -752,8 +808,8 @@ class SimpleForStmtNode(StatementNode):
         return self._scope
 
     def resolve(self, compiler):
-        compiler.resolve_expression(self, 'child_begin_expression')
-        compiler.resolve_expression(self, 'child_end_expression')
+        resolve_expression(compiler, self, 'child_begin_expression')
+        resolve_expression(compiler, self, 'child_end_expression')
         compiler.resolve_node(self.child_statement_list)
 
 
@@ -862,7 +918,7 @@ class MemberAccessExprNode(ExpressionNode):
         self.child_expression = node
 
     def resolve_expr(self, compiler):
-        compiler.resolve_expression(self, 'child_expression')
+        resolve_expression(compiler, self, 'child_expression')
 
         t = self.child_expression.get_type()
         m = t.lookup_member_type(self.txt_member_name.getText())
@@ -933,6 +989,7 @@ class BooleanLiteralExprNode(ExpressionNode):
         Used for complile-time evaluation of expressions
         '''
         return self._value
+
 
 class StaticEvaluatedExprNode(ExpressionNode):
 
@@ -1048,7 +1105,7 @@ class AssignmentExprNode(ExpressionNode):
 
     def resolve_expr(self, compiler):
 
-        compiler.resolve_expression(self, 'child_rhs')
+        resolve_expression(compiler, self, 'child_rhs')
 
         decl = lookup_variable(self.get_stmt_scope(), self.ctx_name.getText())
         if not decl:
@@ -1067,6 +1124,7 @@ class AssignmentExprNode(ExpressionNode):
 
         self.set_type(self.get_root_scope().lookup_type(u'_zc_void'))
         return None
+
 
 class OperatorExprNode(ExpressionNode):
 

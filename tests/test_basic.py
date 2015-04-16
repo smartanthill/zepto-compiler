@@ -16,16 +16,14 @@
 import pytest
 
 from smartanthill_zc import compiler
-from smartanthill_zc import syntax
+from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
 
 
 def common_test_run(code):
     comp = compiler.Compiler()
-    js_tree = compiler.parse_js_string(comp, code)
-
-    comp = compiler.Compiler()
-    root = syntax.js_tree_to_syntax_tree(comp, js_tree)
+    js_tree = parse_js.parse_js_string(comp, code)
+    root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
     visitor.check_all_nodes_reachables(comp, root)
 
     actual = visitor.dump_tree(root)

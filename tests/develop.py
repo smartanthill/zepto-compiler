@@ -16,7 +16,7 @@
 import sys
 
 from smartanthill_zc import compiler
-from smartanthill_zc import syntax
+from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
 from smartanthill_zc import builtin
 
@@ -33,9 +33,9 @@ def main():
             u'return TemperatureSensor.Execute();')
 
     comp = compiler.Compiler()
-    js_tree = compiler.parse_js_string(comp, code)
-    print '\n'.join(compiler.dump_antlr_tree(js_tree))
-    root = syntax.js_tree_to_syntax_tree(comp, js_tree)
+    js_tree = parse_js.parse_js_string(comp, code)
+    print '\n'.join(parse_js.dump_antlr_tree(js_tree))
+    root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
 
     builtin.create_builtins(comp, root)
     visitor.check_all_nodes_reachables(comp, root)

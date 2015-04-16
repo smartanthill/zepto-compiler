@@ -13,39 +13,107 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import antlr4
+
+import antlr4.error.ErrorListener
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
+from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.node import StatementListStmtNode, StatementNode, \
+from smartanthill_zc.node import StatementListStmtNode, \
     RootNode, McuSleepStmtNode, VariableDeclarationStmtNode, NopStmtNode, \
     IfElseStmtNode, ErrorStmtNode, SimpleForStmtNode, ReturnStmtNode, \
     MethodCallExprNode, FunctionCallExprNode, VariableExprNode, \
     NumberLiteralExprNode, ArgumentListNode, OperatorExprNode, \
     MemberAccessExprNode, AssignmentExprNode, ExpressionStmtNode, \
-    BooleanLiteralExprNode
+    BooleanLiteralExprNode, make_statement_list
 
 
-def make_statement_list(compiler, stmt):
+class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
+
     '''
-    If stmt is instance of StatementListStmtNode, returns stmt.
-    Otherwise, creates and returns an StatementListStmtNode holding stmt
-
-    This helper function is used to always use StatementListStmtNode as child
-    of statements like if-else, or for loops, even when a single statement
-    (without braces) is used.
+    Proxy class that implements antl4 ErrorListener
+    used as intermediate of Compiler with antlr4 parser for reporting of errors
+    found by the parser
     '''
-    assert isinstance(stmt, StatementNode)
 
-    if isinstance(stmt, StatementListStmtNode):
-        return stmt
+    def __init__(self, compiler):
+        '''
+        Constructor
+        '''
+        self.compiler = compiler
 
-    stmt_list = compiler.init_node(StatementListStmtNode(), stmt.ctx)
-    stmt_list.add_statement(stmt)
+    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+        '''
+        Implements ErrorListener from antlr4
+        '''
+        # pylint: disable=unused-argument
+        self.compiler.syntax_error()
 
-    return stmt_list
+
+def parse_js_string(compiler, data):
+    '''
+    Parse unicode string containing java script code
+    Returns an antlr parse tree
+    '''
+
+    #    input = FileStream(argv[1])
+    istream = antlr4.InputStream.InputStream(data)
+    lexer = ECMAScriptLexer(istream)
+    stream = antlr4.CommonTokenStream(lexer)
+    parser = ECMAScriptParser(stream)
+#    parser.removeErrorListener()
+    parser.addErrorListener(_ProxyAntlrErrorListener(compiler))
+    tree = parser.program()
+
+    compiler.check_stage('parse_js')
+
+    return tree
 
 
-def js_tree_to_syntax_tree(compiler, js_tree):
+def dump_antlr_tree(tree):
+    '''
+    Dump an AntLr parse tree to a human readable text format
+    Used for debugging and testing
+    '''
+    antlr_visitor = _DumpAntlrTreeVisitor()
+    antlr_visitor.visit(tree)
+    return antlr_visitor.result
+
+
+class _DumpAntlrTreeVisitor(antlr4.ParseTreeVisitor):
+
+    '''
+    AntLr tree visitor class used by dump_antlr_tree function
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.result = []
+        self.stack = []
+
+    def visitChildren(self, node):
+        '''
+        Overrides antlr4.ParseTreeVisitor method
+        '''
+
+        s = '+-' * len(self.stack) + type(node).__name__
+        self.stack.append(len(self.result))
+        self.result.append(s)
+
+        for i in range(node.getChildCount()):
+            node.getChild(i).accept(self)
+
+        self.stack.pop()
+
+    def visitTerminal(self, node):
+        '''
+        Overrides antlr4.ParseTreeVisitor method
+        '''
+        self.result[self.stack[-1]] += " '" + node.getText() + "'"
+
+
+def js_parse_tree_to_syntax_tree(compiler, js_tree):
     '''
     Translates an ECMAScript (js) parse tree as returned by antlr4 into a
     syntax tree as used by the zepto compiler, this tree transformation
@@ -514,7 +582,6 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         return self.visit(ctx.literal())
 
-
     # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
     def visitMemberDotExpression(self, ctx):
         member_name = ctx.identifierName()
@@ -524,7 +591,6 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         node.set_expression(e)
 
         return node
-
 
     # Visit a parse tree produced by ECMAScriptParser#NotExpression.
     def visitNotExpression(self, ctx):
@@ -597,7 +663,6 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         else:
             assert False
-
 
     # Visit a parse tree produced by ECMAScriptParser#numericLiteral.
     def visitNumericLiteral(self, ctx):

@@ -13,13 +13,29 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
-import antlr4.error.ErrorListener
-from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
-from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.node import ExpressionNode
 from smartanthill_zc.visitor import NodeWalker, walk_node_childs
-from smartanthill_zc.errors import CompilerError, format_location, BuiltinCtx
+from smartanthill_zc.errors import CompilerError
+
+
+class BuiltinCtx(object):
+
+    '''
+    This class is used as context on built in code, to allow format_location
+    '''
+
+    def __init__(self, text):
+        self.text = text
+
+
+def format_location(ctx):
+    '''
+    Returns formated string with location in source code of given ctx
+    '''
+
+    if isinstance(ctx, BuiltinCtx):
+        return ctx.text
+    else:
+        return 'line %s, ' % str(ctx.start.line)
 
 
 class Compiler(object):
@@ -62,42 +78,6 @@ class Compiler(object):
         if node:
             node.resolve(self)
 
-    def resolve_expression(self, parent, child_name):
-        '''
-        Resolve child expression by attribute name, to allow expression
-        replacement
-        '''
-
-        expr = getattr(parent, child_name)
-        if expr:
-            replacement = expr.resolve_expr(self)
-            if replacement and replacement != expr:
-                assert isinstance(replacement, ExpressionNode)
-                replacement.set_parent(parent)
-                setattr(parent, child_name, replacement)
-
-                # resolve again (replacement)
-                self.resolve_expression(parent, child_name)
-            else:
-                expr.assert_resolved()
-
-    def resolve_expression_list(self, parent, expr_list, i):
-        '''
-        Resolve child expression list by index, to allow expression
-        replacement
-        '''
-        replacement = expr_list[i].resolve_expr(self)
-
-        if replacement and replacement != expr_list[i]:
-            assert isinstance(replacement, ExpressionNode)
-            replacement.set_parent(parent)
-            expr_list[i] = replacement
-
-            # resolve again (replacement)
-            self.resolve_expression_list(parent, expr_list, i)
-        else:
-            expr_list[i].assert_resolved()
-
     def report_error(self, ctx, fmt, args=None):
         '''
         Reports an error
@@ -124,93 +104,6 @@ class Compiler(object):
         if self.error_flag:
             print "Stage '%s' giving up" % name
             raise CompilerError()
-
-
-
-class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
-
-    '''
-    Proxy class that implements antl4 ErrorListener
-    used as intermediate of Compiler with antlr4 parser for reporting of errors
-    found by the parser
-    '''
-
-    def __init__(self, compiler):
-        '''
-        Constructor
-        '''
-        self.compiler = compiler
-
-    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-        '''
-        Implements ErrorListener from antlr4
-        '''
-        # pylint: disable=unused-argument
-        self.compiler.syntax_error()
-
-
-def parse_js_string(compiler, data):
-    '''
-    Parse unicode string containing java script code
-    Returns an antlr parse tree
-    '''
-
-    #    input = FileStream(argv[1])
-    istream = antlr4.InputStream.InputStream(data)
-    lexer = ECMAScriptLexer(istream)
-    stream = antlr4.CommonTokenStream(lexer)
-    parser = ECMAScriptParser(stream)
-#    parser.removeErrorListener()
-    parser.addErrorListener(_ProxyAntlrErrorListener(compiler))
-    tree = parser.program()
-
-    compiler.check_stage('parse_js')
-
-    return tree
-
-
-def dump_antlr_tree(tree):
-    '''
-    Dump an AntLr parse tree to a human readable text format
-    Used for debugging and testing
-    '''
-    antlr_visitor = _DumpAntlrTreeVisitor()
-    antlr_visitor.visit(tree)
-    return antlr_visitor.result
-
-
-class _DumpAntlrTreeVisitor(antlr4.ParseTreeVisitor):
-
-    '''
-    AntLr tree visitor class used by dump_antlr_tree function
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        self.result = []
-        self.stack = []
-
-    def visitChildren(self, node):
-        '''
-        Overrides antlr4.ParseTreeVisitor method
-        '''
-
-        s = '+-' * len(self.stack) + type(node).__name__
-        self.stack.append(len(self.result))
-        self.result.append(s)
-
-        for i in range(node.getChildCount()):
-            node.getChild(i).accept(self)
-
-        self.stack.pop()
-
-    def visitTerminal(self, node):
-        '''
-        Overrides antlr4.ParseTreeVisitor method
-        '''
-        self.result[self.stack[-1]] += " '" + node.getText() + "'"
 
 
 def process_syntax_tree(compiler, root):

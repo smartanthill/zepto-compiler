@@ -104,6 +104,7 @@ class ReturnStmtScope(object):
             compiler.report_error(
                 self._previous_ctx, "Previous was here")
 
+
 class RootScope(object):
 
     '''

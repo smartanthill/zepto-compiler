@@ -16,12 +16,13 @@
 import pytest
 
 from smartanthill_zc import compiler
+from smartanthill_zc import parse_js
 
 
 def test_js_simple_return():
     comp = compiler.Compiler()
-    js_tree = compiler.parse_js_string(comp, u'return Some.Thing();')
-    actual = compiler.dump_antlr_tree(js_tree)
+    js_tree = parse_js.parse_js_string(comp, u'return Some.Thing();')
+    actual = parse_js.dump_antlr_tree(js_tree)
     expected = [
         "ProgramContext '<EOF>'",
         "+-SourceElementsContext",
@@ -39,4 +40,4 @@ def test_js_simple_return():
 def test_js_unsuported_grammar():
     with pytest.raises(compiler.CompilerError):
         comp = compiler.Compiler()
-        compiler.parse_js_string(comp, u'function problem() {;}')
+        parse_js.parse_js_string(comp, u'function problem() {;}')
