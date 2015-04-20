@@ -35,10 +35,11 @@ def test_js_simple_return():
 
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-ReturnStmtNode",
-        "+-+-+-MethodCallExprNode base_name='Some' name='Thing'",
-        "+-+-+-+-ArgumentListNode"
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-ReturnStmtNode",
+        "+-+-+-+-MethodCallExprNode base_name='Some' name='Thing'",
+        "+-+-+-+-+-ArgumentListNode"
     ]
 
     actual = common_test_run(u'return Some.Thing();')
@@ -48,15 +49,16 @@ def test_js_simple_return():
 def test_js_if_else():
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-IfElseStmtNode",
-        "+-+-+-StatementListStmtNode",
-        "+-+-+-+-ReturnStmtNode",
-        "+-+-+-+-+-NumberLiteralExprNode literal='0'",
-        "+-+-+-VariableExprNode name='i'",
-        "+-+-+-StatementListStmtNode",
-        "+-+-+-+-ReturnStmtNode",
-        "+-+-+-+-+-NumberLiteralExprNode literal='15.5'"
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-IfElseStmtNode",
+        "+-+-+-+-StatementListStmtNode",
+        "+-+-+-+-+-ReturnStmtNode",
+        "+-+-+-+-+-+-NumberLiteralExprNode literal='0'",
+        "+-+-+-+-VariableExprNode name='i'",
+        "+-+-+-+-StatementListStmtNode",
+        "+-+-+-+-+-ReturnStmtNode",
+        "+-+-+-+-+-+-NumberLiteralExprNode literal='15.5'"
     ]
 
     actual = common_test_run(u'if(i) return 15.5; else {return 0;}')
@@ -70,10 +72,11 @@ def test_js_if_without_else():
 def test_js_nop():
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-NopStmtNode",
-        "+-+-NopStmtNode",
-        "+-+-NopStmtNode"
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-NopStmtNode",
+        "+-+-+-NopStmtNode",
+        "+-+-+-NopStmtNode"
     ]
 
     actual = common_test_run(u';;;')
@@ -83,10 +86,11 @@ def test_js_nop():
 def test_js_mcu_sleep():
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-McuSleepStmtNode",
-        "+-+-+-ArgumentListNode",
-        "+-+-+-+-NumberLiteralExprNode literal='60'"
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-McuSleepStmtNode",
+        "+-+-+-+-ArgumentListNode",
+        "+-+-+-+-+-NumberLiteralExprNode literal='60'"
     ]
 
     actual = common_test_run(u'mcu_sleep(60);')
@@ -96,9 +100,10 @@ def test_js_mcu_sleep():
 def test_js_var_init():
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-VariableDeclarationStmtNode name='i'",
-        "+-+-+-NumberLiteralExprNode literal='60'"
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-VariableDeclarationStmtNode name='i'",
+        "+-+-+-+-NumberLiteralExprNode literal='60'"
     ]
 
     actual = common_test_run(u'var i = 60;')
@@ -124,12 +129,13 @@ def test_js_expr_multi_raise():
 def test_js_trivial_loop():
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-SimpleForStmtNode name='i'",
-        "+-+-+-NumberLiteralExprNode literal='0'",
-        "+-+-+-NumberLiteralExprNode literal='5'",
-        "+-+-+-StatementListStmtNode",
-        "+-+-+-+-NopStmtNode"
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-SimpleForStmtNode name='i'",
+        "+-+-+-+-NumberLiteralExprNode literal='0'",
+        "+-+-+-+-NumberLiteralExprNode literal='5'",
+        "+-+-+-+-StatementListStmtNode",
+        "+-+-+-+-+-NopStmtNode"
     ]
 
     actual = common_test_run(u'for(var i = 0; i < 5; i++) ;')
@@ -152,12 +158,13 @@ def test_js_binary_operator():
 
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-ReturnStmtNode",
-        "+-+-+-OperatorExprNode operator='&&'",
-        "+-+-+-+-ArgumentListNode",
-        "+-+-+-+-+-VariableExprNode name='some'",
-        "+-+-+-+-+-VariableExprNode name='other'"
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-ReturnStmtNode",
+        "+-+-+-+-OperatorExprNode operator='&&'",
+        "+-+-+-+-+-ArgumentListNode",
+        "+-+-+-+-+-+-VariableExprNode name='some'",
+        "+-+-+-+-+-+-VariableExprNode name='other'"
     ]
 
     actual = common_test_run(u'return some && other;')
@@ -168,11 +175,12 @@ def test_js_unary_operator():
 
     expected = [
         "RootNode",
-        "+-StatementListStmtNode",
-        "+-+-ReturnStmtNode",
-        "+-+-+-OperatorExprNode operator='!'",
-        "+-+-+-+-ArgumentListNode",
-        "+-+-+-+-+-VariableExprNode name='some'",
+        "+-ProgramNode",
+        "+-+-StatementListStmtNode",
+        "+-+-+-ReturnStmtNode",
+        "+-+-+-+-OperatorExprNode operator='!'",
+        "+-+-+-+-+-ArgumentListNode",
+        "+-+-+-+-+-+-VariableExprNode name='some'",
     ]
 
     actual = common_test_run(u'return !some;')

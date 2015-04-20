@@ -24,7 +24,7 @@ from smartanthill_zc.node import StatementListStmtNode, \
     MethodCallExprNode, FunctionCallExprNode, VariableExprNode, \
     NumberLiteralExprNode, ArgumentListNode, OperatorExprNode, \
     MemberAccessExprNode, AssignmentExprNode, ExpressionStmtNode, \
-    BooleanLiteralExprNode, make_statement_list
+    BooleanLiteralExprNode, make_statement_list, ProgramNode
 
 
 class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
@@ -127,12 +127,14 @@ def js_parse_tree_to_syntax_tree(compiler, js_tree):
     '''
 
     visitor = _JsSyntaxVisitor(compiler)
-    root = visitor.visit(js_tree)
+    prog = visitor.visit(js_tree)
 
+    root = compiler.init_node(RootNode(), compiler.BUILTIN)
+
+    root.set_program(prog)
     compiler.check_stage('js_syntax')
 
     return root
-
 
 class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
@@ -189,7 +191,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#program.
     def visitProgram(self, ctx):
-        root = self.compiler.init_node(RootNode(), ctx)
+        prog = self.compiler.init_node(ProgramNode(), ctx)
         stmt_list = self.compiler.init_node(StatementListStmtNode(), ctx)
 
         elems = ctx.sourceElements()
@@ -201,8 +203,8 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
                 stmt = self.visit(st)
                 stmt_list.add_statement(stmt)
 
-        root.set_statement_list(stmt_list)
-        return root
+        prog.set_statement_list(stmt_list)
+        return prog
 
     # Visit a parse tree produced by ECMAScriptParser#sourceElements.
     def visitSourceElements(self, ctx):

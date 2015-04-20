@@ -317,15 +317,8 @@ class RootNode(Node):
         '''
         super(RootNode, self).__init__()
         self.childs_declarations = []
-        self.child_statement_list = None
+        self.child_program = None
         self._scope = RootScope(self)
-        self._return_scope = ReturnStmtScope(self)
-
-#     def get_root(self):
-#         ''''
-#         Returns this node, since it is a RootNode
-#         '''
-#         return self
 
     def get_root_scope(self):
         ''''
@@ -333,9 +326,47 @@ class RootNode(Node):
          '''
         return self._scope
 
+    def add_declaration(self, node):
+        '''
+        statement adder
+        '''
+        node.set_parent(self)
+        self.childs_declarations.append(node)
+
+    def set_program(self, child):
+        '''
+        statement_list setter
+        '''
+        assert isinstance(child, ProgramNode)
+        child.set_parent(self)
+        self.child_program = child
+
+    def resolve(self, compiler):
+        # First built-ins
+        for decl in self.childs_declarations:
+            compiler.resolve_node(decl)
+        # Next user code
+        compiler.resolve_node(self.child_program)
+
+
+class ProgramNode(Node):
+
+    '''
+    Node class container of a program, similar to a function but
+    without parameters
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ProgramNode, self).__init__()
+        self.child_statement_list = None
+        self._return_scope = ReturnStmtScope(self)
+
     def get_stmt_scope(self):
         ''''
-        Returns None, since there is no more tree to walk up
+        Returns None, do not try to further walk up
         '''
         return None
 
@@ -347,13 +378,6 @@ class RootNode(Node):
         '''
         return self._return_scope
 
-    def add_declaration(self, node):
-        '''
-        statement adder
-        '''
-        node.set_parent(self)
-        self.childs_declarations.append(node)
-
     def set_statement_list(self, child):
         '''
         statement_list setter
@@ -363,12 +387,7 @@ class RootNode(Node):
         self.child_statement_list = child
 
     def resolve(self, compiler):
-        # First built-ins
-        for decl in self.childs_declarations:
-            compiler.resolve_node(decl)
-        # Next user code
         compiler.resolve_node(self.child_statement_list)
-
 
 class ArgumentListNode(Node):
 
