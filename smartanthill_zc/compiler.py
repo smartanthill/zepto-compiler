@@ -15,6 +15,8 @@
 
 from smartanthill_zc.visitor import NodeWalker, walk_node_childs
 from smartanthill_zc.errors import CompilerError
+from antlr4.tree.Tree import TerminalNodeImpl
+from antlr4.ParserRuleContext import ParserRuleContext
 
 
 class BuiltinCtx(object):
@@ -33,9 +35,14 @@ def format_location(ctx):
     '''
 
     if isinstance(ctx, BuiltinCtx):
-        return ctx.text
-    else:
-        return 'line %s, ' % str(ctx.start.line)
+        return ctx.text + ', '
+    elif isinstance(ctx, TerminalNodeImpl):  # ctx.symbol is CommonToken
+        return 'line %s, ' % str(ctx.symbol.line)
+    elif isinstance(ctx, ParserRuleContext):
+        if ctx.start.line == ctx.stop.line:
+            return 'line %s, ' % str(ctx.start.line)
+        else:
+            return 'lines %s-%s, ' % (str(ctx.start.line), str(ctx.stop.line))
 
 
 class Compiler(object):
@@ -55,13 +62,16 @@ class Compiler(object):
         self.removed_nodes = []
         self.error_flag = False
 
-    def init_node(self, node, ctx):
+    def init_node(self, node, ctx=None):
         '''
         Initializes a node by setting its node_id
         '''
         node.node_id = self.next_node_id
         self.next_node_id += 1
-        node.ctx = ctx
+        if ctx:
+            node.ctx = ctx
+        else:
+            node.ctc = self.BUILTIN
         return node
 
     def remove_node(self, node):

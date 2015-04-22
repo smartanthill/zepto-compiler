@@ -21,7 +21,7 @@ from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
 from smartanthill_zc.node import StatementListStmtNode, \
     RootNode, McuSleepStmtNode, VariableDeclarationStmtNode, NopStmtNode, \
     IfElseStmtNode, ErrorStmtNode, SimpleForStmtNode, ReturnStmtNode, \
-    MethodCallExprNode, FunctionCallExprNode, VariableExprNode, \
+    BodyPartCallExprNode, FunctionCallExprNode, VariableExprNode, \
     NumberLiteralExprNode, ArgumentListNode, OperatorExprNode, \
     MemberAccessExprNode, AssignmentExprNode, ExpressionStmtNode, \
     BooleanLiteralExprNode, make_statement_list, ProgramNode
@@ -47,6 +47,18 @@ class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
         '''
         # pylint: disable=unused-argument
         self.compiler.syntax_error()
+
+
+def check_reserved_name(compiler, token):
+    '''
+    If name matches reserved name prefix, issue an error
+    '''
+
+    if token.getText().startswith(u'_zc_'):
+        compiler.report_error(token, "Name '%s' and all names starting with "
+                              "'_zc_' are reserved" % token.getText())
+
+    return token
 
 
 def parse_js_string(compiler, data):
@@ -136,6 +148,7 @@ def js_parse_tree_to_syntax_tree(compiler, js_tree):
 
     return root
 
+
 class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     '''
@@ -173,9 +186,9 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
                 ECMAScriptParser.NotEquals,
                 ECMAScriptParser.And,
                 ECMAScriptParser.Or]:
-            node.ctx_operator = op_ctx
+            node.tk_operator = op_ctx
         else:
-            node.ctx_operator = op_ctx  # set it anyway, but report error
+            node.tk_operator = op_ctx  # set it anyway, but report error
             self.compiler.report_error(
                 node_ctx, "Operator '%s' not supported", op_ctx.getText())
 
@@ -253,13 +266,11 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         assert len(var_list) >= 1
 
         if len(var_list) > 1:
-            self.compiler.report_error(
-                ctx,
-                "Multiple varible declarations in a single statement "
-                "not supported")
+            self.compiler.report_error(ctx, "Multiple varible declarations in"
+                                       " a single statement not supported")
 
-        stmt.ctx_name = var_list[0].Identifier()
-        assert stmt.ctx_name
+        stmt.tk_name = check_reserved_name(self.compiler,
+                                           var_list[0].Identifier())
 
         ini = var_list[0].initialiser()
         if ini:
@@ -347,7 +358,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         if(id_list[0].getText() == id_list[1].getText() and
            id_list[0].getText() == id_list[2].getText()):
 
-            stmt.ctx_name = id_list[0]
+            stmt.tk_name = check_reserved_name(self.compiler, id_list[0])
         else:
             self.compiler.report_error(
                 ctx, "Loop 'for' only supported in the trivial form "
@@ -546,7 +557,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitFunctionExpression(self, ctx):
         expr = self.compiler.init_node(FunctionCallExprNode(), ctx)
 
-        expr.ctx_name = ctx.Identifier()
+        expr.tk_name = check_reserved_name(self.compiler, ctx.Identifier())
         args = self.visit(ctx.arguments())
         expr.set_argument_list(args)
 
@@ -556,7 +567,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitAssignmentExpression(self, ctx):
         expr = self.compiler.init_node(AssignmentExprNode(), ctx)
 
-        expr.ctx_name = ctx.Identifier()
+        expr.tk_name = check_reserved_name(self.compiler, ctx.Identifier())
         rhs = self.visit(ctx.expressionSequence())
         expr.set_rhs(rhs)
 
@@ -575,7 +586,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
     def visitIdentifierExpression(self, ctx):
         expr = self.compiler.init_node(VariableExprNode(), ctx)
-        expr.ctx_name = ctx
+        expr.tk_name = check_reserved_name(self.compiler, ctx.Identifier())
 
         return expr
 
@@ -586,13 +597,15 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
     def visitMemberDotExpression(self, ctx):
-        member_name = ctx.identifierName()
-        node = self.compiler.init_node(MemberAccessExprNode(member_name), ctx)
+
+        expr = self.compiler.init_node(MemberAccessExprNode(), ctx)
+        expr.tk_member_name = check_reserved_name(self.compiler,
+                                                  ctx.identifierName())
 
         e = self.visit(ctx.singleExpression())
-        node.set_expression(e)
+        expr.set_expression(e)
 
-        return node
+        return expr
 
     # Visit a parse tree produced by ECMAScriptParser#NotExpression.
     def visitNotExpression(self, ctx):
@@ -610,10 +623,11 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#MethodExpression.
     def visitMethodExpression(self, ctx):
-        expr = self.compiler.init_node(MethodCallExprNode(), ctx)
+        expr = self.compiler.init_node(BodyPartCallExprNode(), ctx)
 
-        expr.ctx_base_name = ctx.Identifier()
-        expr.ctx_name = ctx.identifierName()
+        expr.tk_base_name = check_reserved_name(self.compiler,
+                                                ctx.Identifier())
+        expr.tk_name = check_reserved_name(self.compiler, ctx.identifierName())
         args = self.visit(ctx.arguments())
         expr.set_argument_list(args)
 
@@ -644,8 +658,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         if ctx.numericLiteral():
             expr = self.compiler.init_node(NumberLiteralExprNode(), ctx)
             lit = ctx.numericLiteral().DecimalLiteral()
-            assert lit
-            expr.ctx_literal = lit
+            expr.tk_literal = lit
 
             return expr
 

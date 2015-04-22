@@ -15,7 +15,7 @@
 
 from smartanthill_zc.node import Node, ResolutionHelper, \
     StaticEvaluatedExprNode, LiteralCastExprNode, TypeDeclNode, \
-    OperatorExprNode
+    OperatorExprNode, DeclarationListNode
 
 
 def create_builtins(compiler, root):
@@ -25,50 +25,55 @@ def create_builtins(compiler, root):
 
     ctx = compiler.BUILTIN
 
-    root.add_declaration(
+    decls = compiler.init_node(DeclarationListNode(), ctx)
+    decls.add_declaration(
         compiler.init_node(VoidTypeDeclNode(u'_zc_void'), ctx))
 
     num_lit = compiler.init_node(BasicTypeDeclNode(u'_zc_number_literal'), ctx)
-    root.add_declaration(num_lit)
+    decls.add_declaration(num_lit)
 
-    root.add_declaration(
+    decls.add_declaration(
         compiler.init_node(NumberTypeDeclNode(u'_zc_number', num_lit), ctx))
 
     bool_lit = compiler.init_node(BasicTypeDeclNode(u'_zc_bool_literal'), ctx)
-    root.add_declaration(bool_lit)
+    decls.add_declaration(bool_lit)
 
-    root.add_declaration(
+    decls.add_declaration(
         compiler.init_node(NumberTypeDeclNode(u'_zc_bool', bool_lit), ctx))
 
     mcu = compiler.init_node(McuSleepDeclNode(), ctx)
     mcu.set_parameter_list(
         _create_parameter_list(compiler, ctx, [u'_zc_number_literal']))
-    root.add_declaration(mcu)
+    decls.add_declaration(mcu)
 
-    root.add_declaration(
-        _create_test_plugin_type(compiler, ctx, u'TemperatureSensor'))
+    decls.add_declaration(
+        _create_test_plugin_type(compiler, ctx, u'_zc_type_TemperatureSensor',
+                                 {'flag': '_zc_bool',
+                                  'value': '_zc_number',
+                                  'Temperature': '_zc_number'}))
 
-    root.add_declaration(
-        _create_test_plugin(compiler, ctx, u'TemperatureSensor'))
+    decls.add_declaration(
+        _create_test_plugin(compiler, ctx, u'TemperatureSensor', 4, []))
 
-    _create_literal_operators(compiler, ctx, root, [u'+', u'-', u'*', u'/'],
+    _create_literal_operators(compiler, ctx, decls, [u'+', u'-', u'*', u'/'],
                               u'_zc_number_literal',
                               [u'_zc_number_literal', u'_zc_number_literal'])
 
-    _create_operators(compiler, ctx, root, [u'+', u'-', u'*', u'/'],
+    _create_operators(compiler, ctx, decls, [u'+', u'-', u'*', u'/'],
                       u'_zc_number', [u'_zc_number', u'_zc_number'])
 
-    _create_operators(compiler, ctx, root, [u'<', u'>', u'<=', u'>='],
+    _create_operators(compiler, ctx, decls, [u'<', u'>', u'<=', u'>='],
                       u'_zc_bool', [u'_zc_number', u'_zc_number'])
 
-    _create_operators(compiler, ctx, root, [u'==', u'!='],
+    _create_operators(compiler, ctx, decls, [u'==', u'!='],
                       u'_zc_bool', [u'_zc_bool', u'_zc_bool'])
 
-    _create_operators(compiler, ctx, root, [u'&&', u'||'],
+    _create_operators(compiler, ctx, decls, [u'&&', u'||'],
                       u'_zc_bool', [u'_zc_bool', u'_zc_bool'])
 
-    _create_operators(compiler, ctx, root, [u'!'], u'_zc_bool', [u'_zc_bool'])
+    _create_operators(compiler, ctx, decls, [u'!'], u'_zc_bool', [u'_zc_bool'])
 
+    root.set_builtin(decls)
     compiler.check_stage('built-in')
 
 
@@ -142,7 +147,7 @@ class NumberTypeDeclNode(TypeDeclNode):
         return c
 
 
-class AggregateTypeElementDeclNode(Node, ResolutionHelper):
+class MemberDeclNode(Node, ResolutionHelper):
 
     '''
     Aggregate type element
@@ -152,7 +157,7 @@ class AggregateTypeElementDeclNode(Node, ResolutionHelper):
         '''
         Constructor
         '''
-        super(AggregateTypeElementDeclNode, self).__init__()
+        super(MemberDeclNode, self).__init__()
         self.str_name = name
         self.str_type_name = type_name
 
@@ -164,7 +169,7 @@ class AggregateTypeElementDeclNode(Node, ResolutionHelper):
         return self.get_root_scope().lookup_type(self.str_type_name)
 
 
-class AggregateTypeDeclNode(TypeDeclNode):
+class MessageTypeDeclNode(TypeDeclNode):
 
     '''
     Aggregate type, used as plug-in method return type
@@ -174,7 +179,7 @@ class AggregateTypeDeclNode(TypeDeclNode):
         '''
         Constructor
         '''
-        super(AggregateTypeDeclNode, self).__init__(type_name)
+        super(MessageTypeDeclNode, self).__init__(type_name)
         self.childs_elements = []
         self._already_resolved = False
 
@@ -182,7 +187,7 @@ class AggregateTypeDeclNode(TypeDeclNode):
         '''
         argument adder
         '''
-        assert isinstance(node, AggregateTypeElementDeclNode)
+        assert isinstance(node, MemberDeclNode)
         node.set_parent(self)
         self.childs_elements.append(node)
 
@@ -196,6 +201,12 @@ class AggregateTypeDeclNode(TypeDeclNode):
 
         self.get_root_scope().add_type(compiler, self.str_type_name, self)
         self._already_resolved = True
+
+    def is_message_type(self):
+        '''
+        All intances of this type are valid response types
+        '''
+        return True
 
     def lookup_member_type(self, name):
         for current in self.childs_elements:
@@ -282,11 +293,11 @@ def _create_operator(compiler, ctx, operator, ret_type, type_list):
     return op
 
 
-def _create_operators(compiler, ctx, root, operator_list, ret_type, type_list):
+def _create_operators(compiler, ctx, decls, op_list, ret_type, type_list):
 
-    for current in operator_list:
+    for current in op_list:
         op = _create_operator(compiler, ctx, current, ret_type, type_list)
-        root.add_declaration(op)
+        decls.add_declaration(op)
 
 
 class OperatorDeclNode(Node, ResolutionHelper):
@@ -386,9 +397,9 @@ class NumberLiteralOpDeclNode(OperatorDeclNode):
         elif self.str_operator == u'-':
             result.set_static_value(lhs - rhs)
         elif self.str_operator == u'*':
-            result.set_static_value(lhs - rhs)
+            result.set_static_value(lhs * rhs)
         elif self.str_operator == u'/':
-            result.set_static_value(lhs - rhs)
+            result.set_static_value(lhs / rhs)
         else:
             assert False
 
@@ -438,54 +449,46 @@ class McuSleepDeclNode(Node, ResolutionHelper):
                                                              arg_list)
 
 
-def _create_test_plugin_type(compiler, ctx, name):
+def _create_test_plugin_type(compiler, ctx, name, members):
     '''
     Temp function to create a test plug-in type
     '''
-    a = compiler.init_node(AggregateTypeDeclNode(name + u'_t'), ctx)
-    a.add_element(
-        compiler.init_node(AggregateTypeElementDeclNode('flag', '_zc_bool'),
-                           ctx))
+    a = compiler.init_node(MessageTypeDeclNode(name), ctx)
 
-    a.add_element(
-        compiler.init_node(AggregateTypeElementDeclNode('value', '_zc_number'),
-                           ctx))
-
-    a.add_element(
-        compiler.init_node(AggregateTypeElementDeclNode('Temperature',
-                                                        '_zc_number'),
-                           ctx))
+    for n, t in members.items():
+        a.add_element(compiler.init_node(MemberDeclNode(n, t), ctx))
 
     return a
 
 
-def _create_test_plugin(compiler, ctx, name):
+def _create_test_plugin(compiler, ctx, name, body_part_id, params):
     '''
     Temp function to create a test plug-in
     '''
 
-    p = compiler.init_node(PluginDeclNode(name, name + u'_t'), ctx)
+    p = compiler.init_node(BodyPartDeclNode(name, u'_zc_type_' + name,
+                                            body_part_id), ctx)
 
-    p.set_parameter_list(
-        compiler.init_node(ParameterListNode(), ctx))
+    p.set_parameter_list(_create_parameter_list(compiler, ctx, params))
 
     return p
 
 
-class PluginDeclNode(Node, ResolutionHelper):
+class BodyPartDeclNode(Node, ResolutionHelper):
 
     '''
     Declaration of plug-in
     '''
 
-    def __init__(self, plugin_name, type_name):
+    def __init__(self, plugin_name, type_name, body_part_id):
         '''
         Constructor
         '''
-        super(PluginDeclNode, self).__init__()
+        super(BodyPartDeclNode, self).__init__()
         self.child_parameter_list = None
         self.str_plugin_name = plugin_name
         self.str_type_name = type_name
+        self.bodypart_id = body_part_id
 
     def set_parameter_list(self, node):
         '''
@@ -516,3 +519,17 @@ class PluginDeclNode(Node, ResolutionHelper):
         '''
         return self.child_parameter_list.can_match_arguments(compiler,
                                                              arg_list)
+
+    def get_data_value(self, encoder, node):
+        '''
+        Here we must encode the caller arguments as it was specified in
+        plug-in manifest for this body part
+        '''
+        # pylint: disable=no-self-use
+        result = []
+
+        for current in node.child_argument_list.childs_arguments:
+            enc = encoder.encode_unsigned_int(2, current.get_static_value())
+            result.extend(enc)
+
+        return result

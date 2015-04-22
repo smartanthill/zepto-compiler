@@ -17,6 +17,7 @@ import pytest
 
 from smartanthill_zc import compiler
 from smartanthill_zc import parse_js
+from smartanthill_zc.errors import CompilerError
 
 
 def test_js_simple_return():
@@ -38,6 +39,7 @@ def test_js_simple_return():
 
 
 def test_js_unsuported_grammar():
-    with pytest.raises(compiler.CompilerError):
+    with pytest.raises(CompilerError):
         comp = compiler.Compiler()
         parse_js.parse_js_string(comp, u'function problem() {;}')
+

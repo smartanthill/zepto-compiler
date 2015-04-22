@@ -38,7 +38,7 @@ def test_js_simple_return():
         "+-ProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-ReturnStmtNode",
-        "+-+-+-+-MethodCallExprNode base_name='Some' name='Thing'",
+        "+-+-+-+-BodyPartCallExprNode base_name='Some' name='Thing'",
         "+-+-+-+-+-ArgumentListNode"
     ]
 

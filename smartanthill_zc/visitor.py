@@ -22,7 +22,10 @@ def visit_node(visitor, node):
     Trivial implementation
     '''
     assert isinstance(node, Node)
-    getattr(visitor, 'visit_' + type(node).__name__)()
+    try:
+        getattr(visitor, 'visit_' + type(node).__name__)(node)
+    except AttributeError:
+        getattr(visitor, 'default_visit')(node)
 
 
 def walk_node_childs(walker, node):
@@ -140,15 +143,15 @@ class _DumpTreeWalker(NodeWalker):
         ctx_attrs = ''
         names = dir(node)
         for current in names:
-            if current.startswith('ctx_'):
-                ctx_attrs += " %s='%s'" % (current[4:],
+            if current.startswith('tk_'):
+                ctx_attrs += " %s='%s'" % (current[3:],
                                            getattr(node, current).getText())
             elif current.startswith('str_'):
                 ctx_attrs += " %s='%s'" % (current[4:],
                                            getattr(node, current))
-            elif current.startswith('txt_'):
-                ctx_attrs += " %s='%s'" % (current[4:],
-                                           getattr(node, current).getText())
+#             elif current.startswith('txt_'):
+#                 ctx_attrs += " %s='%s'" % (current[4:],
+#                                            getattr(node, current).getText())
 
         s = '+-' * self.index + type(node).__name__ + ctx_attrs
         self.result.append(s)
