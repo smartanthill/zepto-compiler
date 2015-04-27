@@ -73,7 +73,6 @@ def test_encode_signed_int():
     encode_signed_helper(2, 64, 8320)  # 64 + 8256
     encode_signed_helper(2, 8255, 16511) # 8255 + 8256
 
-
     encode_signed_helper(3, -1056832 , 16512)
     encode_signed_helper(3, -8257, 1065087)
 
@@ -188,6 +187,10 @@ def test_encode_bitfield():
                             False, False, False, False]) == 64
 
 def main():
+
+    print decode_unsigned_int(bytearray([255, 127]))
+
+    return
 
     low = 0
     high = 256

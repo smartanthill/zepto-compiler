@@ -80,6 +80,32 @@ class Op(object):
     # below, instructions are not supported by Zepto VM-Small and below
     PARALLEL = _OpImpl(38, 'ZEPTOVM_OP_PARALLEL')
 
+class BitField(object):
+    '''
+    Represents a flags bitfield, makes it easier to represent flags by name
+    '''
+
+    def __init__(self, names):
+        '''
+        Constructor
+        '''
+        self.names = names
+        self.values = {}
+
+    def set(self, name, value):
+        if name not in self.names:
+            assert False
+
+        self.values[name] = value
+        
+    def get(self, name):
+        if name not in self.names:
+            assert False
+
+        if name in self.values:
+            return self.values[name]
+        else:
+            return False
 
 class OpcodeNode(Node):
     '''
@@ -90,7 +116,6 @@ class OpcodeNode(Node):
         Constructor
         '''
         super(OpcodeNode, self).__init__()
-        self.opcode = None
 
     def write(self, writer):
         '''
@@ -137,7 +162,7 @@ class ExecOpNode(OpcodeNode):
         Constructor
         '''
         super(ExecOpNode, self).__init__()
-        self.opcode = Op.EXEC
+        self._opcode = Op.EXEC
         self.bodypart_id = 0
         self.data = None
 
@@ -145,9 +170,9 @@ class ExecOpNode(OpcodeNode):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self)
+        writer.write_opcode(self._opcode)
         writer.write_int_2(self.bodypart_id)
-        writer.write_opaque_data(2, self.data)
+        writer.write_opaque_data_2(self.data)
 
 
 class PushReplyOpNode(OpcodeNode):
@@ -160,15 +185,15 @@ class PushReplyOpNode(OpcodeNode):
         Constructor
         '''
         super(PushReplyOpNode, self).__init__()
-        self.opcode = Op.PUSHREPLY
+        self._opcode = Op.PUSHREPLY
         self.data = None
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self)
-        writer.write_opaque_data(2, self.data)
+        writer.write_opcode(self._opcode)
+        writer.write_opaque_data_2(self.data)
 
 
 class TransmitterOpNode(OpcodeNode):
@@ -181,15 +206,15 @@ class TransmitterOpNode(OpcodeNode):
         Constructor
         '''
         super(TransmitterOpNode, self).__init__()
-        self.opcode = Op.TRANSMITTER
-        self.on_off = False
+        self._opcode = Op.TRANSMITTER
+        self._bf = BitField(['ON'])
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self)
-        writer.write_bitfield([self.on_off])
+        writer.write_opcode(self._opcode)
+        writer.write_bitfield(self._bf)
 
 
 class SleepOpNode(OpcodeNode):
@@ -202,14 +227,14 @@ class SleepOpNode(OpcodeNode):
         Constructor
         '''
         super(SleepOpNode, self).__init__()
-        self.opcode = Op.SLEEP
+        self._opcode = Op.SLEEP
         self.msec_delay = 0
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self)
+        writer.write_opcode(self._opcode)
         writer.write_uint_4(self.msec_delay)
 
 
@@ -223,19 +248,18 @@ class McuSleepOpNode(OpcodeNode):
         Constructor
         '''
         super(McuSleepOpNode, self).__init__()
-        self.opcode = Op.MCUSLEEP
+        self._opcode = Op.MCUSLEEP
         self.sec_delay = 0
-        self.transmitter_on_when_back = False
-        self.may_drop_earlier_instructions = False
+        self._bf = BitField(['MAYDROPEARLIERINSTRUCTIONS',
+                            'TRANSMITTERONWHENBACK'])
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self)
+        writer.write_opcode(self._opcode)
         writer.write_uint_4(self.sec_delay)
-        writer.write_bitfield([self.may_drop_earlier_instructions,
-                               self.transmitter_on_when_back])
+        writer.write_bitfield(self._bf)
 
 
 class PopRepliesOpNode(OpcodeNode):
@@ -248,15 +272,15 @@ class PopRepliesOpNode(OpcodeNode):
         Constructor
         '''
         super(PopRepliesOpNode, self).__init__()
-        self.opcode = Op.POPREPLIES
-        self.replies_count = 0
+        self._opcode = Op.POPREPLIES
+        self._replies_count = 0
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self)
-        writer.write_uint_2(self.replies_count)
+        writer.write_opcode(self._opcode)
+        writer.write_uint_2(self._replies_count)
 
 
 class ExitOpNode(OpcodeNode):
@@ -269,18 +293,31 @@ class ExitOpNode(OpcodeNode):
         Constructor
         '''
         super(ExitOpNode, self).__init__()
-        self.opcode = Op.EXIT
-        self.is_first = False
-        self.is_last = False
-        self.force_padding = False
-        self.opt_padding_to = 0
+        self._opcode = Op.EXIT
+        self._bf = BitField(['FORCED-PADDING-FLAG', 'ISFIRST', 'ISLAST'])
+        self._opt_padding_to = 0
+        self.is_implicit = False
+
+    def set_is_first(self):
+        assert not self._bf.get('ISLAST')
+        self._bf.set('ISFIRST', True)
+
+    def set_is_last(self):
+        assert not self._bf.get('ISFIRST')
+        self._bf.set('ISLAST', True)
+
+    def try_make_implicit(self):
+        
+        if self._bf.get('ISLAST') and not self._bf.get('FORCED-PADDING-FLAG'):
+            self.is_implicit = True
+            
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self)
-        writer.write_bitfield([self.force_padding, self.is_last,
-                               self.is_first])
-        if self.force_padding:
-            writer.write_uint_2(self.opt_padding_to)
+        if not self.is_implicit:
+            writer.write_opcode(self._opcode)
+            writer.write_bitfield(self._bf)
+            if self._bf.get('FORCED-PADDING-FLAG'):
+                writer.write_uint_2(self._opt_padding_to)

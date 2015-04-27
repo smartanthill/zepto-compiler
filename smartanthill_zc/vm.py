@@ -28,7 +28,8 @@ def convert_to_zepto_vm_one(compiler, root):
     v = _ZeptoVmOneVisitor(compiler)
     visit_node(v, root.child_program)
 
-    root.set_op_list(v.op_list)
+    op_list = v.get_op_list()
+    root.set_op_list(op_list)
     compiler.check_stage('zepto_vm_one')
 
 
@@ -100,7 +101,26 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         '''
         self._compiler = compiler
         self._encoder = ZeptoEncoder()
-        self.op_list = compiler.init_node(OpListNode())
+        self.op_list = compiler.init_node(OpListNode(), compiler.BUILTIN)
+        self._exits = []
+        self._has_mcu_sleep = False
+
+    def get_op_list(self):
+        '''
+        Finished visiting nodes, make all required adjustments and return
+        the ops list
+        '''
+        
+        for each in self._exits:
+            if self._has_mcu_sleep:
+                each.set_is_first()
+            else:
+                each.set_is_last()
+
+        if isinstance(self.op_list.childs_operations[-1], ExitOpNode):
+            self.op_list.childs_operations[-1].try_make_implicit()
+            
+        return self.op_list
 
     def default_visit(self, node):
         '''
@@ -130,15 +150,16 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                 "resolved for " + self.VM_NAME)
 
         op = self._compiler.init_node(ExitOpNode(), node.ctx)
-        op.is_last = True
 
         self.op_list.add_operation(op)
+        self._exits.append(op)
 
     def visit_McuSleepStmtNode(self, node):
         op = self._compiler.init_node(McuSleepOpNode(), node.ctx)
         op.sec_delay = node.get_delay_value()
 
         self.op_list.add_operation(op)
+        self._has_mcu_sleep = True
 
     def visit_BodyPartCallExprNode(self, node):
         op = self._compiler.init_node(ExecOpNode(), node.ctx)

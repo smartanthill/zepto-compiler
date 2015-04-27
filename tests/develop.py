@@ -22,6 +22,7 @@ from smartanthill_zc import builtin
 from smartanthill_zc.vm import convert_to_zepto_vm_one
 from smartanthill_zc.writter import write_text_op_codes
 from smartanthill_zc.compiler import Compiler
+from smartanthill_zc.antlr_helper import dump_antlr_tree
 
 
 def main():
@@ -39,7 +40,7 @@ def main():
     code = u'mcu_sleep(5*60);\n return TemperatureSensor.Execute();'
     comp = Compiler()
     js_tree = parse_js.parse_js_string(comp, code)
-    print '\n'.join(parse_js.dump_antlr_tree(js_tree))
+    print '\n'.join(dump_antlr_tree(js_tree))
     root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
 
     builtin.create_builtins(comp, root)

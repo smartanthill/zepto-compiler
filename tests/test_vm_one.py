@@ -38,8 +38,7 @@ def test_js_pattern_1():
 
     code = [u'return TemperatureSensor.Execute();']
 
-    out = ['ZEPTOVM_OP_EXEC|0x44|0x00',
-           'ZEPTOVM_OP_EXIT|0x02']
+    out = ['ZEPTOVM_OP_EXEC|4|0']
 
     assert common_test_run(code) == out
     
@@ -48,9 +47,9 @@ def test_js_pattern_2():
     code = [u'mcu_sleep(5*60);',
             u'return TemperatureSensor.Execute();']
 
-    out = ['ZEPTOVM_OP_MCUSLEEP|0x812c|0x00',
-           'ZEPTOVM_OP_EXEC|0x44|0x00',
-           'ZEPTOVM_OP_EXIT|0x02']
+    out = ['ZEPTOVM_OP_MCUSLEEP|300|0',
+           'ZEPTOVM_OP_EXEC|4|0',
+           'ZEPTOVM_OP_EXIT|ISFIRST']
 
     assert common_test_run(code) == out
     

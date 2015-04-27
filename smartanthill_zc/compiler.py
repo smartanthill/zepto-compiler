@@ -62,16 +62,14 @@ class Compiler(object):
         self.removed_nodes = []
         self.error_flag = False
 
-    def init_node(self, node, ctx=None):
+    def init_node(self, node, ctx):
         '''
         Initializes a node by setting its node_id
         '''
         node.node_id = self.next_node_id
         self.next_node_id += 1
-        if ctx:
-            node.ctx = ctx
-        else:
-            node.ctc = self.BUILTIN
+        node.ctx = ctx
+
         return node
 
     def remove_node(self, node):

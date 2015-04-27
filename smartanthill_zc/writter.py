@@ -29,6 +29,31 @@ def write_text_op_codes(compiler, node):
     return w.get_result()
 
 
+def check_int_range(max_bytes, value):
+        
+    assert max_bytes >= 1
+    assert max_bytes <= 8
+
+    lvalue = long(value)
+
+    assert lvalue >= -(2 ** ((8 * max_bytes) - 1))
+    assert lvalue <= (2 ** ((8 * max_bytes) - 1)) - 1
+
+    return lvalue
+
+def check_uint_range(max_bytes, value):
+
+    assert max_bytes >= 1
+    assert max_bytes <= 8
+
+    lvalue = long(value)
+
+    assert lvalue >= 0
+    assert lvalue < 2 ** (8 * max_bytes)
+
+    return lvalue
+
+
 class _TextWriter(object):
 
     '''
@@ -53,54 +78,71 @@ class _TextWriter(object):
 
         return self._result
 
-    def write_opcode(self, node):
+    def write_opcode(self, opcode):
         '''
         Begins a new operation, writes the opcode
         '''
         if self._current:
             self._result.append(self._current)
 
-        self._current = node.opcode.name
+        self._current = opcode.name
 
     def write_bytes(self, data):
         '''
         Adds a binary field to current operation
         '''
-        self._current += '|0x' + binascii.hexlify(data)
+        if len(data) != 0:
+            self._current += '|0x' + binascii.hexlify(data)
+
+    def write_long(self, value):
+        '''
+        Adds a binary field to current operation
+        '''
+        self._current += '|%d' % value
 
     def write_int_2(self, value):
         '''
         Adds an Encoded-Signed-Int<max=2> field
         '''
-        self.write_bytes(self._encoder.encode_signed_int(2, value))
+        lvalue = check_int_range(2, value)
+        self.write_long(lvalue)
 
     def write_uint_2(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=2> field
         '''
-        self.write_bytes(self._encoder.encode_unsigned_int(2, value))
+        lvalue = check_uint_range(2, value)
+        self.write_long(lvalue)
 
     def write_uint_4(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=4> field
         '''
-        self.write_bytes(self._encoder.encode_unsigned_int(4, value))
+        lvalue = check_uint_range(4, value)
+        self.write_long(lvalue)
 
     def write_bitfield(self, bits):
         '''
         Adds a bitfield from a list of booleans. MSB completed with 0
         '''
-        self.write_bytes(bytearray([self._encoder.encode_bitfield(bits)]))
+        flags = []
+        for current in bits.names:
+            if current in bits.values and bits.values[current]:
+                flags.append(current)
+                
+        if len(flags) == 0:
+            self._current += '|0'
+        else:
+            self._current += '|' + ','.join(flags)
+              
 
-    def write_opaque_data(self, max_size_bytes, data):
+    def write_opaque_data_2(self, data):
         '''
         Adds an opaque data binary field to current operation
         First adds a field with the data size, and data itself after it
         '''
         if not data:
-            self.write_bytes(self._encoder.encode_unsigned_int(max_size_bytes,
-                                                               0))
+            self.write_uint_2(0)
         else:
-            self.write_bytes(self._encoder.encode_unsigned_int(max_size_bytes,
-                                                               len(data)))
+            self.write_uint_2(len(data))
             self.write_bytes(data)
