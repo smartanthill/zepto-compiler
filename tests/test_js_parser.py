@@ -18,12 +18,13 @@ import pytest
 from smartanthill_zc import compiler
 from smartanthill_zc import parse_js
 from smartanthill_zc.errors import CompilerError
+from smartanthill_zc.antlr_helper import dump_antlr_tree
 
 
 def test_js_simple_return():
     comp = compiler.Compiler()
     js_tree = parse_js.parse_js_string(comp, u'return Some.Thing();')
-    actual = parse_js.dump_antlr_tree(js_tree)
+    actual = dump_antlr_tree(js_tree)
     expected = [
         "ProgramContext '<EOF>'",
         "+-SourceElementsContext",
