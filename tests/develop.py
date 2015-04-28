@@ -15,43 +15,65 @@
 
 import sys
 
-from smartanthill_zc import compiler
+from smartanthill_zc import compiler, parse_xml
 from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
 from smartanthill_zc import builtin
 from smartanthill_zc.vm import convert_to_zepto_vm_one
 from smartanthill_zc.writter import write_text_op_codes
 from smartanthill_zc.compiler import Compiler
-from smartanthill_zc.antlr_helper import dump_antlr_tree
 
 
 def main():
 
-#     code = (u'for (var i = 0; i < 5; i++) {'
-#             u'  var temp = TemperatureSensor.Execute();'
-#             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
-#             u'    return temp;'
-#
-#             u'  mcu_sleep(5*60);'
-#             u'}'
-#             u'return TemperatureSensor.Execute();')
+    code = [u'for (var i = 0; i < 5; i++) {'
+            u'  var temp = TemperatureSensor.Execute();'
+            u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
+            u'    return temp;'
 
+            u'  mcu_sleep(5*60);'
+            u'}'
+            u'return TemperatureSensor.Execute();']
 
-    code = u'mcu_sleep(5*60);\n return TemperatureSensor.Execute();'
+    xml = [
+        u'<smartanthill.plugin name="TemperatureSensor" id="1" version="1.0">',
+        u'  <description>Short description here</description>',
+        u'  <command/>',
+        u'  <reply>',
+        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;" min="0" max="255">',
+        u'      <meaning type="float">',
+        u'        <linear-conversion input-point0="0" output-point0="20.0"',
+        u'          input-point1="100" output-point1="40.0" />',
+        u'      </meaning>',
+        u'    </field>',
+        u'  </reply>',
+        u'  <peripheral>Right now compiler can ignore this</peripheral>',
+        u'</smartanthill.plugin>'
+    ]
+
+    xml = '\n'.join(xml)
+    code = '\n'.join(code)
+
     comp = Compiler()
     js_tree = parse_js.parse_js_string(comp, code)
-    print '\n'.join(dump_antlr_tree(js_tree))
     root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
 
     builtin.create_builtins(comp, root)
+
+    xml_tree = parse_xml.parse_xml_string(comp, xml)
+    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+    root.set_bodyparts(bodyparts)
+
     visitor.check_all_nodes_reachables(comp, root)
     compiler.process_syntax_tree(comp, root)
 
-    print '\n'.join(visitor.dump_tree(root))
+    actual = visitor.dump_tree(root)
 
-    convert_to_zepto_vm_one(comp, root)
+    print '\n'.join(actual)
 
-    print '\n'.join(write_text_op_codes(comp, root.child_op_list))
+#    convert_to_zepto_vm_one(comp, root)
+
+#    print '\n'.join(write_text_op_codes(comp, root.child_op_list))
 
 # temporary entrance
 if __name__ == "__main__":

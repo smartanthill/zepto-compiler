@@ -29,17 +29,19 @@ def create_builtins(compiler, root):
     decls.add_declaration(
         compiler.init_node(VoidTypeDeclNode(u'_zc_void'), ctx))
 
-    num_lit = compiler.init_node(BasicTypeDeclNode(u'_zc_number_literal'), ctx)
-    decls.add_declaration(num_lit)
+    num_t = compiler.init_node(BasicTypeDeclNode(u'_zc_number'), ctx)
+    decls.add_declaration(num_t)
 
     decls.add_declaration(
-        compiler.init_node(NumberTypeDeclNode(u'_zc_number', num_lit), ctx))
+        compiler.init_node(LiteralTypeDeclNode(u'_zc_number_literal', num_t),
+                           ctx))
 
-    bool_lit = compiler.init_node(BasicTypeDeclNode(u'_zc_bool_literal'), ctx)
-    decls.add_declaration(bool_lit)
+    bool_t = compiler.init_node(BasicTypeDeclNode(u'_zc_bool'), ctx)
+    decls.add_declaration(bool_t)
 
     decls.add_declaration(
-        compiler.init_node(NumberTypeDeclNode(u'_zc_bool', bool_lit), ctx))
+        compiler.init_node(LiteralTypeDeclNode(u'_zc_bool_literal', bool_t),
+                           ctx))
 
     mcu = compiler.init_node(McuSleepDeclNode(), ctx)
     mcu.set_parameter_list(
@@ -93,47 +95,47 @@ class VoidTypeDeclNode(TypeDeclNode):
         '''
         super(VoidTypeDeclNode, self).__init__(type_name)
 
-    def can_initialize(self, rhs):
+    def can_cast_to(self, target_type):
         '''
-        Returns true if an instance of this type can be initialized with rhs
+        void type can not be casted to anything, not even to void
         '''
         return self.NO_MATCH
 
 
-class NumberTypeDeclNode(TypeDeclNode):
+class LiteralTypeDeclNode(TypeDeclNode):
 
     '''
     Built-in number and bool types are implemented using this class
     '''
 
-    def __init__(self, type_name, literal_type):
+    def __init__(self, type_name, base_type):
         '''
         Constructor
         '''
-        super(NumberTypeDeclNode, self).__init__(type_name)
-        self._literal_type = literal_type
+        super(LiteralTypeDeclNode, self).__init__(type_name)
+        self._base_type = base_type
 
-    def can_initialize(self, rhs):
+    def can_cast_to(self, target_type):
         '''
-        Returns true if an instance of this type can be initialized with rhs
+        Literal can be casted to its base type
         '''
-        if self == rhs:
+        if self == target_type:
             return self.EXACT_MATCH
-        elif rhs == self._literal_type:
+        elif self._base_type == target_type:
             return self.CAST_MATCH
         else:
             return self.NO_MATCH
 
-    def insert_cast(self, compiler, rhs_expr):
+    def insert_cast_to(self, compiler, expr, target_type):
         '''
-        Base method for cast insertion
+        Inserts a cast to the target (non-literal) type
         '''
+        assert self == expr.get_type()
+        assert self._base_type == target_type
 
-        assert rhs_expr.get_type() == self._literal_type
-
-        c = compiler.init_node(LiteralCastExprNode(), rhs_expr.ctx)
-        c.set_expression(rhs_expr)
-        c.set_type(self)
+        c = compiler.init_node(LiteralCastExprNode(), expr.ctx)
+        c.set_expression(expr)
+        c.set_type(target_type)
 
         return c
 

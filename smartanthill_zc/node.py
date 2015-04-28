@@ -188,6 +188,18 @@ class ExpressionNode(Node):
         # pylint: disable=no-self-use
         return None
 
+    def can_cast_to(self, target_type):
+        '''
+        Helper method to call 'can_cast_to' on this expression 'get_type'
+        '''
+        return self.get_type().can_cast_to(target_type)
+
+    def insert_cast_to(self, compiler, target_type):
+        '''
+        Helper method to call 'insert_cast_to' using self as argument
+        '''
+        return self.get_type().insert_cast_to(compiler, self, target_type)
+
 
 def resolve_expression(compiler, parent, child_name):
     '''
@@ -253,20 +265,21 @@ class TypeDeclNode(Node):
         self.get_root_scope().add_type(compiler, self.str_type_name, self)
         self._resolved = True
 
-    def can_initialize(self, rhs):
+    def can_cast_to(self, target_type):
         '''
-        Returns true if an instance of this type can be initialized with rhs
-        Base implementation returns true if both types are the same instance,
-        otherwise false
+        If self is same type as target_type returns EXACT_MATCH
+        If self can be casted to target_type returns CAST_MATCH
+        Otherwise returns NO_MATCH
         '''
-        if self == rhs:
+        if self == target_type:
             return self.EXACT_MATCH
         else:
             return self.NO_MATCH
 
-    def insert_cast(self, compiler, rhs_expr):
+    def insert_cast_to(self, compiler, expr, target_type):
         '''
-        Base method for cast insertion
+        Inserts a cast to the target type
+        Base method will always fail
         '''
         # pylint: disable=no-self-use
         # pylint: disable=unused-argument
@@ -300,13 +313,13 @@ def expression_type_match(compiler, lhs_type, parent, child_name):
     '''
     expr = getattr(parent, child_name)
 
-    ini = lhs_type.can_initialize(expr.get_type())
+    ini = expr.can_cast_to(lhs_type)
     if ini == TypeDeclNode.NO_MATCH:
         return False
     elif ini == TypeDeclNode.EXACT_MATCH:
         return True
     elif ini == TypeDeclNode.CAST_MATCH:
-        cast = lhs_type.insert_cast(compiler, expr)
+        cast = expr.insert_cast_to(compiler, lhs_type)
         cast.set_parent(parent)
         setattr(parent, child_name, cast)
         return True
@@ -523,7 +536,8 @@ class ArgumentListNode(Node):
         result = TypeDeclNode.EXACT_MATCH
         for i in range(len(self.childs_arguments)):
             t = decl.get_type_at(i)
-            r = t.can_initialize(self.childs_arguments[i].get_type())
+#            r = t.can_initialize(self.childs_arguments[i].get_type())
+            r = self.childs_arguments[i].can_cast_to(t)
 
             if r == TypeDeclNode.NO_MATCH:
                 return TypeDeclNode.NO_MATCH
@@ -550,7 +564,8 @@ class ArgumentListNode(Node):
 
         for i in range(len(self.childs_arguments)):
             t = decl.get_type_at(i)
-            r = t.can_initialize(self.childs_arguments[i].get_type())
+            # r = t.can_initialize(self.childs_arguments[i].get_type())
+            r = self.childs_arguments[i].can_cast_to(t)
 
             if r == TypeDeclNode.NO_MATCH:
                 compiler.report_error(
@@ -559,7 +574,8 @@ class ArgumentListNode(Node):
             elif r == TypeDeclNode.EXACT_MATCH:
                 pass
             elif r == TypeDeclNode.CAST_MATCH:
-                e = t.insert_cast(compiler, self.childs_arguments[i])
+                # e = t.insert_cast(compiler, self.childs_arguments[i])
+                e = self.childs_arguments[i].insert_cast_to(compiler, t)
                 e.set_parent(self)
                 self.childs_arguments[i] = e
             else:

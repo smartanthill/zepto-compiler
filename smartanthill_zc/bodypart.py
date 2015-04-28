@@ -13,7 +13,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.node import Node, ResolutionHelper, TypeDeclNode
+from smartanthill_zc.node import Node, ResolutionHelper, TypeDeclNode,\
+    LiteralCastExprNode
 from smartanthill_zc.builtin import ParameterListNode
 
 
@@ -45,13 +46,14 @@ class FieldTypeDeclNode(TypeDeclNode):
         Constructor
         '''
         super(FieldTypeDeclNode, self).__init__(type_name)
-        self.encoding = 0
+        self._encoding = 0
         self.meaning = None
         self.min_value = 0
         self.max_value = 0
+        self._number_type = None
 
     def set_encoding(self, encoding):
-        self.encoding = encoding
+        self._encoding = encoding
         self.min_value = encoding.min_value
         self.max_value = encoding.max_value
 
@@ -72,8 +74,36 @@ class FieldTypeDeclNode(TypeDeclNode):
                                   (self.min_value,
                                    self._encoding.min_value))
 
-        self.get_root_scope().add_type(compiler, self.str_type_name, self)
+        scope = self.get_root_scope()
+        scope.add_type(compiler, self.str_type_name, self)
+
+        self._number_type = scope.lookup_type(u'_zc_number')
         self._resolved = True
+
+    def can_cast_to(self, target_type):
+        '''
+        This type can be casted to number, by inserting appropiate scaling
+        '''
+        if self == target_type:
+            return self.EXACT_MATCH
+        elif self._number_type == target_type:
+            return self.CAST_MATCH
+        else:
+            return self.NO_MATCH
+
+    def insert_cast_to(self, compiler, expr, target_type):
+        '''
+        Inserts a cast to the target (number) type
+        TODO use scaling and <meaning>
+        '''
+        assert self == expr.get_type()
+        assert self._number_type == target_type
+
+        c = compiler.init_node(LiteralCastExprNode(), expr.ctx)
+        c.set_expression(expr)
+        c.set_type(target_type)
+
+        return c
 
 
 class MemberDeclNode(Node, ResolutionHelper):
@@ -102,7 +132,7 @@ class MemberDeclNode(Node, ResolutionHelper):
         '''
         Template method from ResolutionHelper
         '''
-        del compiler
+        compiler.resolve_node(self.child_field_type)
         return self.child_field_type
 
 
