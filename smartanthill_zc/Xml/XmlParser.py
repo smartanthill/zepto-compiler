@@ -293,39 +293,70 @@ class XmlParser ( Parser ):
             super(XmlParser.ElementContext, self).__init__(parent, invokingState)
             self.parser = parser
 
+
+        def getRuleIndex(self):
+            return XmlParser.RULE_element
+
+     
+        def copyFrom(self, ctx):
+            super(XmlParser.ElementContext, self).copyFrom(ctx)
+
+
+
+    class EmptyTagRuleContext(ElementContext):
+
+        def __init__(self, parser, ctx): # actually a XmlParser.ElementContext)
+            super(XmlParser.EmptyTagRuleContext, self).__init__(parser)
+            self.copyFrom(ctx)
+
         def emptyElemTag(self):
             return self.getTypedRuleContext(XmlParser.EmptyElemTagContext,0)
 
 
+        def enterRule(self, listener):
+            if isinstance( listener, XmlParserListener ):
+                listener.enterEmptyTagRule(self)
+
+        def exitRule(self, listener):
+            if isinstance( listener, XmlParserListener ):
+                listener.exitEmptyTagRule(self)
+
+        def accept(self, visitor):
+            if isinstance( visitor, XmlParserVisitor ):
+                return visitor.visitEmptyTagRule(self)
+            else:
+                return visitor.visitChildren(self)
+
+
+    class SeTagRuleContext(ElementContext):
+
+        def __init__(self, parser, ctx): # actually a XmlParser.ElementContext)
+            super(XmlParser.SeTagRuleContext, self).__init__(parser)
+            self.copyFrom(ctx)
+
         def sTag(self):
             return self.getTypedRuleContext(XmlParser.STagContext,0)
 
-
         def content(self):
             return self.getTypedRuleContext(XmlParser.ContentContext,0)
-
 
         def eTag(self):
             return self.getTypedRuleContext(XmlParser.ETagContext,0)
 
 
-        def getRuleIndex(self):
-            return XmlParser.RULE_element
-
         def enterRule(self, listener):
             if isinstance( listener, XmlParserListener ):
-                listener.enterElement(self)
+                listener.enterSeTagRule(self)
 
         def exitRule(self, listener):
             if isinstance( listener, XmlParserListener ):
-                listener.exitElement(self)
+                listener.exitSeTagRule(self)
 
         def accept(self, visitor):
             if isinstance( visitor, XmlParserVisitor ):
-                return visitor.visitElement(self)
+                return visitor.visitSeTagRule(self)
             else:
                 return visitor.visitChildren(self)
-
 
 
 
@@ -337,12 +368,14 @@ class XmlParser ( Parser ):
             self.state = 44
             la_ = self._interp.adaptivePredict(self._input,3,self._ctx)
             if la_ == 1:
+                localctx = XmlParser.EmptyTagRuleContext(self, localctx)
                 self.enterOuterAlt(localctx, 1)
                 self.state = 39
                 self.emptyElemTag()
                 pass
 
             elif la_ == 2:
+                localctx = XmlParser.SeTagRuleContext(self, localctx)
                 self.enterOuterAlt(localctx, 2)
                 self.state = 40
                 self.sTag()

@@ -36,8 +36,8 @@ xmlDecl
 /// [39] element ::= EmptyElemTag
 ///                  | STag content ETag
 element
-  : emptyElemTag
-  | sTag content eTag
+  : emptyElemTag        #emptyTagRule
+  | sTag content eTag   #seTagRule
   ;
 
 /// [44] EmptyElemTag ::= '<' Name (S Attribute)* S? '/>'

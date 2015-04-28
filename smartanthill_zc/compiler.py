@@ -79,6 +79,13 @@ class Compiler(object):
         '''
         self.removed_nodes.append(node.node_id)
 
+    def get_unique_type_name(self):
+        '''
+        Returns a unique type name, to be used with types created from
+        plug-ins manifests
+        '''
+        return '_zc_type_' + str(self.next_node_id)
+
     def resolve_node(self, node):
         '''
         Generic node resolution
@@ -111,7 +118,14 @@ class Compiler(object):
         '''
         if self.error_flag:
             print "Stage '%s' giving up" % name
-            raise CompilerError()
+            self.raise_error()
+
+    def raise_error(self):
+        '''
+        Raises CompilerError
+        '''
+        # pylint: disable=no-self-use
+        raise CompilerError()
 
 
 def process_syntax_tree(compiler, root):

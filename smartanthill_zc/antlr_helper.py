@@ -17,6 +17,18 @@
 import antlr4.error.ErrorListener
 
 
+def check_reserved_name(compiler, token):
+    '''
+    If name matches reserved name prefix, issue an error
+    '''
+
+    if token.getText().startswith(u'_zc_'):
+        compiler.report_error(token, "Name '%s' and all names starting with "
+                              "'_zc_' are reserved" % token.getText())
+
+    return token
+
+
 class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
 
     '''

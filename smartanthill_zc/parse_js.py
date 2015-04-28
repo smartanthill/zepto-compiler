@@ -25,7 +25,8 @@ from smartanthill_zc.node import StatementListStmtNode, \
     NumberLiteralExprNode, ArgumentListNode, OperatorExprNode, \
     MemberAccessExprNode, AssignmentExprNode, ExpressionStmtNode, \
     BooleanLiteralExprNode, make_statement_list, ProgramNode
-from smartanthill_zc.antlr_helper import _ProxyAntlrErrorListener
+from smartanthill_zc.antlr_helper import _ProxyAntlrErrorListener,\
+    check_reserved_name
 
 
 def parse_js_string(compiler, data):
@@ -46,18 +47,6 @@ def parse_js_string(compiler, data):
     compiler.check_stage('parse_js')
 
     return tree
-
-
-def check_reserved_name(compiler, token):
-    '''
-    If name matches reserved name prefix, issue an error
-    '''
-
-    if token.getText().startswith(u'_zc_'):
-        compiler.report_error(token, "Name '%s' and all names starting with "
-                              "'_zc_' are reserved" % token.getText())
-
-    return token
 
 
 def js_parse_tree_to_syntax_tree(compiler, js_tree):
@@ -98,7 +87,6 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         Constructor
         '''
         self._compiler = compiler
-
 
     def visitChildren(self, node):
         '''
@@ -205,7 +193,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         if len(var_list) > 1:
             self._compiler.report_error(ctx, "Multiple varible declarations in"
-                                       " a single statement not supported")
+                                        " a single statement not supported")
 
         stmt.tk_name = check_reserved_name(self._compiler,
                                            var_list[0].Identifier())
@@ -216,7 +204,6 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
             stmt.set_initializer(expr)
 
         return stmt
-
 
     # Visit a parse tree produced by ECMAScriptParser#emptyStatement.
     def visitEmptyStatement(self, ctx):
@@ -441,7 +428,8 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         expr.tk_base_name = check_reserved_name(self._compiler,
                                                 ctx.Identifier())
-        expr.tk_name = check_reserved_name(self._compiler, ctx.identifierName())
+        expr.tk_name = check_reserved_name(
+            self._compiler, ctx.identifierName())
         args = self.visit(ctx.arguments())
         expr.set_argument_list(args)
 

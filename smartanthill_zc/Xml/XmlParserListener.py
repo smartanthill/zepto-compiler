@@ -31,12 +31,21 @@ class XmlParserListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by XmlParser#element.
-    def enterElement(self, ctx):
+    # Enter a parse tree produced by XmlParser#emptyTagRule.
+    def enterEmptyTagRule(self, ctx):
         pass
 
-    # Exit a parse tree produced by XmlParser#element.
-    def exitElement(self, ctx):
+    # Exit a parse tree produced by XmlParser#emptyTagRule.
+    def exitEmptyTagRule(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by XmlParser#seTagRule.
+    def enterSeTagRule(self, ctx):
+        pass
+
+    # Exit a parse tree produced by XmlParser#seTagRule.
+    def exitSeTagRule(self, ctx):
         pass
 
 

@@ -17,9 +17,11 @@ from smartanthill_zc.node import Node
 
 
 class _OpImpl(object):
+
     '''
     Helper class to map Zepto VM OpCodes and their names
     '''
+
     def __init__(self, opcode, name):
         '''
         Constructor
@@ -29,6 +31,7 @@ class _OpImpl(object):
 
 
 class Op(object):
+
     '''
     Enum like, assigns a name to each opcode
     '''
@@ -80,7 +83,9 @@ class Op(object):
     # below, instructions are not supported by Zepto VM-Small and below
     PARALLEL = _OpImpl(38, 'ZEPTOVM_OP_PARALLEL')
 
+
 class BitField(object):
+
     '''
     Represents a flags bitfield, makes it easier to represent flags by name
     '''
@@ -97,7 +102,7 @@ class BitField(object):
             assert False
 
         self.values[name] = value
-        
+
     def get(self, name):
         if name not in self.names:
             assert False
@@ -107,10 +112,13 @@ class BitField(object):
         else:
             return False
 
+
 class OpcodeNode(Node):
+
     '''
     Base class for virtual machine target operation nodes
     '''
+
     def __init__(self):
         '''
         Constructor
@@ -125,9 +133,11 @@ class OpcodeNode(Node):
 
 
 class OpListNode(Node):
+
     '''
     Operation list, container of OpNode
     '''
+
     def __init__(self):
         '''
         Constructor
@@ -153,6 +163,7 @@ class OpListNode(Node):
 
 
 class ExecOpNode(OpcodeNode):
+
     '''
     Node for ZEPTOVM_OP_EXEC opcode
     '''
@@ -176,6 +187,7 @@ class ExecOpNode(OpcodeNode):
 
 
 class PushReplyOpNode(OpcodeNode):
+
     '''
     Node for ZEPTOVM_OP_PUSHREPLY opcode
     '''
@@ -197,6 +209,7 @@ class PushReplyOpNode(OpcodeNode):
 
 
 class TransmitterOpNode(OpcodeNode):
+
     '''
     Node for ZEPTOVM_OP_TRANSMITTER opcode
     '''
@@ -218,6 +231,7 @@ class TransmitterOpNode(OpcodeNode):
 
 
 class SleepOpNode(OpcodeNode):
+
     '''
     Node for ZEPTOVM_OP_SLEEP opcode
     '''
@@ -239,6 +253,7 @@ class SleepOpNode(OpcodeNode):
 
 
 class McuSleepOpNode(OpcodeNode):
+
     '''
     Node for ZEPTOVM_OP_MCUSLEEP opcode
     '''
@@ -251,7 +266,7 @@ class McuSleepOpNode(OpcodeNode):
         self._opcode = Op.MCUSLEEP
         self.sec_delay = 0
         self._bf = BitField(['MAYDROPEARLIERINSTRUCTIONS',
-                            'TRANSMITTERONWHENBACK'])
+                             'TRANSMITTERONWHENBACK'])
 
     def write(self, writer):
         '''
@@ -263,6 +278,7 @@ class McuSleepOpNode(OpcodeNode):
 
 
 class PopRepliesOpNode(OpcodeNode):
+
     '''
     Node for ZEPTOVM_OP_POPREPLIES opcode
     '''
@@ -284,6 +300,7 @@ class PopRepliesOpNode(OpcodeNode):
 
 
 class ExitOpNode(OpcodeNode):
+
     '''
     Node for ZEPTOVM_OP_EXIT opcode
     '''
@@ -307,10 +324,9 @@ class ExitOpNode(OpcodeNode):
         self._bf.set('ISLAST', True)
 
     def try_make_implicit(self):
-        
+
         if self._bf.get('ISLAST') and not self._bf.get('FORCED-PADDING-FLAG'):
             self.is_implicit = True
-            
 
     def write(self, writer):
         '''

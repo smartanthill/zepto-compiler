@@ -30,7 +30,7 @@ def write_text_op_codes(compiler, node):
 
 
 def check_int_range(max_bytes, value):
-        
+
     assert max_bytes >= 1
     assert max_bytes <= 8
 
@@ -40,6 +40,7 @@ def check_int_range(max_bytes, value):
     assert lvalue <= (2 ** ((8 * max_bytes) - 1)) - 1
 
     return lvalue
+
 
 def check_uint_range(max_bytes, value):
 
@@ -60,6 +61,7 @@ class _TextWriter(object):
     Writer implementation for writing text representation
     Used for development and testing
     '''
+
     def __init__(self):
         '''
         Constructor
@@ -129,12 +131,11 @@ class _TextWriter(object):
         for current in bits.names:
             if current in bits.values and bits.values[current]:
                 flags.append(current)
-                
+
         if len(flags) == 0:
             self._current += '|0'
         else:
             self._current += '|' + ','.join(flags)
-              
 
     def write_opaque_data_2(self, data):
         '''

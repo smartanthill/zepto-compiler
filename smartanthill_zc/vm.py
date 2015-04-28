@@ -42,6 +42,7 @@ class Level(object):
 
 
 class ReplyBufferRef(object):
+
     def __init__(self, index):
         self._index = index
         self._valid = True
@@ -110,7 +111,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         Finished visiting nodes, make all required adjustments and return
         the ops list
         '''
-        
+
         for each in self._exits:
             if self._has_mcu_sleep:
                 each.set_is_first()
@@ -119,7 +120,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
         if isinstance(self.op_list.childs_operations[-1], ExitOpNode):
             self.op_list.childs_operations[-1].try_make_implicit()
-            
+
         return self.op_list
 
     def default_visit(self, node):

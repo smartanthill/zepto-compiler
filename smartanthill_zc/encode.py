@@ -15,6 +15,7 @@
 
 
 class ZeptoEncoder(object):
+
     '''
     Encoder class, used for easier replacement of encoding strategy if needed
     Also has a cache of already encoded values
@@ -55,7 +56,6 @@ class ZeptoEncoder(object):
 
 
 def _encode_unsigned(value):
-
     '''
     Encoded-*-Int internal implemntation function
     '''
@@ -85,7 +85,6 @@ def _encode_unsigned(value):
 
 
 def encode_unsigned_int(max_bytes, value):
-
     '''
     Encoded-Unsigned-Int arithmetic implementation
     '''
@@ -101,7 +100,6 @@ def encode_unsigned_int(max_bytes, value):
 
 
 def encode_signed_int(max_bytes, value):
-
     '''
     Encoded-Signed-Int arithmetic implementation
     '''
@@ -136,7 +134,6 @@ def encode_signed_int(max_bytes, value):
 
 
 def decode_unsigned_int(byte_list):
-
     '''
     Encoded-Unsigned-Int decoder implementation
     '''
@@ -162,7 +159,6 @@ def decode_unsigned_int(byte_list):
 
 
 def decode_signed_int(byte_list):
-
     '''
     Encoded-Signed-Int decoder implementation
     '''
@@ -185,9 +181,8 @@ def decode_signed_int(byte_list):
 
 
 def encode_bitfield(bits):
-
     '''
-    Bif field encoder implementation
+    Bit field encoder implementation
     '''
 
     assert len(bits) >= 0

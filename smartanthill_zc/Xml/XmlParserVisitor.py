@@ -20,8 +20,13 @@ class XmlParserVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by XmlParser#element.
-    def visitElement(self, ctx):
+    # Visit a parse tree produced by XmlParser#emptyTagRule.
+    def visitEmptyTagRule(self, ctx):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by XmlParser#seTagRule.
+    def visitSeTagRule(self, ctx):
         return self.visitChildren(ctx)
 
 
