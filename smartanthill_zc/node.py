@@ -326,6 +326,7 @@ class RootNode(Node):
         '''
         super(RootNode, self).__init__()
         self.child_builtin = None
+        self.child_bodyparts = None
         self.child_program = None
         self.child_op_list = None
         self._scope = RootScope(self)
@@ -343,6 +344,14 @@ class RootNode(Node):
         assert isinstance(child, DeclarationListNode)
         child.set_parent(self)
         self.child_builtin = child
+
+    def set_bodyparts(self, child):
+        '''
+        statement adder
+        '''
+        assert isinstance(child, Node)
+        child.set_parent(self)
+        self.child_bodyparts = child
 
     def set_program(self, child):
         '''
@@ -363,7 +372,9 @@ class RootNode(Node):
     def resolve(self, compiler):
         # First built-ins
         compiler.resolve_node(self.child_builtin)
-        # Next user code
+        # Next body-parts
+        compiler.resolve_node(self.child_bodyparts)
+        # Last user code
         compiler.resolve_node(self.child_program)
 
 

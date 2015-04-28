@@ -13,21 +13,40 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc import compiler, parse_js, builtin, vm, writter, visitor
+from smartanthill_zc import compiler, parse_js, builtin, vm, writter, visitor,\
+    parse_xml
+
 
 def common_test_run(code):
-    
+
+    xml = [
+        u'<smartanthill.plugin name="TemperatureSensor" id="1" version="1.0">',
+        u'  <description>Short description here</description>',
+        u'  <command/>',
+        u'  <reply>',
+        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;"',
+        u'     min="0" max="255" />',
+        u'  </reply>',
+        u'  <peripheral>Right now compiler can ignore this</peripheral>',
+        u'</smartanthill.plugin>'
+    ]
+
+    xml = '\n'.join(xml)
     code = '\n'.join(code)
-    
+
     comp = compiler.Compiler()
     js_tree = parse_js.parse_js_string(comp, code)
 
     root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
 
     builtin.create_builtins(comp, root)
+
+    xml_tree = parse_xml.parse_xml_string(comp, xml)
+    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+    root.set_bodyparts(bodyparts)
+
     visitor.check_all_nodes_reachables(comp, root)
     compiler.process_syntax_tree(comp, root)
-
 
     vm.convert_to_zepto_vm_one(comp, root)
 
@@ -38,20 +57,19 @@ def test_js_pattern_1():
 
     code = [u'return TemperatureSensor.Execute();']
 
-    out = ['ZEPTOVM_OP_EXEC|4|0']
+    out = ['|EXEC|1|0|[]|',
+           '//exit|islast']
 
     assert common_test_run(code) == out
-    
+
+
 def test_js_pattern_2():
 
     code = [u'mcu_sleep(5*60);',
             u'return TemperatureSensor.Execute();']
 
-    out = ['ZEPTOVM_OP_MCUSLEEP|300|0',
-           'ZEPTOVM_OP_EXEC|4|0',
-           'ZEPTOVM_OP_EXIT|ISFIRST']
+    out = ['|MCUSLEEP|300|0|',
+           '|EXEC|1|0|[]|',
+           '|EXIT|ISFIRST|']
 
     assert common_test_run(code) == out
-    
-
-

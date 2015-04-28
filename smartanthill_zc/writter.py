@@ -70,13 +70,20 @@ class _TextWriter(object):
         self._result = []
         self._current = None
 
+    def _finish_current(self):
+        '''
+        Finishes current opcode
+        '''
+        if self._current:
+            self._current += '|'
+            self._result.append(self._current)
+            self._current = None
+
     def get_result(self):
         '''
         Returns a list of strings, each with one operation text
         '''
-        if self._current:
-            self._result.append(self._current)
-            self._current = None
+        self._finish_current()
 
         return self._result
 
@@ -84,17 +91,18 @@ class _TextWriter(object):
         '''
         Begins a new operation, writes the opcode
         '''
-        if self._current:
-            self._result.append(self._current)
+        self._finish_current()
 
-        self._current = opcode.name
+        self._current = '|' + opcode.name
 
     def write_bytes(self, data):
         '''
         Adds a binary field to current operation
         '''
-        if len(data) != 0:
-            self._current += '|0x' + binascii.hexlify(data)
+        if len(data) == 0:
+            self._current += '|[]'
+        else:
+            self._current += '|[0x%s]' % binascii.hexlify(data)
 
     def write_long(self, value):
         '''
@@ -144,6 +152,14 @@ class _TextWriter(object):
         '''
         if not data:
             self.write_uint_2(0)
+            self.write_bytes([])
         else:
             self.write_uint_2(len(data))
             self.write_bytes(data)
+
+    def write_text(self, text):
+        '''
+        Add a free text, only for easier testing
+        '''
+        self._finish_current()
+        self._result.append('//%s' % text)

@@ -20,32 +20,45 @@ from smartanthill_zc.compiler import Compiler
 from smartanthill_zc.antlr_helper import dump_antlr_tree
 
 
-def test_xml_parse():
+def common_test_run(xml):
 
-    code = [
-        u'<smartanthill.plugin name="TemperaturePlugin" version="1.0">',
+    xml = '\n'.join(xml)
+
+    comp = Compiler()
+    xml_tree = parse_xml.parse_xml_string(comp, xml)
+    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+    return visitor.dump_tree(bodyparts)
+
+
+def test_xml_basic():
+
+    xml = [
+        u'<smartanthill.plugin name="TemperaturePlugin" id="1" version="1.0">',
         u'  <description>Short description here</description>',
-        u'  <command>',
-        u'    <field name="abc" type="encoded-int&lt;max=2&gt;" />',
-        u'  </command>',
+        u'  <command/>',
         u'  <reply>',
-        u'    <field name="xyz" type="encoded-int&lt;max=2&gt;"',
-        u'      min="0" max="255">',
+        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;" min="0" max="255">',
         u'      <meaning type="float">',
         u'        <linear-conversion input-point0="0" output-point0="20.0"',
         u'          input-point1="100" output-point1="40.0" />',
         u'      </meaning>',
         u'    </field>',
         u'  </reply>',
-        u'  <peripheral>Compiler should ignore this</peripheral>',
-        u'</smartanthill.plugin>']
+        u'  <peripheral>Right now compiler can ignore this</peripheral>',
+        u'</smartanthill.plugin>'
+    ]
 
-    code = '\n'.join(code)
+    expected = [
+        "BodyPartListNode",
+        "+-BodyPartDeclNode plugin_name='TemperaturePlugin'",
+        "+-+-ParameterListNode",
+        "+-+-MessageTypeDeclNode type_name='_zc_reply_type_TemperaturePlugin'",
+        "+-+-+-MemberDeclNode name='Temperature'",
+        "+-+-+-+-FieldTypeDeclNode type_name='_zc_type_4'"
+    ]
 
-    comp = Compiler()
-    parse_xml.parse_xml_string(comp, code)
-
-    # Don't assert just check it does not fail
+    actual = common_test_run(xml)
+    assert actual == expected
 
 
 def main():
@@ -53,9 +66,7 @@ def main():
     code = [u'<?xml version="1.1" ?>',
             u'<smartanthill.plugin name="TemperaturePlugin" id="1" version="1.0">',
             u'  <description>Short description here</description>',
-            u'  <command>',
-            u'    <field name="abc" type="encoded-signed-int&lt;max=2&gt;" />',
-            u'  </command>',
+            u'  <command/>',
             u'  <reply>',
             u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;" min="0" max="255">',
             u'      <meaning type="float">',

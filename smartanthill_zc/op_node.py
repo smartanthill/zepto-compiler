@@ -36,17 +36,17 @@ class Op(object):
     Enum like, assigns a name to each opcode
     '''
 
-    DEVICECAPS = _OpImpl(1, 'ZEPTOVM_OP_DEVICECAPS')
-    EXEC = _OpImpl(2, 'ZEPTOVM_OP_EXEC')
-    PUSHREPLY = _OpImpl(3, 'ZEPTOVM_OP_PUSHREPLY')
-    SLEEP = _OpImpl(4, 'ZEPTOVM_OP_SLEEP')
-    TRANSMITTER = _OpImpl(5, 'ZEPTOVM_OP_TRANSMITTER')
-    MCUSLEEP = _OpImpl(6, 'ZEPTOVM_OP_MCUSLEEP')
+    DEVICECAPS = _OpImpl(1, 'DEVICECAPS')
+    EXEC = _OpImpl(2, 'EXEC')
+    PUSHREPLY = _OpImpl(3, 'PUSHREPLY')
+    SLEEP = _OpImpl(4, 'SLEEP')
+    TRANSMITTER = _OpImpl(5, 'TRANSMITTER')
+    MCUSLEEP = _OpImpl(6, 'MCUSLEEP')
     # limited support in Zepto VM-One, full support from Zepto VM-Tiny
-    POPREPLIES = _OpImpl(7, 'ZEPTOVM_OP_POPREPLIES')
-    EXIT = _OpImpl(8, 'ZEPTOVM_OP_EXIT')
+    POPREPLIES = _OpImpl(7, 'POPREPLIES')
+    EXIT = _OpImpl(8, 'EXIT')
     # limited support in Zepto VM-One, full support from Zepto VM-Tiny
-    APPENDTOREPLY = _OpImpl(9, 'ZEPTOVM_OP_APPENDTOREPLY')
+    APPENDTOREPLY = _OpImpl(9, 'APPENDTOREPLY')
 
     # below, instructions are not supported by Zepto VM-One
     JMP = _OpImpl(10, 'ZEPTOVM_OP_JMP')
@@ -337,3 +337,5 @@ class ExitOpNode(OpcodeNode):
             writer.write_bitfield(self._bf)
             if self._bf.get('FORCED-PADDING-FLAG'):
                 writer.write_uint_2(self._opt_padding_to)
+        else:
+            writer.write_text('exit|islast')
