@@ -341,7 +341,6 @@ class RootNode(Node):
         self.child_builtin = None
         self.child_bodyparts = None
         self.child_program = None
-        self.child_op_list = None
         self._scope = RootScope(self)
 
     def get_root_scope(self):
@@ -373,14 +372,6 @@ class RootNode(Node):
         assert isinstance(child, ProgramNode)
         child.set_parent(self)
         self.child_program = child
-
-    def set_op_list(self, child):
-        '''
-        statement_list setter
-        '''
-        assert isinstance(child, Node)
-        child.set_parent(self)
-        self.child_op_list = child
 
     def resolve(self, compiler):
         # First built-ins
@@ -1015,6 +1006,8 @@ class MemberAccessExprNode(ExpressionNode):
         super(MemberAccessExprNode, self).__init__()
         self.tk_member_name = None
         self.child_expression = None
+        self.type_decl = None
+        self.member_decl = None
 
     def set_expression(self, node):
         '''
@@ -1028,14 +1021,22 @@ class MemberAccessExprNode(ExpressionNode):
         resolve_expression(compiler, self, 'child_expression')
 
         t = self.child_expression.get_type()
-        m = t.lookup_member_type(self.tk_member_name.getText())
+        m = t.lookup_member(self.tk_member_name.getText())
         if not m:
             compiler.report_error(self.ctx, "Member '%s' not found",
                                   self.tk_member_name.getText())
             raise ResolutionError()
 
-        self.set_type(m)
+        self.type_decl = t
+        self.member_decl = m
+        self.set_type(m.get_type())
         return None
+
+    def get_member_field_sequence(self):
+        '''
+        Creates a field sequence to represent this member
+        '''
+        return self.member_decl.field_sequence
 
 
 class NumberLiteralExprNode(ExpressionNode):

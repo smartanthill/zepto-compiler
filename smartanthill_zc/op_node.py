@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc.node import Node
+from smartanthill_zc.bodypart import field_sequence_to_str
 
 
 class _OpImpl(object):
@@ -144,6 +145,7 @@ class OpListNode(Node):
         '''
         super(OpListNode, self).__init__()
         self.childs_operations = []
+        self.target_level = 0
 
     def add_operation(self, child):
         '''
@@ -160,6 +162,42 @@ class OpListNode(Node):
         '''
         for op in self.childs_operations:
             op.write(writer)
+
+
+class TargetProgramNode(Node):
+
+    '''
+    Container of the target program, and program meta-data
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(TargetProgramNode, self).__init__()
+        self.child_op_list = None
+        self.vm_level = None
+        self.mcusleep_invoked = False
+        self.reply_field_sequence = None
+# entry=NOT_ISFIRST,exit=IS_FIRST
+
+    def set_op_list(self, node):
+        '''
+        op_list setter
+        '''
+        assert isinstance(node, OpListNode)
+        node.set_parent(self)
+        self.child_op_list = node
+
+    def write(self, writer):
+        '''
+        Write all the child nodes to the output writer
+        '''
+        writer.write_text('target vm: %s' % self.vm_level.name)
+        writer.write_text('mcusleep: %s' % self.mcusleep_invoked)
+        writer.write_text('reply: %s' %
+                          field_sequence_to_str(self.reply_field_sequence))
+        self.child_op_list.write(writer)
 
 
 class ExecOpNode(OpcodeNode):

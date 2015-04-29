@@ -13,7 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc import compiler, parse_js, builtin, vm, writter, visitor,\
+from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
     parse_xml
 
 
@@ -48,17 +48,20 @@ def common_test_run(code):
     visitor.check_all_nodes_reachables(comp, root)
     compiler.process_syntax_tree(comp, root)
 
-    vm.convert_to_zepto_vm_one(comp, root)
+    target = vm.convert_to_zepto_vm_one(comp, root)
 
-    return writter.write_text_op_codes(comp, root.child_op_list)
+    return writer.write_text_op_codes(comp, target)
 
 
 def test_js_pattern_1():
 
     code = [u'return TemperatureSensor.Execute();']
 
-    out = ['|EXEC|1|0|[]|',
-           '//exit|islast']
+    out = ['/* target vm: One */',
+           '/* mcusleep: False */',
+           '/* reply: SIGNED_INT,<eos> */',
+           '|EXEC|1|0|[]|',
+           '/* exit|islast */']
 
     assert common_test_run(code) == out
 
@@ -68,7 +71,10 @@ def test_js_pattern_2():
     code = [u'mcu_sleep(5*60);',
             u'return TemperatureSensor.Execute();']
 
-    out = ['|MCUSLEEP|300|0|',
+    out = ['/* target vm: One */',
+           '/* mcusleep: True */',
+           '/* reply: SIGNED_INT,<eos> */',
+           '|MCUSLEEP|300|0|',
            '|EXEC|1|0|[]|',
            '|EXIT|ISFIRST|']
 

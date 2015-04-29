@@ -162,4 +162,4 @@ class _TextWriter(object):
         Add a free text, only for easier testing
         '''
         self._finish_current()
-        self._result.append('//%s' % text)
+        self._result.append('/* %s */' % text)

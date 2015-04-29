@@ -104,6 +104,13 @@ class ReturnStmtScope(object):
             compiler.report_error(
                 self._previous_ctx, "Previous was here")
 
+    def get_return_type(self):
+        '''
+        Return type getter
+        '''
+        assert self._previous_return_type
+        return self._previous_return_type
+
 
 class RootScope(object):
 

@@ -18,18 +18,47 @@ from smartanthill_zc.node import Node, ResolutionHelper, TypeDeclNode,\
 from smartanthill_zc.builtin import ParameterListNode
 
 
-class _Encoding(object):
+class _EncodingImpl(object):
 
     '''
     Helper class to hold encodings extra data
     '''
 
-    def __init__(self, min_value, max_value):
+    def __init__(self, name, code, min_value, max_value):
         '''
         Constructor
         '''
+        self.name = name
+        self.code = code
         self.min_value = min_value
         self.max_value = max_value
+
+    def __repr__(self):
+        '''
+        String representation
+        '''
+        return self.name
+
+
+class Encoding(object):
+
+    '''
+    Enum like, for FIELD-SEQUENCE
+    '''
+    END_OF_SEQUENCE = _EncodingImpl('<eos>', 0, 0, 0)
+    SIGNED_INT_2 = _EncodingImpl('SIGNED_INT', 1, -32768L, 32767L)
+    UNSIGNED_INT_2 = _EncodingImpl('UNSIGNED_INT', 2, 0L, 65535)
+
+
+def field_sequence_to_str(field_sequence):
+    '''
+    makes text representation of a FIELD-SEQUENCE
+    '''
+    result = []
+    for current in field_sequence:
+        result.append(current.name)
+
+    return ','.join(result)
 
 
 class FieldTypeDeclNode(TypeDeclNode):
@@ -37,9 +66,6 @@ class FieldTypeDeclNode(TypeDeclNode):
     '''
     Types used for message fields
     '''
-
-    SIGNED_INT_2 = _Encoding(-32768L, 32767L)
-    UNSIGNED_INT_2 = _Encoding(0L, 65535)
 
     def __init__(self, type_name):
         '''
@@ -53,9 +79,18 @@ class FieldTypeDeclNode(TypeDeclNode):
         self._number_type = None
 
     def set_encoding(self, encoding):
+        '''
+        Encoding setter, also sets default values for min_value and max_value
+        '''
         self._encoding = encoding
         self.min_value = encoding.min_value
         self.max_value = encoding.max_value
+
+    def get_encoding(self):
+        '''
+        Returns the code of this field, used to build FIELD-SEQUENCE
+        '''
+        return self._encoding
 
     def resolve(self, compiler):
         '''
@@ -119,6 +154,7 @@ class MemberDeclNode(Node, ResolutionHelper):
         super(MemberDeclNode, self).__init__()
         self.str_name = name
         self.child_field_type = None
+        self.field_sequence = None
 
     def set_field_type(self, node):
         '''
@@ -148,7 +184,8 @@ class MessageTypeDeclNode(TypeDeclNode):
         '''
         super(MessageTypeDeclNode, self).__init__(type_name)
         self.childs_elements = []
-#        self._already_resolved = False
+        self._already_resolved = False
+        self.field_sequence = None
 
     def add_element(self, node):
         '''
@@ -166,6 +203,8 @@ class MessageTypeDeclNode(TypeDeclNode):
         for elem in self.childs_elements:
             compiler.resolve_node(elem)
 
+        self.make_field_sequences()
+
         self.get_root_scope().add_type(compiler, self.str_type_name, self)
         self._resolved = True
 
@@ -175,15 +214,32 @@ class MessageTypeDeclNode(TypeDeclNode):
         '''
         return True
 
-    def lookup_member_type(self, name):
+    def lookup_member(self, name):
         '''
         Finds a member of this type, by name
         '''
         for current in self.childs_elements:
             if current.str_name == name:
-                return current.get_type()
+                return current
 
         return None
+
+    def make_field_sequences(self):
+        '''
+        Creates field-sequence for all members and for the entire type
+        '''
+
+        fs = []
+        for current in self.childs_elements:
+            fs.append(current.child_field_type.get_encoding())
+
+            fs_current = list(fs)
+            fs_current.append(Encoding.END_OF_SEQUENCE)
+
+            current.field_sequence = fs_current
+
+        fs.append(Encoding.END_OF_SEQUENCE)
+        self.field_sequence = fs
 
 
 class BodyPartDeclNode(Node, ResolutionHelper):

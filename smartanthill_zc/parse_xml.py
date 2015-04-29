@@ -23,7 +23,7 @@ from smartanthill_zc.Xml.XmlParser import XmlParser
 from smartanthill_zc.Xml import XmlParserVisitor
 from smartanthill_zc.builtin import ParameterListNode
 from smartanthill_zc.bodypart import BodyPartDeclNode, FieldTypeDeclNode,\
-    MemberDeclNode, MessageTypeDeclNode, BodyPartListNode
+    MemberDeclNode, MessageTypeDeclNode, BodyPartListNode, Encoding
 
 
 def parse_xml_string(compiler, data):
@@ -247,9 +247,9 @@ def _make_field(compiler, ctx, content):
     field = compiler.init_node(FieldTypeDeclNode(field_name), ctx)
 
     if t == 'encoded-signed-int&lt;max=2&gt;':
-        field.set_encoding(FieldTypeDeclNode.SIGNED_INT_2)
+        field.set_encoding(Encoding.SIGNED_INT_2)
     elif t == 'encoded-unsigned-int&lt;max=2&gt;':
-        field.set_encoding(FieldTypeDeclNode.UNSIGNED_INT_2)
+        field.set_encoding(Encoding.UNSIGNED_INT_2)
     else:
         compiler.report_error(ctx, "Unknown encoding '%s'" % t)
         compiler.raise_error()
