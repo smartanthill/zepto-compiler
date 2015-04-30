@@ -1,6 +1,7 @@
 # Generated from java-escape by ANTLR 4.5
 from antlr4 import *
 
+
 # This class defines a complete listener for a parse tree produced by ECMAScriptParser.
 class ECMAScriptListener(ParseTreeListener):
 
@@ -695,5 +696,3 @@ class ECMAScriptListener(ParseTreeListener):
     # Exit a parse tree produced by ECMAScriptParser#eof.
     def exitEof(self, ctx):
         pass
-
-

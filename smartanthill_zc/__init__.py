@@ -14,7 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-VERSION = (0, 0, "0.dev0")
+VERSION = (0, 0, "0.dev1")
 
 __version__ = ".".join([str(s) for s in VERSION])
 

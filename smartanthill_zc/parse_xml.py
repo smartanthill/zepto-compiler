@@ -16,14 +16,15 @@
 
 import antlr4
 
-from smartanthill_zc.antlr_helper import _ProxyAntlrErrorListener,\
-    check_reserved_name
+from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
+                                          check_reserved_name)
+from smartanthill_zc.bodypart import (BodyPartDeclNode, BodyPartListNode,
+                                      Encoding, FieldTypeDeclNode,
+                                      MemberDeclNode, MessageTypeDeclNode)
+from smartanthill_zc.builtin import ParameterListNode
+from smartanthill_zc.Xml import XmlParserVisitor
 from smartanthill_zc.Xml.XmlLexer import XmlLexer
 from smartanthill_zc.Xml.XmlParser import XmlParser
-from smartanthill_zc.Xml import XmlParserVisitor
-from smartanthill_zc.builtin import ParameterListNode
-from smartanthill_zc.bodypart import BodyPartDeclNode, FieldTypeDeclNode,\
-    MemberDeclNode, MessageTypeDeclNode, BodyPartListNode, Encoding
 
 
 def parse_xml_string(compiler, data):

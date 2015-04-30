@@ -15,18 +15,23 @@
 
 
 import antlr4
+
+from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
+                                          check_reserved_name)
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.node import StatementListStmtNode, \
-    RootNode, McuSleepStmtNode, VariableDeclarationStmtNode, NopStmtNode, \
-    IfElseStmtNode, ErrorStmtNode, SimpleForStmtNode, ReturnStmtNode, \
-    BodyPartCallExprNode, FunctionCallExprNode, VariableExprNode, \
-    NumberLiteralExprNode, ArgumentListNode, OperatorExprNode, \
-    MemberAccessExprNode, AssignmentExprNode, ExpressionStmtNode, \
-    BooleanLiteralExprNode, make_statement_list, ProgramNode
-from smartanthill_zc.antlr_helper import _ProxyAntlrErrorListener,\
-    check_reserved_name
+from smartanthill_zc.node import (ArgumentListNode, AssignmentExprNode,
+                                  BodyPartCallExprNode, BooleanLiteralExprNode,
+                                  ErrorStmtNode, ExpressionStmtNode,
+                                  FunctionCallExprNode, IfElseStmtNode,
+                                  McuSleepStmtNode, MemberAccessExprNode,
+                                  NopStmtNode, NumberLiteralExprNode,
+                                  OperatorExprNode, ProgramNode,
+                                  ReturnStmtNode, RootNode, SimpleForStmtNode,
+                                  StatementListStmtNode,
+                                  VariableDeclarationStmtNode,
+                                  VariableExprNode, make_statement_list)
 
 
 def parse_js_string(compiler, data):

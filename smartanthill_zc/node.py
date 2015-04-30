@@ -13,10 +13,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.lookup import StatementListScope, RootScope, \
-    lookup_variable, ReturnStmtScope
-from smartanthill_zc.errors import ResolutionCycleError, \
-    UnresolvedError, PreviousResolutionError, ResolutionError
+from smartanthill_zc.errors import (PreviousResolutionError,
+                                    ResolutionCycleError, ResolutionError,
+                                    UnresolvedError)
+from smartanthill_zc.lookup import (ReturnStmtScope, RootScope,
+                                    StatementListScope, lookup_variable)
 
 
 class ResolutionHelper(object):
