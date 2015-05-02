@@ -80,11 +80,7 @@ def _get_name(compiler, value):
     '''
     Helper function, returns a tag or attribute name
     '''
-    # TODO better error check and report
-
-    tk = check_reserved_name(compiler, value.Name())
-
-    return str(tk.getText())
+    return get_token_text(compiler, value.Name())
 
 
 def _get_att_value(compiler, att):
@@ -193,7 +189,7 @@ def _make_bodypart(compiler, manager, ctx, content):
         compiler.report_error(ctx, "Unidentified version number '%s'" %
                               att['version'])
 
-    bodypart.str_plugin_name = att['name']
+    bodypart.txt_name = att['name']
     try:
         bodypart.bodypart_id = long(att['id'])
     except:

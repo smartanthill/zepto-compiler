@@ -112,28 +112,14 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         '''
 
         node = self._compiler.init_node(node, node_ctx)
+        text = get_token_text(self._compiler, op_ctx)
+        node.txt_operator = text
 
-        assert isinstance(op_ctx, antlr4.TerminalNode)
-        if op_ctx.getSymbol().type in [
-                ECMAScriptParser.Not,
-                ECMAScriptParser.Multiply,
-                ECMAScriptParser.Divide,
-                ECMAScriptParser.Modulus,
-                ECMAScriptParser.Plus,
-                ECMAScriptParser.Minus,
-                ECMAScriptParser.LessThan,
-                ECMAScriptParser.MoreThan,
-                ECMAScriptParser.LessThanEquals,
-                ECMAScriptParser.GreaterThanEquals,
-                ECMAScriptParser.Equals,
-                ECMAScriptParser.NotEquals,
-                ECMAScriptParser.And,
-                ECMAScriptParser.Or]:
-            node.tk_operator = op_ctx
-        else:
-            node.tk_operator = op_ctx  # set it anyway, but report error
+        if text not in ['!', '&&', '||',
+                        '*', '/', '%', '+', '-',
+                        '<', '>', '<=', '>=', '==', '!=']:
             self._compiler.report_error(
-                node_ctx, "Operator '%s' not supported", op_ctx.getText())
+                node_ctx, "Operator '%s' not supported", text)
 
         arg_list = self._compiler.init_node(ArgumentListNode(), node_ctx)
 
@@ -200,8 +186,8 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
             self._compiler.report_error(ctx, "Multiple varible declarations in"
                                         " a single statement not supported")
 
-        stmt.tk_name = check_reserved_name(self._compiler,
-                                           var_list[0].Identifier())
+        stmt.txt_name = get_token_text(self._compiler,
+                                       var_list[0].Identifier())
 
         ini = var_list[0].initialiser()
         if ini:
@@ -274,10 +260,13 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         id_list = ctx.Identifier()
         assert len(id_list) == 3
 
-        if(id_list[0].getText() == id_list[1].getText() and
-           id_list[0].getText() == id_list[2].getText()):
+        txt0 = get_token_text(self._compiler, id_list[0])
+        txt1 = get_token_text(self._compiler, id_list[1])
+        txt2 = get_token_text(self._compiler, id_list[2])
 
-            stmt.tk_name = check_reserved_name(self._compiler, id_list[0])
+        if txt0 == txt1 and txt1 == txt2:
+
+            stmt.txt_name = txt0
         else:
             self._compiler.report_error(
                 ctx, "Loop 'for' only supported in the trivial form "
@@ -363,7 +352,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitFunctionExpression(self, ctx):
         expr = self._compiler.init_node(FunctionCallExprNode(), ctx)
 
-        expr.tk_name = check_reserved_name(self._compiler, ctx.Identifier())
+        expr.txt_name = get_token_text(self._compiler, ctx.Identifier())
         args = self.visit(ctx.arguments())
         expr.set_argument_list(args)
 
@@ -373,7 +362,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitAssignmentExpression(self, ctx):
         expr = self._compiler.init_node(AssignmentExprNode(), ctx)
 
-        expr.tk_name = check_reserved_name(self._compiler, ctx.Identifier())
+        expr.txt_name = get_token_text(self._compiler, ctx.Identifier())
         rhs = self.visit(ctx.expressionSequence())
         expr.set_rhs(rhs)
 
@@ -392,7 +381,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
     def visitIdentifierExpression(self, ctx):
         expr = self._compiler.init_node(VariableExprNode(), ctx)
-        expr.tk_name = check_reserved_name(self._compiler, ctx.Identifier())
+        expr.txt_name = get_token_text(self._compiler, ctx.Identifier())
 
         return expr
 
@@ -405,8 +394,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitMemberDotExpression(self, ctx):
 
         expr = self._compiler.init_node(MemberAccessExprNode(), ctx)
-        expr.tk_member_name = check_reserved_name(self._compiler,
-                                                  ctx.identifierName())
+        expr.txt_member = get_token_text(self._compiler, ctx.identifierName())
 
         e = self.visit(ctx.singleExpression())
         expr.set_expression(e)
@@ -431,10 +419,8 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitMethodExpression(self, ctx):
         expr = self._compiler.init_node(BodyPartCallExprNode(), ctx)
 
-        expr.tk_base_name = check_reserved_name(self._compiler,
-                                                ctx.Identifier())
-        expr.tk_name = check_reserved_name(
-            self._compiler, ctx.identifierName())
+        expr.txt_bodypart = get_token_text(self._compiler, ctx.Identifier())
+        expr.txt_method = get_token_text(self._compiler, ctx.identifierName())
         args = self.visit(ctx.arguments())
         expr.set_argument_list(args)
 
@@ -461,21 +447,18 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         if ctx.numericLiteral():
             expr = self._compiler.init_node(NumberLiteralExprNode(), ctx)
             lit = ctx.numericLiteral().DecimalLiteral()
-            expr.tk_literal = lit
+            expr.txt_literal = get_token_text(self._compiler, lit)
 
             return expr
 
         elif ctx.BooleanLiteral():
 
-            value = None
-            if ctx.BooleanLiteral().getText() == u'true':
-                value = True
-            elif ctx.BooleanLiteral().getText() == u'false':
-                value = False
-            else:
-                assert False
+            text = get_token_text(self._compiler, ctx.BooleanLiteral())
 
-            expr = self._compiler.init_node(BooleanLiteralExprNode(value), ctx)
+            assert text == 'true' or text == 'false'
+
+            expr = self._compiler.init_node(BooleanLiteralExprNode(), ctx)
+            expr.boolean_value = True if text == 'true' else False
 
             return expr
 

@@ -244,12 +244,12 @@ class TypeDeclNode(Node):
     EXACT_MATCH = 1
     CAST_MATCH = 2
 
-    def __init__(self, type_name):
+    def __init__(self, name):
         '''
         Constructor
         '''
         super(TypeDeclNode, self).__init__()
-        self.str_type_name = type_name
+        self.txt_name = name
         self._resolved = False
 
     def resolve(self, compiler):
@@ -257,7 +257,7 @@ class TypeDeclNode(Node):
         Resolve
         '''
         assert not self._resolved
-        self.get_root_scope().add_type(compiler, self.str_type_name, self)
+        self.get_root_scope().add_type(compiler, self.txt_name, self)
         self._resolved = True
 
     def can_cast_to(self, target_type):
@@ -703,7 +703,7 @@ class VariableDeclarationStmtNode(StatementNode, ResolutionHelper):
         Constructor
         '''
         super(VariableDeclarationStmtNode, self).__init__()
-        self.tk_name = None
+        self.txt_name = None
         self.child_initializer = None
 
     def set_initializer(self, node):
@@ -720,7 +720,7 @@ class VariableDeclarationStmtNode(StatementNode, ResolutionHelper):
         # we are adding variable name after resolution of initializer
         # because we need avoid posible resolution cycle
         self.get_stmt_scope().add_variable(
-            compiler, self.tk_name.getText(), self)
+            compiler, self.txt_name, self)
 
         return self.child_initializer.get_type()
 
@@ -795,7 +795,7 @@ class IfElseStmtNode(StatementNode):
         compiler.resolve_node(self.child_if_branch)
         compiler.resolve_node(self.child_else_branch)
 
-        t = self.get_root_scope().lookup_type(u'_zc_bool')
+        t = self.get_root_scope().lookup_type('_zc_bool')
 
         if not expression_type_match(compiler, t, self, 'child_expression'):
             compiler.report_error(
@@ -815,7 +815,7 @@ class McuSleepStmtNode(StatementNode):
         '''
         super(McuSleepStmtNode, self).__init__()
         self.child_argument_list = None
-        self._declaration = None
+        self._ref_decl = None
 
     def set_argument_list(self, node):
         '''
@@ -828,13 +828,13 @@ class McuSleepStmtNode(StatementNode):
     def resolve(self, compiler):
         compiler.resolve_node(self.child_argument_list)
         decl = self.get_root_scope().lookup_function(
-            u'mcu_sleep')
+            'mcu_sleep')
         assert decl  # is built in function
 
         self.child_argument_list.make_match(compiler,
                                             decl.child_parameter_list)
 
-        self._declaration = decl
+        self._ref_decl = decl
 
     def get_delay_value(self):
         # if resultion was ok, then we have a single arg, and it is a literal
@@ -859,7 +859,7 @@ class SimpleForStmtNode(StatementNode):
         Constructor
         '''
         super(SimpleForStmtNode, self).__init__()
-        self.tk_name = None
+        self.txt_name = None
         self.child_begin_expression = None
         self.child_end_expression = None
         self.child_statement_list = None
@@ -913,7 +913,7 @@ class FunctionCallExprNode(ExpressionNode):
         Constructor
         '''
         super(FunctionCallExprNode, self).__init__()
-        self.tk_name = None
+        self.txt_name = None
         self.child_argument_list = None
 
     def set_argument_list(self, node):
@@ -941,11 +941,11 @@ class BodyPartCallExprNode(ExpressionNode):
         Constructor
         '''
         super(BodyPartCallExprNode, self).__init__()
-        self.tk_base_name = None
-        self.tk_name = None
+        self.txt_bodypart = None
+        self.txt_method = None
         self.child_argument_list = None
-        self.bodypart_decl = None
-        self._method_declaration = None
+        self.ref_bodypart_decl = None
+        self.ref_method_decl = None
 
     def set_argument_list(self, node):
         '''
@@ -958,29 +958,28 @@ class BodyPartCallExprNode(ExpressionNode):
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
 
-        plugin = self.get_root_scope().lookup_plugin(
-            self.tk_base_name.getText())
+        plugin = self.get_root_scope().lookup_plugin(self.txt_bodypart)
 
         if not plugin:
             compiler.report_error(self.ctx, "Unresolved plug-in name '%s'",
-                                  self.tk_base_name.getText())
+                                  self.txt_bodypart)
             raise ResolutionError()
 
-        method = plugin.lookup_method(self.tk_name.getText())
+        method = plugin.lookup_method(self.txt_method)
         if not method:
             compiler.report_error(self.ctx,
                                   "Method '%s' not found at plug-in '%s'" %
-                                  (self.tk_name.getText(),
-                                   self.tk_base_name.getText()))
+                                  (self.txt_method,
+                                   self.txt_bodypart))
             raise ResolutionError()
 
         self.child_argument_list.make_match(compiler,
                                             method.child_parameter_list)
 
-        self.bodypart_decl = plugin
-        self._method_declaration = method
+        self.ref_bodypart_decl = plugin
+        self.ref_method_decl = method
 
-        self.set_type(self._method_declaration.get_type())
+        self.set_type(self.ref_method_decl.get_type())
         return None
 
     def get_data_value(self, compiler):
@@ -998,7 +997,7 @@ class MemberAccessExprNode(ExpressionNode):
         Constructor
         '''
         super(MemberAccessExprNode, self).__init__()
-        self.tk_member_name = None
+        self.txt_member = None
         self.child_expression = None
         self.type_decl = None
         self.member_decl = None
@@ -1015,10 +1014,10 @@ class MemberAccessExprNode(ExpressionNode):
         resolve_expression(compiler, self, 'child_expression')
 
         t = self.child_expression.get_type()
-        m = t.lookup_member(self.tk_member_name.getText())
+        m = t.lookup_member(self.txt_member)
         if not m:
             compiler.report_error(self.ctx, "Member '%s' not found",
-                                  self.tk_member_name.getText())
+                                  self.txt_member)
             raise ResolutionError()
 
         self.type_decl = t
@@ -1044,7 +1043,7 @@ class NumberLiteralExprNode(ExpressionNode):
         Constructor
         '''
         super(NumberLiteralExprNode, self).__init__()
-        self.tk_literal = None
+        self.txt_literal = None
 
     def resolve_expr(self, compiler):
 
@@ -1052,7 +1051,7 @@ class NumberLiteralExprNode(ExpressionNode):
 
         scope = self.get_root_scope()
 
-        self.set_type(scope.lookup_type(u'_zc_number_literal'))
+        self.set_type(scope.lookup_type('_zc_number_literal'))
         return None
 
     def get_static_value(self):
@@ -1060,7 +1059,7 @@ class NumberLiteralExprNode(ExpressionNode):
         Returns the float value of this literal
         Used for complile-time evaluation of expressions
         '''
-        return float(self.tk_literal.getText())
+        return float(self.txt_literal)
 
 
 class BooleanLiteralExprNode(ExpressionNode):
@@ -1069,19 +1068,19 @@ class BooleanLiteralExprNode(ExpressionNode):
     Node class representing a boolean literal
     '''
 
-    def __init__(self, value):
+    def __init__(self):
         '''
         Constructor
         '''
         super(BooleanLiteralExprNode, self).__init__()
-        self._value = value
+        self.boolean_value = False
 
     def resolve_expr(self, compiler):
 
         del compiler
 
         scope = self.get_root_scope()
-        self.set_type(scope.lookup_type(u'_zc_bool_literal'))
+        self.set_type(scope.lookup_type('_zc_bool_literal'))
 
         return None
 
@@ -1090,7 +1089,7 @@ class BooleanLiteralExprNode(ExpressionNode):
         Returns the float value of this literal
         Used for complile-time evaluation of expressions
         '''
-        return self._value
+        return self.boolean_value
 
 
 class StaticEvaluatedExprNode(ExpressionNode):
@@ -1165,20 +1164,20 @@ class VariableExprNode(ExpressionNode):
         Constructor
         '''
         super(VariableExprNode, self).__init__()
-        self.tk_name = None
-        self._declaration = None
+        self.txt_name = None
+        self.ref_decl = None
 
     def resolve_expr(self, compiler):
 
-        decl = lookup_variable(self.get_stmt_scope(), self.tk_name.getText())
+        decl = lookup_variable(self.get_stmt_scope(), self.txt_name)
         if not decl:
             compiler.report_error(
-                self.ctx, "Unresolved variable '%s'", self.tk_name.getText())
+                self.ctx, "Unresolved variable '%s'", self.txt_name)
             raise ResolutionError()
 
-        self._declaration = decl
+        self.ref_decl = decl
 
-        self.set_type(self._declaration.get_type())
+        self.set_type(self.ref_decl.get_type())
         return None
 
 
@@ -1193,9 +1192,9 @@ class AssignmentExprNode(ExpressionNode):
         Constructor
         '''
         super(AssignmentExprNode, self).__init__()
-        self.tk_name = None
+        self.txt_name = None
         self.child_rhs = None
-        self._declaration = None
+        self.ref_decl = None
 
     def set_rhs(self, node):
         '''
@@ -1209,22 +1208,22 @@ class AssignmentExprNode(ExpressionNode):
 
         resolve_expression(compiler, self, 'child_rhs')
 
-        decl = lookup_variable(self.get_stmt_scope(), self.tk_name.getText())
+        decl = lookup_variable(self.get_stmt_scope(), self.txt_name)
         if not decl:
             compiler.report_error(
-                self.ctx, "Unresolved variable '%s'" % self.tk_name.getText())
+                self.ctx, "Unresolved variable '%s'" % self.txt_name)
             raise ResolutionError()
 
-        self._declaration = decl
-        t = self._declaration.get_type()
+        self.ref_decl = decl
+        t = self.ref_decl.get_type()
 
         if not expression_type_match(compiler, t, self, 'child_rhs'):
             compiler.report_error(
                 self.ctx, "Type mismatch on assignment of variable '%s'" %
-                self.tk_name.getText())
+                self.txt_name)
             # no need to raise here
 
-        self.set_type(self.get_root_scope().lookup_type(u'_zc_void'))
+        self.set_type(self.get_root_scope().lookup_type('_zc_void'))
         return None
 
 
@@ -1239,9 +1238,9 @@ class OperatorExprNode(ExpressionNode):
         Constructor
         '''
         super(OperatorExprNode, self).__init__()
-        self.tk_operator = None
+        self.txt_operator = None
         self.child_argument_list = None
-        self._declaration = None
+        self.ref_decl = None
 
     def set_argument_list(self, node):
         '''
@@ -1253,20 +1252,18 @@ class OperatorExprNode(ExpressionNode):
 
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
-        candidates = self.get_root_scope().lookup_operator(
-            self.tk_operator.getText())
+        candidates = self.get_root_scope().lookup_operator(self.txt_operator)
 
         if len(candidates) == 0:
             compiler.report_error(
-                self.ctx, "Unresolved operator '%s'" %
-                self.tk_operator.getText())
+                self.ctx, "Unresolved operator '%s'" % self.txt_operator)
             raise ResolutionError()
 
-        self._declaration = self.child_argument_list.overload_filter(
+        self.ref_decl = self.child_argument_list.overload_filter(
             compiler, candidates)
         self.child_argument_list.make_match(
-            compiler, self._declaration.child_parameter_list)
+            compiler, self.ref_decl.child_parameter_list)
 
-        self.set_type(self._declaration.get_type())
-        return self._declaration.static_evaluate(compiler, self,
-                                                 self.child_argument_list)
+        self.set_type(self.ref_decl.get_type())
+        return self.ref_decl.static_evaluate(compiler, self,
+                                             self.child_argument_list)

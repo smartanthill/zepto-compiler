@@ -99,7 +99,7 @@ class FieldTypeFactoryNode(Node):
         Returns a unique type name, to be used with types created from
         plug-ins manifests
         '''
-        name = u'_zc_field_type_' + unicode(self.next_unique)
+        name = '_zc_field_type_' + unicode(self.next_unique)
         self.next_unique += 1
         return name
 
@@ -162,12 +162,12 @@ class FieldTypeFactoryNode(Node):
 
         self.child_type_list.add_declaration(field)
 
-        for current in [u'<', u'>', u'<=', u'>=']:
+        for current in ['<', '>', '<=', '>=']:
             op = compiler.init_node(
-                FieldToLiteralComparisonOpDeclNode(current, u'_zc_bool'), ctx)
+                FieldToLiteralComparisonOpDeclNode(current, '_zc_bool'), ctx)
             op.set_parameter_list(
                 create_parameter_list(compiler, ctx,
-                                      [field_name, u'_zc_number_literal']))
+                                      [field_name, '_zc_number_literal']))
             self.child_operator_list.add_declaration(op)
 
         return field
@@ -194,13 +194,8 @@ class FieldTypeDeclNode(TypeDeclNode):
         '''
         resolve
         '''
-        assert not self._resolved
-
-        scope = self.get_root_scope()
-        scope.add_type(compiler, self.str_type_name, self)
-
-        self._number_type = scope.lookup_type(u'_zc_number')
-        self._resolved = True
+        self._number_type = self.get_root_scope().lookup_type('_zc_number')
+        super(FieldTypeDeclNode, self).resolve(compiler)
 
     def can_cast_to(self, target_type):
         '''
@@ -248,7 +243,7 @@ class MemberDeclNode(Node, ResolutionHelper):
         Constructor
         '''
         super(MemberDeclNode, self).__init__()
-        self.str_name = name
+        self.txt_name = name
         self.ref_field_type = None
         self.field_sequence = None
 
@@ -287,14 +282,11 @@ class MessageTypeDeclNode(TypeDeclNode):
         '''
         resolve
         '''
-        assert not self._resolved
         for elem in self.childs_elements:
             compiler.resolve_node(elem)
 
         self.make_field_sequences()
-
-        self.get_root_scope().add_type(compiler, self.str_type_name, self)
-        self._resolved = True
+        super(MessageTypeDeclNode, self).resolve(compiler)
 
     def is_message_type(self):
         '''
@@ -307,7 +299,7 @@ class MessageTypeDeclNode(TypeDeclNode):
         Finds a member of this type, by name
         '''
         for current in self.childs_elements:
-            if current.str_name == name:
+            if current.txt_name == name:
                 return current
 
         return None
@@ -343,7 +335,7 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         super(BodyPartDeclNode, self).__init__()
         self.child_parameter_list = None
         self.child_reply_type = None
-        self.str_plugin_name = ''
+        self.txt_name = None
         self.bodypart_id = 0L
 
     def set_parameter_list(self, node):
@@ -371,7 +363,7 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         compiler.resolve_node(self.child_reply_type)
 
         scope = self.get_root_scope()
-        scope.add_plugin(compiler, self.str_plugin_name, self)
+        scope.add_plugin(compiler, self.txt_name, self)
 
         return self.child_reply_type
 

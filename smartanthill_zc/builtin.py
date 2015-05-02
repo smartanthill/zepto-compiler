@@ -27,44 +27,44 @@ def create_builtins(compiler, root):
 
     decls = compiler.init_node(DeclarationListNode(), ctx)
     decls.add_declaration(
-        compiler.init_node(VoidTypeDeclNode(u'_zc_void'), ctx))
+        compiler.init_node(VoidTypeDeclNode('_zc_void'), ctx))
 
-    num_t = compiler.init_node(BasicTypeDeclNode(u'_zc_number'), ctx)
+    num_t = compiler.init_node(BasicTypeDeclNode('_zc_number'), ctx)
     decls.add_declaration(num_t)
 
     decls.add_declaration(
-        compiler.init_node(LiteralTypeDeclNode(u'_zc_number_literal', num_t),
+        compiler.init_node(LiteralTypeDeclNode('_zc_number_literal', num_t),
                            ctx))
 
-    bool_t = compiler.init_node(BasicTypeDeclNode(u'_zc_bool'), ctx)
+    bool_t = compiler.init_node(BasicTypeDeclNode('_zc_bool'), ctx)
     decls.add_declaration(bool_t)
 
     decls.add_declaration(
-        compiler.init_node(LiteralTypeDeclNode(u'_zc_bool_literal', bool_t),
+        compiler.init_node(LiteralTypeDeclNode('_zc_bool_literal', bool_t),
                            ctx))
 
     mcu = compiler.init_node(McuSleepDeclNode(), ctx)
     mcu.set_parameter_list(
-        create_parameter_list(compiler, ctx, [u'_zc_number_literal']))
+        create_parameter_list(compiler, ctx, ['_zc_number_literal']))
     decls.add_declaration(mcu)
 
-    _create_literal_operators(compiler, ctx, decls, [u'+', u'-', u'*', u'/'],
-                              u'_zc_number_literal',
-                              [u'_zc_number_literal', u'_zc_number_literal'])
+    _create_literal_operators(compiler, ctx, decls, ['+', '-', '*', '/'],
+                              '_zc_number_literal',
+                              ['_zc_number_literal', '_zc_number_literal'])
 
-    _create_operators(compiler, ctx, decls, [u'+', u'-', u'*', u'/'],
-                      u'_zc_number', [u'_zc_number', u'_zc_number'])
+    _create_operators(compiler, ctx, decls, ['+', '-', '*', '/'],
+                      '_zc_number', ['_zc_number', '_zc_number'])
 
-    _create_operators(compiler, ctx, decls, [u'<', u'>', u'<=', u'>='],
-                      u'_zc_bool', [u'_zc_number', u'_zc_number'])
+    _create_operators(compiler, ctx, decls, ['<', '>', '<=', '>='],
+                      '_zc_bool', ['_zc_number', '_zc_number'])
 
-    _create_operators(compiler, ctx, decls, [u'==', u'!='],
-                      u'_zc_bool', [u'_zc_bool', u'_zc_bool'])
+    _create_operators(compiler, ctx, decls, ['==', '!='],
+                      '_zc_bool', ['_zc_bool', '_zc_bool'])
 
-    _create_operators(compiler, ctx, decls, [u'&&', u'||'],
-                      u'_zc_bool', [u'_zc_bool', u'_zc_bool'])
+    _create_operators(compiler, ctx, decls, ['&&', '||'],
+                      '_zc_bool', ['_zc_bool', '_zc_bool'])
 
-    _create_operators(compiler, ctx, decls, [u'!'], u'_zc_bool', [u'_zc_bool'])
+    _create_operators(compiler, ctx, decls, ['!'], '_zc_bool', ['_zc_bool'])
 
     root.set_builtin(decls)
     compiler.check_stage('built-in')
@@ -151,7 +151,7 @@ class ParameterDeclNode(Node, ResolutionHelper):
         Constructor
         '''
         super(ParameterDeclNode, self).__init__()
-        self.str_type_name = type_name
+        self.txt_type_name = type_name
 
     def do_resolve_declaration(self, compiler):
         '''
@@ -159,7 +159,7 @@ class ParameterDeclNode(Node, ResolutionHelper):
         '''
         del compiler
 
-        return self.get_root_scope().lookup_type(self.str_type_name)
+        return self.get_root_scope().lookup_type(self.txt_type_name)
 
 
 class ParameterListNode(Node):
@@ -238,8 +238,8 @@ class OperatorDeclNode(Node, ResolutionHelper):
         '''
         super(OperatorDeclNode, self).__init__()
         self.child_parameter_list = None
-        self.str_operator = operator
-        self.str_type_name = type_name
+        self.txt_operator = operator
+        self.txt_type_name = type_name
 
     def set_parameter_list(self, node):
         '''
@@ -256,9 +256,9 @@ class OperatorDeclNode(Node, ResolutionHelper):
         compiler.resolve_node(self.child_parameter_list)
 
         scope = self.get_root_scope()
-        scope.add_operator(compiler, self.str_operator, self)
+        scope.add_operator(compiler, self.txt_operator, self)
 
-        return scope.lookup_type(self.str_type_name)
+        return scope.lookup_type(self.txt_type_name)
 
     def static_evaluate(self, compiler, node, arg_list):
         '''
@@ -304,13 +304,13 @@ class NumberLiteralOpDeclNode(OperatorDeclNode):
 
         result = compiler.init_node(StaticEvaluatedExprNode(), node.ctx)
 
-        if self.str_operator == u'+':
+        if self.txt_operator == '+':
             result.set_static_value(lhs + rhs)
-        elif self.str_operator == u'-':
+        elif self.txt_operator == '-':
             result.set_static_value(lhs - rhs)
-        elif self.str_operator == u'*':
+        elif self.txt_operator == '*':
             result.set_static_value(lhs * rhs)
-        elif self.str_operator == u'/':
+        elif self.txt_operator == '/':
             result.set_static_value(lhs / rhs)
         else:
             assert False
@@ -349,6 +349,6 @@ class McuSleepDeclNode(Node, ResolutionHelper):
         compiler.resolve_node(self.child_parameter_list)
 
         scope = self.get_root_scope()
-        scope.add_function(compiler, u'mcu_sleep', self)
+        scope.add_function(compiler, 'mcu_sleep', self)
 
-        return scope.lookup_type(u'_zc_void')
+        return scope.lookup_type('_zc_void')

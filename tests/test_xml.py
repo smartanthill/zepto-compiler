@@ -50,9 +50,9 @@ def test_xml_basic():
 
     expected = [
         "DeclarationListNode",
-        "+-BodyPartDeclNode plugin_name='TemperaturePlugin'",
+        "+-BodyPartDeclNode name='TemperaturePlugin'",
         "+-+-ParameterListNode",
-        "+-+-MessageTypeDeclNode type_name='_zc_reply_type_TemperaturePlugin'",
+        "+-+-MessageTypeDeclNode name='_zc_reply_type_TemperaturePlugin'",
         "+-+-+-MemberDeclNode name='Temperature'"
         #        "+-+-+-+-FieldTypeDeclNode type_name='_zc_type_4'"
     ]

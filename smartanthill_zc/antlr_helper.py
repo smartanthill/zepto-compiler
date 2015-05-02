@@ -17,16 +17,20 @@
 import antlr4.error.ErrorListener
 
 
-def check_reserved_name(compiler, token):
+def get_token_text(compiler, token):
     '''
-    If name matches reserved name prefix, issue an error
+    Returns the text of a parser token, checking for reserved names,
+    and non-ascii characters
+    TODO better check and error report for non-ascii
     '''
 
-    if token.getText().startswith(u'_zc_'):
+    txt = str(token.getText())
+
+    if txt.startswith('_zc_'):
         compiler.report_error(token, "Name '%s' and all names starting with "
-                              "'_zc_' are reserved" % token.getText())
+                              "'_zc_' are reserved" % txt)
 
-    return token
+    return txt
 
 
 class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):
