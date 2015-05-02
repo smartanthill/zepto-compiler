@@ -56,15 +56,20 @@ def main():
 
     xml = '\n'.join(xml)
     code = '\n'.join(code)
-
     comp = Compiler()
+
+    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
+    etdump = visitor.dump_tree(bodyparts)
+
+    print '\n'.join(etdump)
+
     js_tree = parse_js.parse_js_string(comp, code)
     root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
 
     builtin.create_builtins(comp, root)
 
-    xml_tree = parse_xml.parse_xml_string(comp, xml)
-    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+#    xml_tree = parse_xml.parse_xml_string(comp, xml)
+#    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)

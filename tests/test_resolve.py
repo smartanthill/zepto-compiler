@@ -47,8 +47,9 @@ def common_test_run(code):
 
     builtin.create_builtins(comp, root)
 
-    xml_tree = parse_xml.parse_xml_string(comp, xml)
-    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+#     xml_tree = parse_xml.parse_xml_string(comp, xml)
+#     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)

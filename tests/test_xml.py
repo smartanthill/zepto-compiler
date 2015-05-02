@@ -25,8 +25,9 @@ def common_test_run(xml):
     xml = '\n'.join(xml)
 
     comp = Compiler()
-    xml_tree = parse_xml.parse_xml_string(comp, xml)
-    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+#     xml_tree = parse_xml.parse_xml_string(comp, xml)
+#     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
+    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
     return visitor.dump_tree(bodyparts.child_body_part_list)
 
 

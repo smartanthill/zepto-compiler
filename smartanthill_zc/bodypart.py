@@ -112,7 +112,7 @@ class FieldTypeFactoryNode(Node):
         compiler.resolve_node(self.child_operator_list)
         self._resolved = True
 
-    def create_field_type(self, compiler, ctx, att):
+    def create_field_type(self, compiler, et, att):
         '''
         Created a new FieldTypeDeclNode from data in att dictionary or
         returns a previously created one if all data matches
@@ -120,15 +120,15 @@ class FieldTypeFactoryNode(Node):
         t = ''.join(att['type'].split())  # to remove whites
 
         field_name = self.get_unique_type_name()
-        field = compiler.init_node(FieldTypeDeclNode(field_name), ctx)
+        field = compiler.init_node(FieldTypeDeclNode(field_name), et)
 
         encoding = None
-        if t == 'encoded-signed-int&lt;max=2&gt;':
+        if t == 'encoded-signed-int<max=2>':
             encoding = Encoding.SIGNED_INT_2
-        elif t == 'encoded-unsigned-int&lt;max=2&gt;':
+        elif t == 'encoded-unsigned-int<max=2>S':
             encoding = Encoding.UNSIGNED_INT_2
         else:
-            compiler.report_error(ctx, "Unknown type '%s'" % t)
+            compiler.report_error(et, "Unknown type '%s'" % t)
             compiler.raise_error()
 
         min_value = encoding.min_value
@@ -137,12 +137,12 @@ class FieldTypeFactoryNode(Node):
                 min_value = long(att['min'])
                 if min_value < encoding.min_value:
                     compiler.report_error(
-                        ctx, "Declared min (%s) is lower that type min (%s)"
+                        et, "Declared min (%s) is lower that type min (%s)"
                         % (min_value, encoding.min_value))
                     min_value = encoding.min_value
 
         except:
-            compiler.report_error(ctx, "Bad min '%s'" % att['min'])
+            compiler.report_error(et, "Bad min '%s'" % att['min'])
 
         max_value = encoding.max_value
         try:
@@ -150,11 +150,11 @@ class FieldTypeFactoryNode(Node):
                 max_value = long(att['max'])
                 if max_value > encoding.max_value:
                     compiler.report_error(
-                        ctx, "Declared max (%s) is grater than type min (%s)"
+                        et, "Declared max (%s) is grater than type min (%s)"
                         % (max_value, encoding.max_value))
                     max_value = encoding.max_value
         except:
-            compiler.report_error(ctx, "Bad max '%s'" % att['max'])
+            compiler.report_error(et, "Bad max '%s'" % att['max'])
 
         field.encoding = encoding
         field.min_value = min_value
@@ -164,9 +164,9 @@ class FieldTypeFactoryNode(Node):
 
         for current in ['<', '>', '<=', '>=']:
             op = compiler.init_node(
-                FieldToLiteralComparisonOpDeclNode(current, '_zc_bool'), ctx)
+                FieldToLiteralComparisonOpDeclNode(current, '_zc_bool'), et)
             op.set_parameter_list(
-                create_parameter_list(compiler, ctx,
+                create_parameter_list(compiler, et,
                                       [field_name, '_zc_number_literal']))
             self.child_operator_list.add_declaration(op)
 

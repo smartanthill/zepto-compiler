@@ -13,11 +13,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from antlr4.ParserRuleContext import ParserRuleContext
-from antlr4.tree.Tree import TerminalNodeImpl
-
-from smartanthill_zc.errors import CompilerError
 from smartanthill_zc.visitor import NodeWalker, walk_node_childs
+from smartanthill_zc.errors import CompilerError
+from antlr4.tree.Tree import TerminalNodeImpl
+from antlr4.ParserRuleContext import ParserRuleContext
+import xml.etree.ElementTree as ET
 
 
 class BuiltinCtx(object):
@@ -44,6 +44,9 @@ def format_location(ctx):
             return 'line %s, ' % str(ctx.start.line)
         else:
             return 'lines %s-%s, ' % (str(ctx.start.line), str(ctx.stop.line))
+    elif isinstance(ctx, ET.ElementTree):
+        if ctx.start.line == ctx.stop.line:
+            return 'line %s, ' % str(ctx.start.line)
 
 
 class Compiler(object):

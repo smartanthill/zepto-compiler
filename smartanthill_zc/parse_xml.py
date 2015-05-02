@@ -14,103 +14,46 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import antlr4
+import xml.etree.ElementTree as ET
 
-from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
-                                          check_reserved_name)
-from smartanthill_zc.bodypart import (BodyPartDeclNode, BodyPartListNode,
-                                      Encoding, FieldTypeDeclNode,
-                                      MemberDeclNode, MessageTypeDeclNode)
 from smartanthill_zc.builtin import ParameterListNode
-from smartanthill_zc.Xml import XmlParserVisitor
-from smartanthill_zc.Xml.XmlLexer import XmlLexer
-from smartanthill_zc.Xml.XmlParser import XmlParser
+from smartanthill_zc.bodypart import (BodyPartDeclNode, MemberDeclNode,
+    MessageTypeDeclNode, create_body_parts_manager)
 
 
-def parse_xml_string(compiler, data):
+def parse_xml_body_parts(compiler, data):
     '''
-    Parse unicode string containing xml plug-in manifest
-    Returns an antlr parse tree
+    Parse unicode string containing xml bodyparts declarations
+    Returns a BodypartManagerNode with all the parsed bodyparts
     '''
-    #    input = FileStream(argv[1])
-    istream = antlr4.InputStream.InputStream(data)
-    lexer = XmlLexer(istream)
-    stream = antlr4.CommonTokenStream(lexer)
-    parser = XmlParser(stream)
-#    parser.removeErrorListener()
-    parser.addErrorListener(_ProxyAntlrErrorListener(compiler))
-    tree = parser.document()
+    manager = create_body_parts_manager(compiler, compiler.BUILTIN)
 
-    compiler.check_stage('parse_xml')
-
-    return tree
-
-
-def xml_parse_tree_process(compiler, xml_tree):
-    '''
-    Translates an xml parse tree as returned by antlr4 into a
-    colection of body parts declarations, and extra meta data.
-    '''
-
-    bodyparts = create_body_parts_manager(compiler, compiler.BUILTIN)
-    visitor = _XmlTreeVisitor(compiler, bodyparts)
-    visitor.visit(xml_tree)
+    try:
+        root = ET.fromstring(data)
+        for current in root.iter('smartanthill.plugin'):
+            _make_bodypart(compiler, manager, current)
+    except ET.ParseError:  # TODO improve
+        compiler.report_error(compiler.BUILTIN, "Error parsing xml")
+        compiler.raise_error()
 
     compiler.check_stage('xml_bodyparts')
 
-    return bodyparts
+    return manager
 
 
-def match_tag_names(compiler, sTag, eTag):
+def check_reserved_name(compiler, et, name):
     '''
-    Verifies that open and close tag have the same name
-    If this is not the case, reports error and raises
-    '''
-
-    if sTag.Name().getText() != eTag.Name().getText():
-        compiler.report_error(eTag, "Close tag '%s' does not match the"
-                                    " opening tag" % eTag.Name().getText())
-        compiler.report_error(sTag, "Open tag here")
-
-        # We raise, since xml structure is probably messed up
-        compiler.raise_error()
-
-
-def _get_name(compiler, value):
-    '''
-    Helper function, returns a tag or attribute name
-    '''
-    return get_token_text(compiler, value.Name())
-
-
-def _get_att_value(compiler, att):
-    '''
-    Helper function, returns a tag attribute value
-    '''
-    # TODO, escape sequencce replace
-    # TODO remove first and last
-    del compiler
-
-    txt = att.AttValue().getText()
-    assert len(txt) >= 2
-    return str(txt[1:-1])
-
-
-def _get_ctx_childs(compiler, current):
-    '''
-    Helper function, returns a tuple with tag and content
+    Returns the text of a parser token, checking for reserved names,
+    and non-ascii characters
+    TODO better check and error report for non-ascii
     '''
 
-    if isinstance(current, XmlParser.EmptyTagRuleContext):
-        return (current.emptyElemTag(), [])
-    elif isinstance(current, XmlParser.SeTagRuleContext):
-        match_tag_names(compiler, current.sTag(), current.eTag())
-        return (current.sTag(), current.content().element())
-    else:
-        assert False
+    if name.startswith('_zc_'):
+        compiler.report_error(et, "Name '%s' and all names starting with "
+                              "'_zc_' are reserved" % name)
 
 
-def _get_attributes(compiler, ctx, req_names, opt_names):
+def _get_attributes(compiler, et, req_names, opt_names):
     '''
     Returns a dictionary from xml attributes,
     it checks that all names in req_names are found,
@@ -118,29 +61,26 @@ def _get_attributes(compiler, ctx, req_names, opt_names):
     and that no unexpected name is found
     '''
 
-    result = {}
-    for current in ctx.attribute():
-        name = _get_name(compiler, current)
-        if name in result:
-            compiler.report_error(current, "Duplicated attribute '%s'" % name)
-        elif name not in req_names and name not in opt_names:
-            compiler.report_error(current, "Unexpected attribute '%s'" % name)
+    for name in et.attrib:
+        if name not in req_names and name not in opt_names:
+            compiler.report_error(et, "Unexpected attribute '%s'" % name)
         else:
-            result[name] = _get_att_value(compiler, current)
+            check_reserved_name(compiler, et, et.attrib[name])
 
     ok = True
     for current in req_names:
-        if current not in result:
-            compiler.report_error(current, "Missing attribute '%s'" % current)
+        if current not in et.attrib:
+            compiler.report_error(
+                et, "Missing required attribute '%s'" % current)
             ok = False
 
     if not ok:
         compiler.raise_error()
 
-    return result
+    return et.attrib
 
 
-def _get_tags(compiler, content, req_names, opt_names):
+def _get_tags(compiler, et, req_names, opt_names):
     '''
     Returns a dictionary from xml tags,
     it checks that all names in req_names are found,
@@ -149,22 +89,20 @@ def _get_tags(compiler, content, req_names, opt_names):
     '''
     result = {}
 
-    for current in content:
+    for current in et:
+        check_reserved_name(compiler, current, current.tag)
 
-        ctx, childs = _get_ctx_childs(compiler, current)
-        name = _get_name(compiler, ctx)
-
-        if name in result:
-            compiler.report_error(current, "Duplicated child tag '%s'" % name)
-        elif name not in req_names and name not in opt_names:
-            compiler.report_error(current, "Unexpected child tag '%s'" % name)
+        if current.tag not in req_names and current.tag not in opt_names:
+            compiler.report_error(
+                current, "Unexpected child tag '%s'" % current.tag)
         else:
-            result[name] = (ctx, childs)
+            result[current.tag] = current
 
     ok = True
     for current in req_names:
         if current not in result:
-            compiler.report_error(current, "Missing child tag '%s'" % current)
+            compiler.report_error(
+                et, "Missing required child tag '%s'" % current)
             ok = False
 
     if not ok:
@@ -173,55 +111,52 @@ def _get_tags(compiler, content, req_names, opt_names):
     return result
 
 
-def _make_bodypart(compiler, manager, ctx, content):
+def _make_bodypart(compiler, manager, et):
     '''
     Creates a BodyPartDeclNode from an xml <smartanthill.plugin>
     '''
 
-    name = _get_name(compiler, ctx)
-    assert name == 'smartanthill.plugin'
+    assert et.tag == 'smartanthill.plugin'
 
-    bodypart = compiler.init_node(BodyPartDeclNode(), ctx)
-    att = _get_attributes(compiler, ctx,
+    bodypart = compiler.init_node(BodyPartDeclNode(), et)
+    att = _get_attributes(compiler, et,
                           ['name', 'id', 'version'], [])
 
     if att['version'] != '1.0':
-        compiler.report_error(ctx, "Unidentified version number '%s'" %
+        compiler.report_error(et, "Unidentified version number '%s'" %
                               att['version'])
 
     bodypart.txt_name = att['name']
     try:
         bodypart.bodypart_id = long(att['id'])
     except:
-        compiler.report_error(ctx, "Bad id '%s'" % att['id'])
+        compiler.report_error(et, "Bad id '%s'" % att['id'])
 
-    tags = _get_tags(compiler, content,
+    tags = _get_tags(compiler, et,
                      ['command', 'reply'],
                      ['description', 'peripheral'])
 
     # build parameter list from <command>
-    pl = compiler.init_node(ParameterListNode(), ctx)
+    pl = compiler.init_node(ParameterListNode(), et)
     bodypart.set_parameter_list(pl)
 
     # build reply type <reply>
-    if len(tags['reply'][1]) == 0:
-        compiler.report_error(tags['reply'][0], "Empty 'reply' not allowed")
+    if len(tags['reply']) == 0:
+        compiler.report_error(tags['reply'], "Empty 'reply' not allowed")
         compiler.raise_error()
 
     reply_name = '_zc_reply_type_' + att['name']
     reply = compiler.init_node(
-        MessageTypeDeclNode(reply_name), tags['reply'][0])
+        MessageTypeDeclNode(reply_name), tags['reply'])
 
-    for current in tags['reply'][1]:
+    for current in tags['reply']:
 
-        ctx, ch = _get_ctx_childs(compiler, current)
-        name = _get_name(compiler, ctx)
-
-        if name != 'field':
-            compiler.report_error(ctx, "Unexpected child tag '%s'" % name)
+        if current.tag != 'field':
+            compiler.report_error(
+                current, "Unexpected child tag '%s'" % current.tag)
             compiler.raise_error()
 
-        field = _make_field(compiler, manager, ctx, ch)
+        field = _make_field(compiler, manager, current)
 
         reply.add_element(field)
 
@@ -230,66 +165,20 @@ def _make_bodypart(compiler, manager, ctx, content):
     manager.child_body_part_list.add_declaration(bodypart)
 
 
-def _make_field(compiler, manager, ctx, content):
+def _make_field(compiler, manager, et):
     '''
     Creates a MemberDeclNode from an xml <field>
     '''
-    name = _get_name(compiler, ctx)
-    assert name == 'field'
-    att = _get_attributes(compiler, ctx,
+
+    att = _get_attributes(compiler, et,
                           ['name', 'type'], ['min', 'max'])
 
     field = manager.child_field_type_factory.create_field_type(
-        compiler, ctx, att)
+        compiler, et, att)
 
-    member = compiler.init_node(MemberDeclNode(att['name']), ctx)
+    member = compiler.init_node(MemberDeclNode(att['name']), et)
     member.ref_field_type = field
 
     # TODO handle <meaning>
-    del content
 
     return member
-
-
-class _XmlTreeVisitor(XmlParserVisitor.XmlParserVisitor):
-
-    '''
-    Visitor class that implements xml_parse_tree_process function
-
-    The template for the visitor is copy&paste from super class interface
-    XmlParserVisitor.XmlParserVisitor
-    '''
-
-    def __init__(self, compiler, manager):
-        '''
-        Constructor
-        '''
-        self._compiler = compiler
-        self._manager = manager
-
-    def _try_bodypart(self, ctx, content):
-        '''
-        If current tag corresponds to a body-part, it creates the body-part
-        and returns True, returns False otherwise
-        '''
-        name = _get_name(self._compiler, ctx)
-        if name == 'smartanthill.plugin':
-            _make_bodypart(self._compiler, self._manager, ctx, content)
-            return True
-        else:
-            return False
-
-    # Visit a parse tree produced by XmlParser#emptyTagRule.
-    def visitEmptyTagRule(self, ctx):
-
-        self._try_bodypart(ctx.emptyElemTag(), [])
-
-    # Visit a parse tree produced by XmlParser#seTagRule.
-    def visitSeTagRule(self, ctx):
-
-        match_tag_names(self._compiler, ctx.sTag(), ctx.eTag())
-
-        if self._try_bodypart(ctx.sTag(), ctx.content().element()):
-            pass
-        else:
-            self.visitChildren(ctx.content())
