@@ -189,17 +189,11 @@ class ExpressionNode(Node):
         # pylint: disable=no-self-use
         return None
 
-    def can_cast_to(self, target_type):
-        '''
-        Helper method to call 'can_cast_to' on this expression 'get_type'
-        '''
-        return self.get_type().can_cast_to(target_type)
-
     def insert_cast_to(self, compiler, target_type):
         '''
         Helper method to call 'insert_cast_to' using self as argument
         '''
-        return self.get_type().insert_cast_to(compiler, self, target_type)
+        return self.get_type().insert_cast_to(compiler, target_type, self)
 
 
 def resolve_expression(compiler, parent, child_name):
@@ -277,7 +271,7 @@ class TypeDeclNode(Node):
         else:
             return self.NO_MATCH
 
-    def insert_cast_to(self, compiler, expr, target_type):
+    def insert_cast_to(self, compiler, target_type, expr):
         '''
         Inserts a cast to the target type
         Base method will always fail
@@ -314,7 +308,7 @@ def expression_type_match(compiler, lhs_type, parent, child_name):
     '''
     expr = getattr(parent, child_name)
 
-    ini = expr.can_cast_to(lhs_type)
+    ini = expr.get_type().can_cast_to(lhs_type)
     if ini == TypeDeclNode.NO_MATCH:
         return False
     elif ini == TypeDeclNode.EXACT_MATCH:
@@ -500,7 +494,6 @@ class ArgumentListNode(Node):
             return exact_match[0]
         elif len(exact_match) == 0:
             if len(cast_match) == 1:
-                self.make_match(compiler, cast_match[0].child_parameter_list)
                 return cast_match[0]
             elif len(cast_match) == 0:
                 compiler.report_error(
@@ -515,21 +508,21 @@ class ArgumentListNode(Node):
         else:
             assert False
 
-    def can_match(self, decl):
+    def can_match(self, params):
         '''
         If this argument list can not used to initialize given argument list
         Returns TypeDeclNode.NO_MATCH when there is no chance to make it match
         TypeDeclNode.EXACT_MATCH when match does not need any cast
         and TypeDeclNode.CAST_MATCH when it can match but casting needed
         '''
-        if len(self.childs_arguments) != decl.get_size():
+        if len(self.childs_arguments) != params.get_size():
             return TypeDeclNode.NO_MATCH
 
         result = TypeDeclNode.EXACT_MATCH
         for i in range(len(self.childs_arguments)):
-            t = decl.get_type_at(i)
+            t = params.get_type_at(i)
 #            r = t.can_initialize(self.childs_arguments[i].get_type())
-            r = self.childs_arguments[i].can_cast_to(t)
+            r = self.childs_arguments[i].get_type().can_cast_to(t)
 
             if r == TypeDeclNode.NO_MATCH:
                 return TypeDeclNode.NO_MATCH
@@ -542,22 +535,22 @@ class ArgumentListNode(Node):
 
         return result
 
-    def make_match(self, compiler, decl):
+    def make_match(self, compiler, params):
         '''
         Makes this argument list to initialize given declaration,
         inserting casts if required.
         '''
 
-        if len(self.childs_arguments) != decl.get_size():
+        if len(self.childs_arguments) != params.get_size():
             compiler.report_error(
                 self.ctx, "Wrong number of arguments, given %s but need %s" %
-                str(decl.get_size()), str(len(self.childs_arguments)))
+                str(params.get_size()), str(len(self.childs_arguments)))
             raise ResolutionError()
 
         for i in range(len(self.childs_arguments)):
-            t = decl.get_type_at(i)
+            t = params.get_type_at(i)
             # r = t.can_initialize(self.childs_arguments[i].get_type())
-            r = self.childs_arguments[i].can_cast_to(t)
+            r = self.childs_arguments[i].get_type().can_cast_to(t)
 
             if r == TypeDeclNode.NO_MATCH:
                 compiler.report_error(
@@ -997,7 +990,7 @@ class BodyPartCallExprNode(ExpressionNode):
 class MemberAccessExprNode(ExpressionNode):
 
     '''
-    Node class representing a method call
+    Node class representing a member access, usually a body-part reply
     '''
 
     def __init__(self):
@@ -1116,7 +1109,7 @@ class StaticEvaluatedExprNode(ExpressionNode):
 
     def set_replaced(self, node):
         '''
-        argument_list setter
+        replaced setter
         '''
         assert isinstance(node, ExpressionNode)
         node.set_parent(self)
@@ -1271,6 +1264,8 @@ class OperatorExprNode(ExpressionNode):
 
         self._declaration = self.child_argument_list.overload_filter(
             compiler, candidates)
+        self.child_argument_list.make_match(
+            compiler, self._declaration.child_parameter_list)
 
         self.set_type(self._declaration.get_type())
         return self._declaration.static_evaluate(compiler, self,

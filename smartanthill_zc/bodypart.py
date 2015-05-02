@@ -61,6 +61,118 @@ def field_sequence_to_str(field_sequence):
     return ','.join(result)
 
 
+class FieldTypeFactoryNode(Node):
+
+    '''
+    Factory class to create FieldTypeDeclNode and create special comparison
+    operators between reply fields and number literals
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(FieldTypeFactoryNode, self).__init__()
+        self.child_type_list = None
+        self.child_operator_list = None
+        self.next_unique = 1
+        self._resolved = False
+
+    def set_type_list(self, node):
+        '''
+        type_list setter
+        '''
+        assert isinstance(node, DeclarationListNode)
+        node.set_parent(self)
+        self.child_type_list = node
+
+    def set_operator_list(self, node):
+        '''
+        operator_list setter
+        '''
+        assert isinstance(node, DeclarationListNode)
+        node.set_parent(self)
+        self.child_operator_list = node
+
+    def get_unique_type_name(self):
+        '''
+        Returns a unique type name, to be used with types created from
+        plug-ins manifests
+        '''
+        name = u'_zc_field_type_' + unicode(self.next_unique)
+        self.next_unique += 1
+        return name
+
+    def resolve(self, compiler):
+        '''
+        resolve
+        '''
+        assert not self._resolved
+        compiler.resolve_node(self.child_type_list)
+        compiler.resolve_node(self.child_operator_list)
+        self._resolved = True
+
+    def create_field_type(self, compiler, ctx, att):
+        '''
+        Created a new FieldTypeDeclNode from data in att dictionary or
+        returns a previously created one if all data matches
+        '''
+        t = ''.join(att['type'].split())  # to remove whites
+
+        field_name = self.get_unique_type_name()
+        field = compiler.init_node(FieldTypeDeclNode(field_name), ctx)
+
+        encoding = None
+        if t == 'encoded-signed-int&lt;max=2&gt;':
+            encoding = Encoding.SIGNED_INT_2
+        elif t == 'encoded-unsigned-int&lt;max=2&gt;':
+            encoding = Encoding.UNSIGNED_INT_2
+        else:
+            compiler.report_error(ctx, "Unknown type '%s'" % t)
+            compiler.raise_error()
+
+        min_value = encoding.min_value
+        try:
+            if 'min' in att:
+                min_value = long(att['min'])
+                if min_value < encoding.min_value:
+                    compiler.report_error(
+                        ctx, "Declared min (%s) is lower that type min (%s)"
+                        % (min_value, encoding.min_value))
+                    min_value = encoding.min_value
+
+        except:
+            compiler.report_error(ctx, "Bad min '%s'" % att['min'])
+
+        max_value = encoding.max_value
+        try:
+            if 'max' in att:
+                max_value = long(att['max'])
+                if max_value > encoding.max_value:
+                    compiler.report_error(
+                        ctx, "Declared max (%s) is grater than type min (%s)"
+                        % (max_value, encoding.max_value))
+                    max_value = encoding.max_value
+        except:
+            compiler.report_error(ctx, "Bad max '%s'" % att['max'])
+
+        field.encoding = encoding
+        field.min_value = min_value
+        field.max_value = max_value
+
+        self.child_type_list.add_declaration(field)
+
+        for current in [u'<', u'>', u'<=', u'>=']:
+            op = compiler.init_node(
+                FieldToLiteralComparisonOpDeclNode(current, u'_zc_bool'), ctx)
+            op.set_parameter_list(
+                create_parameter_list(compiler, ctx,
+                                      [field_name, u'_zc_number_literal']))
+            self.child_operator_list.add_declaration(op)
+
+        return field
+
+
 class FieldTypeDeclNode(TypeDeclNode):
 
     '''
@@ -72,42 +184,17 @@ class FieldTypeDeclNode(TypeDeclNode):
         Constructor
         '''
         super(FieldTypeDeclNode, self).__init__(type_name)
-        self._encoding = 0
+        self.encoding = None
         self.meaning = None
         self.min_value = 0
         self.max_value = 0
         self._number_type = None
-
-    def set_encoding(self, encoding):
-        '''
-        Encoding setter, also sets default values for min_value and max_value
-        '''
-        self._encoding = encoding
-        self.min_value = encoding.min_value
-        self.max_value = encoding.max_value
-
-    def get_encoding(self):
-        '''
-        Returns the code of this field, used to build FIELD-SEQUENCE
-        '''
-        return self._encoding
 
     def resolve(self, compiler):
         '''
         resolve
         '''
         assert not self._resolved
-        if self.max_value > self._encoding.max_value:
-            compiler.report_error(self.ctx, "Declared max of %s is above type"
-                                  " max of '%s'" %
-                                  (self.max_value,
-                                   self._encoding.max_value))
-
-        if self.min_value < self._encoding.min_value:
-            compiler.report_error(self.ctx, "Declared min of %s is under type"
-                                  " min of '%s'" %
-                                  (self.min_value,
-                                   self._encoding.min_value))
 
         scope = self.get_root_scope()
         scope.add_type(compiler, self.str_type_name, self)
@@ -126,7 +213,7 @@ class FieldTypeDeclNode(TypeDeclNode):
         else:
             return self.NO_MATCH
 
-    def insert_cast_to(self, compiler, expr, target_type):
+    def insert_cast_to(self, compiler, target_type, expr):
         '''
         Inserts a cast to the target (number) type
         TODO use scaling and <meaning>
@@ -139,6 +226,15 @@ class FieldTypeDeclNode(TypeDeclNode):
         c.set_type(target_type)
 
         return c
+
+    def inverse_meaning(self, value):
+        '''
+        TODO add the inverse function of meaning here
+        Used for mapping literal number for comparison with
+        value returned by a body-part
+        '''
+        assert value
+        return value
 
 
 class MemberDeclNode(Node, ResolutionHelper):
@@ -153,23 +249,16 @@ class MemberDeclNode(Node, ResolutionHelper):
         '''
         super(MemberDeclNode, self).__init__()
         self.str_name = name
-        self.child_field_type = None
+        self.ref_field_type = None
         self.field_sequence = None
-
-    def set_field_type(self, node):
-        '''
-        field_type setter
-        '''
-        assert isinstance(node, FieldTypeDeclNode)
-        node.set_parent(self)
-        self.child_field_type = node
 
     def do_resolve_declaration(self, compiler):
         '''
         Template method from ResolutionHelper
         '''
-        compiler.resolve_node(self.child_field_type)
-        return self.child_field_type
+        del compiler
+        assert self.ref_field_type
+        return self.ref_field_type
 
 
 class MessageTypeDeclNode(TypeDeclNode):
@@ -184,7 +273,6 @@ class MessageTypeDeclNode(TypeDeclNode):
         '''
         super(MessageTypeDeclNode, self).__init__(type_name)
         self.childs_elements = []
-        self._already_resolved = False
         self.field_sequence = None
 
     def add_element(self, node):
@@ -231,7 +319,7 @@ class MessageTypeDeclNode(TypeDeclNode):
 
         fs = []
         for current in self.childs_elements:
-            fs.append(current.child_field_type.get_encoding())
+            fs.append(current.ref_field_type.encoding)
 
             fs_current = list(fs)
             fs_current.append(Encoding.END_OF_SEQUENCE)
@@ -295,13 +383,6 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         '''
         return self if name == "Execute" else None
 
-    def can_match_arguments(self, compiler, arg_list):
-        '''
-        Returns if the given arguments can be used to call this function
-        '''
-        return self.child_parameter_list.can_match_arguments(compiler,
-                                                             arg_list)
-
     def get_data_value(self, encoder, node):
         '''
         Here we must encode the caller arguments as it was specified in
@@ -317,34 +398,143 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         return result
 
 
-class BodyPartListNode(Node):
+def create_body_parts_manager(compiler, ctx):
+    '''
+    Creates and initializes a BodyPartsManagerNode instance
+    '''
+    manager = compiler.init_node(BodyPartsManagerNode(), ctx)
+    manager.set_body_part_list(compiler.init_node(DeclarationListNode(), ctx))
+
+    factory = compiler.init_node(FieldTypeFactoryNode(), ctx)
+    factory.set_type_list(compiler.init_node(DeclarationListNode(), ctx))
+    factory.set_operator_list(compiler.init_node(DeclarationListNode(), ctx))
+
+    manager.set_field_type_factory(factory)
+
+    return manager
+
+
+class BodyPartsManagerNode(Node):
 
     '''
-    Container for body-parts
+    Container for body-parts and field types factory
     '''
 
     def __init__(self):
         '''
         Constructor
         '''
-        super(BodyPartListNode, self).__init__()
-        self.childs_elements = []
+        super(BodyPartsManagerNode, self).__init__()
+        self.child_field_type_factory = None
+        self.child_body_part_list = None
         self._resolved = False
 
-    def add_element(self, node):
+    def set_field_type_factory(self, node):
         '''
-        element adder
+        parameter_list setter
         '''
-        assert isinstance(node, BodyPartDeclNode)
+        assert isinstance(node, FieldTypeFactoryNode)
         node.set_parent(self)
-        self.childs_elements.append(node)
+        self.child_field_type_factory = node
+
+    def set_body_part_list(self, node):
+        '''
+        parameter_list setter
+        '''
+        assert isinstance(node, DeclarationListNode)
+        node.set_parent(self)
+        self.child_body_part_list = node
 
     def resolve(self, compiler):
         '''
         resolve
         '''
         assert not self._resolved
-        for elem in self.childs_elements:
-            compiler.resolve_node(elem)
-
+        compiler.resolve_node(self.child_field_type_factory)
+        compiler.resolve_node(self.child_body_part_list)
         self._resolved = True
+
+
+class FieldToLiteralComparisonOpDeclNode(OperatorDeclNode):
+
+    '''
+    Node class to represent an very special operator declaration
+    for comparison between reply field and number literal
+    This comparison is special because it can be optimized by mapping
+    reply field and literal to numbers in expression stack,
+    or converting number literal to reply field internal type as optimization,
+    without using stack expression.
+    Also VM level Tiny, only supports the later optimization,
+    because stack expression is not available.
+    '''
+
+    def __init__(self, operator, type_name):
+        '''
+        Constructor
+        '''
+        super(FieldToLiteralComparisonOpDeclNode, self).__init__(
+            operator, type_name)
+
+    def static_evaluate(self, compiler, node, arg_list):
+        '''
+        Do replace generic OperatorExprNode by a much more specific
+        FieldToLiteralComparisonOpExprNode
+        '''
+
+        assert isinstance(node, OperatorExprNode)
+        assert len(arg_list.childs_arguments) == 2
+
+        member = arg_list.childs_arguments[0]
+        assert isinstance(member.get_type(), FieldTypeDeclNode)
+
+        orig_value = arg_list.childs_arguments[1].get_static_value()
+        value = member.get_type().inverse_meaning(orig_value)
+
+        assert isinstance(member, MemberAccessExprNode)
+        reply_expr = member.child_expression
+        field_sequence = member.get_member_field_sequence()
+
+        expr = compiler.init_node(
+            FieldToLiteralComparisonOpExprNode(), node.ctx)
+
+        expr.set_replaced(node)
+        expr.ref_declaration = self
+        expr.ref_reply_expr = reply_expr
+
+        expr.field_sequence = field_sequence
+        expr.value = value
+
+        expr.set_type(self.get_type())
+
+        return expr
+
+
+class FieldToLiteralComparisonOpExprNode(ExpressionNode):
+
+    '''
+    Node class representing a very special operator comparison expression
+    between a reply field and a number literal.
+    This kind of expression is created from a regular OperatorExprNode
+    by FieldToLiteralComparisonOpDeclNode for all expression
+    This allows easier detection of this special comparison at a later time
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(FieldToLiteralComparisonOpExprNode, self).__init__()
+        self.child_replaced = None
+        self.ref_declaration = None
+        self.ref_reply_expr = None
+#        self.operator = None
+        self.field_sequence = None
+        self.value = None
+
+    def set_replaced(self, node):
+        '''
+        replaced setter
+        '''
+        assert isinstance(node, ExpressionNode)
+        node.set_parent(self)
+        self.child_replaced = node

@@ -27,7 +27,7 @@ def common_test_run(xml):
     comp = Compiler()
     xml_tree = parse_xml.parse_xml_string(comp, xml)
     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    return visitor.dump_tree(bodyparts)
+    return visitor.dump_tree(bodyparts.child_body_part_list)
 
 
 def test_xml_basic():
@@ -49,12 +49,12 @@ def test_xml_basic():
     ]
 
     expected = [
-        "BodyPartListNode",
+        "DeclarationListNode",
         "+-BodyPartDeclNode plugin_name='TemperaturePlugin'",
         "+-+-ParameterListNode",
         "+-+-MessageTypeDeclNode type_name='_zc_reply_type_TemperaturePlugin'",
-        "+-+-+-MemberDeclNode name='Temperature'",
-        "+-+-+-+-FieldTypeDeclNode type_name='_zc_type_4'"
+        "+-+-+-MemberDeclNode name='Temperature'"
+        #        "+-+-+-+-FieldTypeDeclNode type_name='_zc_type_4'"
     ]
 
     actual = common_test_run(xml)
@@ -84,7 +84,7 @@ def main():
     xml_tree = parse_xml.parse_xml_string(comp, code)
     print '\n'.join(dump_antlr_tree(xml_tree))
     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    print '\n'.join(visitor.dump_tree(bodyparts))
+    print '\n'.join(visitor.dump_tree(bodyparts.child_body_part_list))
 
 # temporary entrance
 if __name__ == "__main__":

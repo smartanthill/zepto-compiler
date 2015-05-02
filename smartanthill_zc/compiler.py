@@ -80,13 +80,6 @@ class Compiler(object):
         '''
         self.removed_nodes.append(node.node_id)
 
-    def get_unique_type_name(self):
-        '''
-        Returns a unique type name, to be used with types created from
-        plug-ins manifests
-        '''
-        return '_zc_type_' + str(self.next_node_id)
-
     def resolve_node(self, node):
         '''
         Generic node resolution

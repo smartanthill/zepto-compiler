@@ -52,12 +52,13 @@ def xml_parse_tree_process(compiler, xml_tree):
     colection of body parts declarations, and extra meta data.
     '''
 
-    visitor = _XmlTreeVisitor(compiler)
+    bodyparts = create_body_parts_manager(compiler, compiler.BUILTIN)
+    visitor = _XmlTreeVisitor(compiler, bodyparts)
     visitor.visit(xml_tree)
 
     compiler.check_stage('xml_bodyparts')
 
-    return visitor.get_bodyparts()
+    return bodyparts
 
 
 def match_tag_names(compiler, sTag, eTag):
@@ -176,7 +177,7 @@ def _get_tags(compiler, content, req_names, opt_names):
     return result
 
 
-def _make_bodypart(compiler, ctx, content):
+def _make_bodypart(compiler, manager, ctx, content):
     '''
     Creates a BodyPartDeclNode from an xml <smartanthill.plugin>
     '''
@@ -224,16 +225,16 @@ def _make_bodypart(compiler, ctx, content):
             compiler.report_error(ctx, "Unexpected child tag '%s'" % name)
             compiler.raise_error()
 
-        field = _make_field(compiler, ctx, ch)
+        field = _make_field(compiler, manager, ctx, ch)
 
         reply.add_element(field)
 
     bodypart.set_reply_type(reply)
 
-    return bodypart
+    manager.child_body_part_list.add_declaration(bodypart)
 
 
-def _make_field(compiler, ctx, content):
+def _make_field(compiler, manager, ctx, content):
     '''
     Creates a MemberDeclNode from an xml <field>
     '''
@@ -242,33 +243,11 @@ def _make_field(compiler, ctx, content):
     att = _get_attributes(compiler, ctx,
                           ['name', 'type'], ['min', 'max'])
 
-    t = ''.join(att['type'].split())  # to remove whites
-
-    field_name = compiler.get_unique_type_name()
-    field = compiler.init_node(FieldTypeDeclNode(field_name), ctx)
-
-    if t == 'encoded-signed-int&lt;max=2&gt;':
-        field.set_encoding(Encoding.SIGNED_INT_2)
-    elif t == 'encoded-unsigned-int&lt;max=2&gt;':
-        field.set_encoding(Encoding.UNSIGNED_INT_2)
-    else:
-        compiler.report_error(ctx, "Unknown encoding '%s'" % t)
-        compiler.raise_error()
-
-    try:
-        if 'min' in att:
-            field.min_value = long(att['min'])
-    except:
-        compiler.report_error(ctx, "Bad min '%s'" % att['min'])
-
-    try:
-        if 'max' in att:
-            field.max_value = long(att['max'])
-    except:
-        compiler.report_error(ctx, "Bad max '%s'" % att['max'])
+    field = manager.child_field_type_factory.create_field_type(
+        compiler, ctx, att)
 
     member = compiler.init_node(MemberDeclNode(att['name']), ctx)
-    member.set_field_type(field)
+    member.ref_field_type = field
 
     # TODO handle <meaning>
     del content
@@ -285,19 +264,12 @@ class _XmlTreeVisitor(XmlParserVisitor.XmlParserVisitor):
     XmlParserVisitor.XmlParserVisitor
     '''
 
-    def __init__(self, compiler):
+    def __init__(self, compiler, manager):
         '''
         Constructor
         '''
         self._compiler = compiler
-        self._bodyparts = compiler.init_node(
-            BodyPartListNode(), compiler.BUILTIN)
-
-    def get_bodyparts(self):
-        '''
-        Returns the populated BodyPartListNode
-        '''
-        return self._bodyparts
+        self._manager = manager
 
     def _try_bodypart(self, ctx, content):
         '''
@@ -306,8 +278,7 @@ class _XmlTreeVisitor(XmlParserVisitor.XmlParserVisitor):
         '''
         name = _get_name(self._compiler, ctx)
         if name == 'smartanthill.plugin':
-            bodypart = _make_bodypart(self._compiler, ctx, content)
-            self._bodyparts.add_element(bodypart)
+            _make_bodypart(self._compiler, self._manager, ctx, content)
             return True
         else:
             return False

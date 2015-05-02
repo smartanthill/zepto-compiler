@@ -45,7 +45,7 @@ def create_builtins(compiler, root):
 
     mcu = compiler.init_node(McuSleepDeclNode(), ctx)
     mcu.set_parameter_list(
-        _create_parameter_list(compiler, ctx, [u'_zc_number_literal']))
+        create_parameter_list(compiler, ctx, [u'_zc_number_literal']))
     decls.add_declaration(mcu)
 
     _create_literal_operators(compiler, ctx, decls, [u'+', u'-', u'*', u'/'],
@@ -126,7 +126,7 @@ class LiteralTypeDeclNode(TypeDeclNode):
         else:
             return self.NO_MATCH
 
-    def insert_cast_to(self, compiler, expr, target_type):
+    def insert_cast_to(self, compiler, target_type, expr):
         '''
         Inserts a cast to the target (non-literal) type
         '''
@@ -200,8 +200,10 @@ class ParameterListNode(Node):
         return self.childs_parameters[i].get_type()
 
 
-def _create_parameter_list(compiler, ctx, type_list):
-
+def create_parameter_list(compiler, ctx, type_list):
+    '''
+    Creates a ParameterListNode with type_list elements
+    '''
     pl = compiler.init_node(ParameterListNode(), ctx)
     for type_name in type_list:
         pl.add_parameter(compiler.init_node(ParameterDeclNode(type_name), ctx))
@@ -212,7 +214,7 @@ def _create_parameter_list(compiler, ctx, type_list):
 def _create_operator(compiler, ctx, operator, ret_type, type_list):
 
     op = compiler.init_node(OperatorDeclNode(operator, ret_type), ctx)
-    op.set_parameter_list(_create_parameter_list(compiler, ctx, type_list))
+    op.set_parameter_list(create_parameter_list(compiler, ctx, type_list))
 
     return op
 
@@ -258,20 +260,6 @@ class OperatorDeclNode(Node, ResolutionHelper):
 
         return scope.lookup_type(self.str_type_name)
 
-    def match_arguments(self, compiler, arg_list):
-        '''
-        Checks if the given arguments can be used to call this function
-        If false, it raises
-        '''
-        self.child_parameter_list.match_arguments(compiler, arg_list)
-
-    def can_match_arguments(self, compiler, arg_list):
-        '''
-        Returns if the given arguments can be used to call this function
-        '''
-        return self.child_parameter_list.can_match_arguments(compiler,
-                                                             arg_list)
-
     def static_evaluate(self, compiler, node, arg_list):
         '''
         Do static evaluation of expressions when possible
@@ -287,7 +275,7 @@ def _create_literal_operators(compiler, ctx, root, operator_list, ret_type,
     for current in operator_list:
         op = compiler.init_node(
             NumberLiteralOpDeclNode(current, ret_type), ctx)
-        op.set_parameter_list(_create_parameter_list(compiler, ctx, type_list))
+        op.set_parameter_list(create_parameter_list(compiler, ctx, type_list))
         root.add_declaration(op)
 
 
@@ -364,10 +352,3 @@ class McuSleepDeclNode(Node, ResolutionHelper):
         scope.add_function(compiler, u'mcu_sleep', self)
 
         return scope.lookup_type(u'_zc_void')
-
-    def can_match_arguments(self, compiler, arg_list):
-        '''
-        Returns if the given arguments can be used to call this function
-        '''
-        return self.child_parameter_list.can_match_arguments(compiler,
-                                                             arg_list)
