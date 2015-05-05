@@ -15,7 +15,7 @@
 
 
 from smartanthill_zc import errors
-from smartanthill_zc.lookup import RootScope, ReturnStmtScope
+from smartanthill_zc.lookup import ReturnStmtScope, RootScope
 
 
 class ResolutionHelper(object):

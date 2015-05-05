@@ -13,11 +13,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.visitor import NodeWalker, walk_node_childs
-from smartanthill_zc.errors import CompilerError
-from antlr4.tree.Tree import TerminalNodeImpl
-from antlr4.ParserRuleContext import ParserRuleContext
 import xml.etree.ElementTree as ET
+
+from antlr4.ParserRuleContext import ParserRuleContext
+from antlr4.tree.Tree import TerminalNodeImpl
+
+from smartanthill_zc.errors import CompilerError
+from smartanthill_zc.visitor import NodeWalker, walk_node_childs
 
 
 class BuiltinCtx(object):

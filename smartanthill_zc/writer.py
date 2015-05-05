@@ -15,6 +15,7 @@
 
 
 import binascii
+
 from smartanthill_zc.encode import ZeptoEncoder
 
 

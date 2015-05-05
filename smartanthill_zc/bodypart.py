@@ -14,10 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc.node import (Node, ResolutionHelper, TypeDeclNode,
-    ExpressionNode, DeclarationListNode)
-from smartanthill_zc import builtin
-from smartanthill_zc import expression
+from smartanthill_zc import builtin, expression
+from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
+                                  ResolutionHelper, TypeDeclNode)
 
 
 class _EncodingImpl(object):

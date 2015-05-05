@@ -16,14 +16,13 @@
 
 import antlr4
 
-from smartanthill_zc import expression
-from smartanthill_zc import statement
+from smartanthill_zc import expression, statement
+from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
+                                          get_token_text)
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.node import ArgumentListNode, RootNode, ProgramNode
-from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
-    get_token_text)
+from smartanthill_zc.node import ArgumentListNode, ProgramNode, RootNode
 
 
 def parse_js_string(compiler, data):

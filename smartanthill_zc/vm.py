@@ -14,9 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import expression
+from smartanthill_zc.op_node import (ExecOpNode, ExitOpNode, McuSleepOpNode,
+                                     OpListNode, TargetProgramNode)
 from smartanthill_zc.visitor import NodeVisitor, visit_node
-from smartanthill_zc.op_node import (OpListNode, McuSleepOpNode,
-    ExecOpNode, ExitOpNode, TargetProgramNode)
 
 
 def convert_to_zepto_vm_one(compiler, root):

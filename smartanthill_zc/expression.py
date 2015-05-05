@@ -15,8 +15,8 @@
 
 
 from smartanthill_zc import lookup
-from smartanthill_zc.node import ExpressionNode, ArgumentListNode,\
-    resolve_expression, expression_type_match
+from smartanthill_zc.node import (ArgumentListNode, ExpressionNode,
+                                  expression_type_match, resolve_expression)
 
 
 class FunctionCallExprNode(ExpressionNode):

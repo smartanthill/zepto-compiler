@@ -14,9 +14,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc.node import resolve_expression, ExpressionNode,\
-    StatementNode, ResolutionHelper, expression_type_match, ArgumentListNode
 from smartanthill_zc.lookup import StatementListScope
+from smartanthill_zc.node import (ArgumentListNode, ExpressionNode,
+                                  ResolutionHelper, StatementNode,
+                                  expression_type_match, resolve_expression)
 
 
 class StatementListStmtNode(StatementNode):

@@ -13,9 +13,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.node import (Node, ResolutionHelper,
-    TypeDeclNode, DeclarationListNode)
 from smartanthill_zc import expression
+from smartanthill_zc.node import (DeclarationListNode, Node, ResolutionHelper,
+                                  TypeDeclNode)
 
 
 def create_builtins(compiler, root):

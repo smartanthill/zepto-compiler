@@ -16,8 +16,7 @@
 
 import xml.etree.ElementTree as ET
 
-from smartanthill_zc import builtin
-from smartanthill_zc import bodypart
+from smartanthill_zc import bodypart, builtin
 
 
 def parse_xml_body_parts(compiler, data):
