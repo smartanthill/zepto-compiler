@@ -13,12 +13,11 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import smartanthill_zc.node as node
 
 from smartanthill_zc.node import (Node, ResolutionHelper, TypeDeclNode,
     ExpressionNode, DeclarationListNode)
-from smartanthill_zc.builtin import (ParameterListNode, OperatorDeclNode,
-    create_parameter_list)
+from smartanthill_zc import builtin
+from smartanthill_zc import expression
 
 
 class _EncodingImpl(object):
@@ -169,8 +168,9 @@ class FieldTypeFactoryNode(Node):
             op = compiler.init_node(
                 FieldToLiteralComparisonOpDeclNode(current, '_zc_bool'), et)
             op.set_parameter_list(
-                create_parameter_list(compiler, et,
-                                      [field_name, '_zc_number_literal']))
+                builtin.create_parameter_list(compiler, et,
+                                              [field_name,
+                                               '_zc_number_literal']))
             self.child_operator_list.add_declaration(op)
 
         return field
@@ -219,7 +219,7 @@ class FieldTypeDeclNode(TypeDeclNode):
         assert self == expr.get_type()
         assert self._number_type == target_type
 
-        c = compiler.init_node(node.LiteralCastExprNode(), expr.ctx)
+        c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
         c.set_expression(expr)
         c.set_type(target_type)
 
@@ -345,7 +345,7 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         '''
         parameter_list setter
         '''
-        assert isinstance(child, ParameterListNode)
+        assert isinstance(child, builtin.ParameterListNode)
         child.set_parent(self)
         self.child_parameter_list = child
 
@@ -450,7 +450,7 @@ class BodyPartsManagerNode(Node):
         self._resolved = True
 
 
-class FieldToLiteralComparisonOpDeclNode(OperatorDeclNode):
+class FieldToLiteralComparisonOpDeclNode(builtin.OperatorDeclNode):
 
     '''
     Node class to represent an very special operator declaration
@@ -476,7 +476,7 @@ class FieldToLiteralComparisonOpDeclNode(OperatorDeclNode):
         FieldToLiteralComparisonOpExprNode
         '''
 
-        assert isinstance(expr, node.OperatorExprNode)
+        assert isinstance(expr, expression.OperatorExprNode)
         assert len(arg_list.childs_arguments) == 2
 
         member = arg_list.childs_arguments[0]
@@ -485,7 +485,7 @@ class FieldToLiteralComparisonOpDeclNode(OperatorDeclNode):
         orig_value = arg_list.childs_arguments[1].get_static_value()
         value = member.get_type().inverse_meaning(orig_value)
 
-        assert isinstance(member, node.MemberAccessExprNode)
+        assert isinstance(member, expression.MemberAccessExprNode)
         reply_expr = member.child_expression
         field_sequence = member.get_member_field_sequence()
 

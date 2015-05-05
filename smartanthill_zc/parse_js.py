@@ -15,12 +15,13 @@
 
 
 import antlr4
-import smartanthill_zc.node as node
+
+from smartanthill_zc import expression
+from smartanthill_zc import statement
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.node import (StatementListStmtNode, make_statement_list,
-    ArgumentListNode
+from smartanthill_zc.node import ArgumentListNode, RootNode, ProgramNode
 from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
     get_token_text)
 
@@ -61,7 +62,7 @@ def js_parse_tree_to_syntax_tree(compiler, js_tree):
     visitor = _JsSyntaxVisitor(compiler)
     prog = visitor.visit(js_tree)
 
-    root = compiler.init_node(node.RootNode(), compiler.BUILTIN)
+    root = compiler.init_node(RootNode(), compiler.BUILTIN)
 
     root.set_program(prog)
     compiler.check_stage('js_syntax')
@@ -124,8 +125,9 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#program.
     def visitProgram(self, ctx):
-        prog = self._compiler.init_node(node.ProgramNode(), ctx)
-        stmt_list = self._compiler.init_node(StatementListStmtNode(), ctx)
+        prog = self._compiler.init_node(ProgramNode(), ctx)
+        stmt_list = self._compiler.init_node(
+            statement.StatementListStmtNode(), ctx)
 
         elems = ctx.sourceElements()
         if elems:
@@ -145,7 +147,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#mcuSleepStatement.
     def visitMcuSleepStatement(self, ctx):
-        stmt = self._compiler.init_node(node.McuSleepStmtNode(), ctx)
+        stmt = self._compiler.init_node(statement.McuSleepStmtNode(), ctx)
 
         args = self.visit(ctx.arguments())
         stmt.set_argument_list(args)
@@ -154,7 +156,8 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#block.
     def visitBlock(self, ctx):
-        stmt_list = self._compiler.init_node(StatementListStmtNode(), ctx)
+        stmt_list = self._compiler.init_node(
+            statement.StatementListStmtNode(), ctx)
 
         st_list = ctx.statementList()
         if st_list:
@@ -168,7 +171,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     # Visit a parse tree produced by ECMAScriptParser#variableStatement.
     def visitVariableStatement(self, ctx):
         stmt = self._compiler.init_node(
-            node.VariableDeclarationStmtNode(), ctx)
+            statement.VariableDeclarationStmtNode(), ctx)
 
         var_list = ctx.variableDeclarationList().variableDeclaration()
 
@@ -190,13 +193,13 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#emptyStatement.
     def visitEmptyStatement(self, ctx):
-        stmt = self._compiler.init_node(node.NopStmtNode(), ctx)
+        stmt = self._compiler.init_node(statement.NopStmtNode(), ctx)
 
         return stmt
 
     # Visit a parse tree produced by ECMAScriptParser#expressionStatement.
     def visitExpressionStatement(self, ctx):
-        stmt = self._compiler.init_node(node.ExpressionStmtNode(), ctx)
+        stmt = self._compiler.init_node(statement.ExpressionStmtNode(), ctx)
 
         expr = self.visit(ctx.expressionSequence())
         stmt.set_expression(expr)
@@ -205,7 +208,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#ifStatement.
     def visitIfStatement(self, ctx):
-        stmt = self._compiler.init_node(node.IfElseStmtNode(), ctx)
+        stmt = self._compiler.init_node(statement.IfElseStmtNode(), ctx)
 
         expr = self.visit(ctx.expressionSequence())
         stmt.set_expression(expr)
@@ -213,12 +216,15 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         body = ctx.statement()
 
         if len(body) == 1:
-            body_if = make_statement_list(self._compiler, self.visit(body[0]))
+            body_if = statement.make_statement_list(
+                self._compiler, self.visit(body[0]))
             stmt.set_if_branch(body_if)
         elif len(body) == 2:
-            body_if = make_statement_list(self._compiler, self.visit(body[0]))
+            body_if = statement.make_statement_list(
+                self._compiler, self.visit(body[0]))
             stmt.set_if_branch(body_if)
-            body_el = make_statement_list(self._compiler, self.visit(body[1]))
+            body_el = statement.make_statement_list(
+                self._compiler, self.visit(body[1]))
             stmt.set_else_branch(body_el)
         else:
             assert False
@@ -229,13 +235,13 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitDoStatement(self, ctx):
         self._compiler.report_error(ctx, "Loop 'do' not supported")
 
-        return self._compiler.init_node(node.ErrorStmtNode(), ctx)
+        return self._compiler.init_node(statement.ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#WhileStatement.
     def visitWhileStatement(self, ctx):
         self._compiler.report_error(ctx, "Loop 'while' not supported")
 
-        return self._compiler.init_node(node.ErrorStmtNode(), ctx)
+        return self._compiler.init_node(statement.ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#ForStatement.
     def visitForStatement(self, ctx):
@@ -243,11 +249,11 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
             ctx, "Loop 'for' only supported in the trivial form "
             "'for(var i = ..; i < ..; i++) {..}'")
 
-        return self._compiler.init_node(node.ErrorStmtNode(), ctx)
+        return self._compiler.init_node(statement.ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#ForVarTrivialStatement.
     def visitSimpleForStatement(self, ctx):
-        stmt = self._compiler.init_node(node.SimpleForStmtNode(), ctx)
+        stmt = self._compiler.init_node(statement.SimpleForStmtNode(), ctx)
 
         id_list = ctx.Identifier()
         assert len(id_list) == 3
@@ -273,7 +279,8 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         end = self.visit(expr_list[1])
         stmt.set_end_expression(end)
 
-        sl = make_statement_list(self._compiler, self.visit(ctx.statement()))
+        sl = statement.make_statement_list(
+            self._compiler, self.visit(ctx.statement()))
         stmt.set_statement_list(sl)
 
         return stmt
@@ -284,7 +291,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
             ctx, "Loop 'for' only supported in the trivial form "
             "'for(var i = ..; i < ..; i++) {..}'")
 
-        return self._compiler.init_node(node.ErrorStmtNode(), ctx)
+        return self._compiler.init_node(statement.ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#ForInStatement.
     def visitForInStatement(self, ctx):
@@ -292,7 +299,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
             ctx, "Loop 'for' only supported in the trivial form "
             "'for(var i = ..; i < ..; i++) {..}'")
 
-        return self._compiler.init_node(node.ErrorStmtNode(), ctx)
+        return self._compiler.init_node(statement.ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#ForVarInStatement.
     def visitForVarInStatement(self, ctx):
@@ -300,11 +307,11 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
             ctx, "Loop 'for' only supported in the trivial form "
             "'for(var i = ..; i < ..; i++) {..}'")
 
-        return self._compiler.init_node(node.ErrorStmtNode(), ctx)
+        return self._compiler.init_node(statement.ErrorStmtNode(), ctx)
 
     # Visit a parse tree produced by ECMAScriptParser#returnStatement.
     def visitReturnStatement(self, ctx):
-        stmt = self._compiler.init_node(node.ReturnStmtNode(), ctx)
+        stmt = self._compiler.init_node(statement.ReturnStmtNode(), ctx)
 
         exprCtx = ctx.expressionSequence()
         if exprCtx:
@@ -342,7 +349,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
     def visitFunctionExpression(self, ctx):
-        expr = self._compiler.init_node(node.FunctionCallExprNode(), ctx)
+        expr = self._compiler.init_node(expression.FunctionCallExprNode(), ctx)
 
         expr.txt_name = get_token_text(self._compiler, ctx.Identifier())
         args = self.visit(ctx.arguments())
@@ -352,7 +359,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#AssignmentExpression.
     def visitAssignmentExpression(self, ctx):
-        expr = self._compiler.init_node(node.AssignmentExprNode(), ctx)
+        expr = self._compiler.init_node(expression.AssignmentExprNode(), ctx)
 
         expr.txt_name = get_token_text(self._compiler, ctx.Identifier())
         rhs = self.visit(ctx.expressionSequence())
@@ -362,17 +369,17 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
     def visitLogicalOrExpression(self, ctx):
-        return self.init_operator(node.OperatorExprNode(), ctx, ctx.getChild(1),
-                                  ctx.singleExpression())
+        return self.init_operator(expression.OperatorExprNode(), ctx,
+                                  ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#LogicalAndExpression.
     def visitLogicalAndExpression(self, ctx):
-        return self.init_operator(node.OperatorExprNode(), ctx, ctx.getChild(1),
-                                  ctx.singleExpression())
+        return self.init_operator(expression.OperatorExprNode(), ctx,
+                                  ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
     def visitIdentifierExpression(self, ctx):
-        expr = self._compiler.init_node(node.VariableExprNode(), ctx)
+        expr = self._compiler.init_node(expression.VariableExprNode(), ctx)
         expr.txt_name = get_token_text(self._compiler, ctx.Identifier())
 
         return expr
@@ -385,7 +392,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
     def visitMemberDotExpression(self, ctx):
 
-        expr = self._compiler.init_node(node.MemberAccessExprNode(), ctx)
+        expr = self._compiler.init_node(expression.MemberAccessExprNode(), ctx)
         expr.txt_member = get_token_text(self._compiler, ctx.identifierName())
 
         e = self.visit(ctx.singleExpression())
@@ -395,12 +402,12 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#NotExpression.
     def visitNotExpression(self, ctx):
-        return self.init_operator(node.OperatorExprNode(), ctx,
+        return self.init_operator(expression.OperatorExprNode(), ctx,
                                   ctx.getChild(0), [ctx.singleExpression()])
 
     # Visit a parse tree produced by ECMAScriptParser#RelationalExpression.
     def visitRelationalExpression(self, ctx):
-        return self.init_operator(node.OperatorExprNode(), ctx,
+        return self.init_operator(expression.OperatorExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
@@ -409,7 +416,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#MethodExpression.
     def visitMethodExpression(self, ctx):
-        expr = self._compiler.init_node(node.BodyPartCallExprNode(), ctx)
+        expr = self._compiler.init_node(expression.BodyPartCallExprNode(), ctx)
 
         expr.txt_bodypart = get_token_text(self._compiler, ctx.Identifier())
         expr.txt_method = get_token_text(self._compiler, ctx.identifierName())
@@ -420,24 +427,25 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#EqualityExpression.
     def visitEqualityExpression(self, ctx):
-        return self.init_operator(node.OperatorExprNode(), ctx,
+        return self.init_operator(expression.OperatorExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
     def visitAdditiveExpression(self, ctx):
-        return self.init_operator(node.OperatorExprNode(), ctx,
+        return self.init_operator(expression.OperatorExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
     def visitMultiplicativeExpression(self, ctx):
-        return self.init_operator(node.OperatorExprNode(), ctx,
+        return self.init_operator(expression.OperatorExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#literal.
     def visitLiteral(self, ctx):
 
         if ctx.numericLiteral():
-            expr = self._compiler.init_node(node.NumberLiteralExprNode(), ctx)
+            expr = self._compiler.init_node(
+                expression.NumberLiteralExprNode(), ctx)
             lit = ctx.numericLiteral().DecimalLiteral()
             expr.txt_literal = get_token_text(self._compiler, lit)
 
@@ -449,7 +457,8 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
             assert text == 'true' or text == 'false'
 
-            expr = self._compiler.init_node(node.BooleanLiteralExprNode(), ctx)
+            expr = self._compiler.init_node(
+                expression.BooleanLiteralExprNode(), ctx)
             expr.boolean_value = True if text == 'true' else False
 
             return expr

@@ -13,10 +13,10 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.node import BodyPartCallExprNode
-from smartanthill_zc.op_node import (ExecOpNode, ExitOpNode, McuSleepOpNode,
-                                     OpListNode, TargetProgramNode)
+from smartanthill_zc import expression
 from smartanthill_zc.visitor import NodeVisitor, visit_node
+from smartanthill_zc.op_node import (OpListNode, McuSleepOpNode,
+    ExecOpNode, ExitOpNode, TargetProgramNode)
 
 
 def convert_to_zepto_vm_one(compiler, root):
@@ -174,7 +174,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
     def visit_ReturnStmtNode(self, node):
         # pylint: disable=unidiomatic-typecheck
-        if type(node.child_expression) is BodyPartCallExprNode:
+        if type(node.child_expression) is expression.BodyPartCallExprNode:
             visit_node(self, node.child_expression)
         else:
             self._compiler.report_error(

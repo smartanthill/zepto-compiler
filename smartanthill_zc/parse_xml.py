@@ -16,9 +16,8 @@
 
 import xml.etree.ElementTree as ET
 
-from smartanthill_zc.builtin import ParameterListNode
-from smartanthill_zc.bodypart import (BodyPartDeclNode, MemberDeclNode,
-    MessageTypeDeclNode, create_body_parts_manager)
+from smartanthill_zc import builtin
+from smartanthill_zc import bodypart
 
 
 def parse_xml_body_parts(compiler, data):
@@ -26,7 +25,7 @@ def parse_xml_body_parts(compiler, data):
     Parse unicode string containing xml bodyparts declarations
     Returns a BodypartManagerNode with all the parsed bodyparts
     '''
-    manager = create_body_parts_manager(compiler, compiler.BUILTIN)
+    manager = bodypart.create_body_parts_manager(compiler, compiler.BUILTIN)
 
     try:
         root = ET.fromstring(data)
@@ -118,7 +117,7 @@ def _make_bodypart(compiler, manager, et):
 
     assert et.tag == 'smartanthill.plugin'
 
-    bodypart = compiler.init_node(BodyPartDeclNode(), et)
+    part = compiler.init_node(bodypart.BodyPartDeclNode(), et)
     att = _get_attributes(compiler, et,
                           ['name', 'id', 'version'], [])
 
@@ -126,9 +125,9 @@ def _make_bodypart(compiler, manager, et):
         compiler.report_error(et, "Unidentified version number '%s'" %
                               att['version'])
 
-    bodypart.txt_name = att['name']
+    part.txt_name = att['name']
     try:
-        bodypart.bodypart_id = long(att['id'])
+        part.bodypart_id = long(att['id'])
     except:
         compiler.report_error(et, "Bad id '%s'" % att['id'])
 
@@ -137,8 +136,8 @@ def _make_bodypart(compiler, manager, et):
                      ['description', 'peripheral'])
 
     # build parameter list from <command>
-    pl = compiler.init_node(ParameterListNode(), et)
-    bodypart.set_parameter_list(pl)
+    pl = compiler.init_node(builtin.ParameterListNode(), et)
+    part.set_parameter_list(pl)
 
     # build reply type <reply>
     if len(tags['reply']) == 0:
@@ -147,7 +146,7 @@ def _make_bodypart(compiler, manager, et):
 
     reply_name = '_zc_reply_type_' + att['name']
     reply = compiler.init_node(
-        MessageTypeDeclNode(reply_name), tags['reply'])
+        bodypart.MessageTypeDeclNode(reply_name), tags['reply'])
 
     for current in tags['reply']:
 
@@ -160,9 +159,9 @@ def _make_bodypart(compiler, manager, et):
 
         reply.add_element(field)
 
-    bodypart.set_reply_type(reply)
+    part.set_reply_type(reply)
 
-    manager.child_body_part_list.add_declaration(bodypart)
+    manager.child_body_part_list.add_declaration(part)
 
 
 def _make_field(compiler, manager, et):
@@ -176,7 +175,7 @@ def _make_field(compiler, manager, et):
     field = manager.child_field_type_factory.create_field_type(
         compiler, et, att)
 
-    member = compiler.init_node(MemberDeclNode(att['name']), et)
+    member = compiler.init_node(bodypart.MemberDeclNode(att['name']), et)
     member.ref_field_type = field
 
     # TODO handle <meaning>

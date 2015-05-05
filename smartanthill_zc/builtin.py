@@ -13,10 +13,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import smartanthill_zc.node as node
-
 from smartanthill_zc.node import (Node, ResolutionHelper,
     TypeDeclNode, DeclarationListNode)
+from smartanthill_zc import expression
 
 
 def create_builtins(compiler, root):
@@ -134,7 +133,7 @@ class LiteralTypeDeclNode(TypeDeclNode):
         assert self == expr.get_type()
         assert self._base_type == target_type
 
-        c = compiler.init_node(node.LiteralCastExprNode(), expr.ctx)
+        c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
         c.set_expression(expr)
         c.set_type(target_type)
 
@@ -297,13 +296,14 @@ class NumberLiteralOpDeclNode(OperatorDeclNode):
         Do static evaluation of expressions when possible
         '''
 
-        assert isinstance(expr, node.OperatorExprNode)
+        assert isinstance(expr, expression.OperatorExprNode)
         assert len(expr.child_argument_list.childs_arguments) == 2
 
         lhs = expr.child_argument_list.childs_arguments[0].get_static_value()
         rhs = expr.child_argument_list.childs_arguments[1].get_static_value()
 
-        result = compiler.init_node(node.StaticEvaluatedExprNode(), expr.ctx)
+        result = compiler.init_node(
+            expression.StaticEvaluatedExprNode(), expr.ctx)
 
         if self.txt_operator == '+':
             result.set_static_value(lhs + rhs)

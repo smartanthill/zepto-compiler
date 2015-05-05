@@ -13,8 +13,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.bodypart import field_sequence_to_str
 from smartanthill_zc.node import Node
+from smartanthill_zc import bodypart
 
 
 class _OpImpl(object):
@@ -195,8 +195,9 @@ class TargetProgramNode(Node):
         '''
         writer.write_text('target vm: %s' % self.vm_level.name)
         writer.write_text('mcusleep: %s' % self.mcusleep_invoked)
-        writer.write_text('reply: %s' %
-                          field_sequence_to_str(self.reply_field_sequence))
+        writer.write_text(
+            'reply: %s' % bodypart.field_sequence_to_str(
+                self.reply_field_sequence))
         self.child_op_list.write(writer)
 
 
