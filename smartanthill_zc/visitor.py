@@ -22,9 +22,11 @@ def visit_node(visitor, node):
     Trivial implementation
     '''
     assert isinstance(node, Node)
-    try:
-        getattr(visitor, 'visit_' + type(node).__name__)(node)
-    except AttributeError:
+    name = 'visit_' + type(node).__name__
+    attr = getattr(visitor, name, None)
+    if attr:
+        attr(node)
+    else:
         getattr(visitor, 'default_visit')(node)
 
 

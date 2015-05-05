@@ -181,13 +181,13 @@ class TargetProgramNode(Node):
         self.reply_field_sequence = None
 # entry=NOT_ISFIRST,exit=IS_FIRST
 
-    def set_op_list(self, node):
+    def set_op_list(self, child):
         '''
         op_list setter
         '''
-        assert isinstance(node, OpListNode)
-        node.set_parent(self)
-        self.child_op_list = node
+        assert isinstance(child, OpListNode)
+        child.set_parent(self)
+        self.child_op_list = child
 
     def write(self, writer):
         '''

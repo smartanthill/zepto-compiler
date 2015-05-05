@@ -13,9 +13,12 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.builtin import ParameterListNode
-from smartanthill_zc.node import (LiteralCastExprNode, Node, ResolutionHelper,
-                                  TypeDeclNode)
+import smartanthill_zc.node as node
+
+from smartanthill_zc.node import (Node, ResolutionHelper, TypeDeclNode,
+    ExpressionNode, DeclarationListNode)
+from smartanthill_zc.builtin import (ParameterListNode, OperatorDeclNode,
+    create_parameter_list)
 
 
 class _EncodingImpl(object):
@@ -78,21 +81,21 @@ class FieldTypeFactoryNode(Node):
         self.next_unique = 1
         self._resolved = False
 
-    def set_type_list(self, node):
+    def set_type_list(self, child):
         '''
         type_list setter
         '''
-        assert isinstance(node, DeclarationListNode)
-        node.set_parent(self)
-        self.child_type_list = node
+        assert isinstance(child, DeclarationListNode)
+        child.set_parent(self)
+        self.child_type_list = child
 
-    def set_operator_list(self, node):
+    def set_operator_list(self, child):
         '''
         operator_list setter
         '''
-        assert isinstance(node, DeclarationListNode)
-        node.set_parent(self)
-        self.child_operator_list = node
+        assert isinstance(child, DeclarationListNode)
+        child.set_parent(self)
+        self.child_operator_list = child
 
     def get_unique_type_name(self):
         '''
@@ -216,7 +219,7 @@ class FieldTypeDeclNode(TypeDeclNode):
         assert self == expr.get_type()
         assert self._number_type == target_type
 
-        c = compiler.init_node(LiteralCastExprNode(), expr.ctx)
+        c = compiler.init_node(node.LiteralCastExprNode(), expr.ctx)
         c.set_expression(expr)
         c.set_type(target_type)
 
@@ -270,13 +273,13 @@ class MessageTypeDeclNode(TypeDeclNode):
         self.childs_elements = []
         self.field_sequence = None
 
-    def add_element(self, node):
+    def add_element(self, child):
         '''
         argument adder
         '''
-        assert isinstance(node, MemberDeclNode)
-        node.set_parent(self)
-        self.childs_elements.append(node)
+        assert isinstance(child, MemberDeclNode)
+        child.set_parent(self)
+        self.childs_elements.append(child)
 
     def resolve(self, compiler):
         '''
@@ -338,21 +341,21 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         self.txt_name = None
         self.bodypart_id = 0L
 
-    def set_parameter_list(self, node):
+    def set_parameter_list(self, child):
         '''
         parameter_list setter
         '''
-        assert isinstance(node, ParameterListNode)
-        node.set_parent(self)
-        self.child_parameter_list = node
+        assert isinstance(child, ParameterListNode)
+        child.set_parent(self)
+        self.child_parameter_list = child
 
-    def set_reply_type(self, node):
+    def set_reply_type(self, child):
         '''
         reply_type setter
         '''
-        assert isinstance(node, MessageTypeDeclNode)
-        node.set_parent(self)
-        self.child_reply_type = node
+        assert isinstance(child, MessageTypeDeclNode)
+        child.set_parent(self)
+        self.child_reply_type = child
 
     def do_resolve_declaration(self, compiler):
         '''
@@ -375,7 +378,7 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         '''
         return self if name == "Execute" else None
 
-    def get_data_value(self, encoder, node):
+    def get_data_value(self, encoder, caller):
         '''
         Here we must encode the caller arguments as it was specified in
         plug-in manifest for this body part
@@ -383,7 +386,7 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         # pylint: disable=no-self-use
         result = []
 
-        for current in node.child_argument_list.childs_arguments:
+        for current in caller.child_argument_list.childs_arguments:
             enc = encoder.encode_unsigned_int(2, current.get_static_value())
             result.extend(enc)
 
@@ -421,21 +424,21 @@ class BodyPartsManagerNode(Node):
         self.child_body_part_list = None
         self._resolved = False
 
-    def set_field_type_factory(self, node):
+    def set_field_type_factory(self, child):
         '''
         parameter_list setter
         '''
-        assert isinstance(node, FieldTypeFactoryNode)
-        node.set_parent(self)
-        self.child_field_type_factory = node
+        assert isinstance(child, FieldTypeFactoryNode)
+        child.set_parent(self)
+        self.child_field_type_factory = child
 
-    def set_body_part_list(self, node):
+    def set_body_part_list(self, child):
         '''
         parameter_list setter
         '''
-        assert isinstance(node, DeclarationListNode)
-        node.set_parent(self)
-        self.child_body_part_list = node
+        assert isinstance(child, DeclarationListNode)
+        child.set_parent(self)
+        self.child_body_part_list = child
 
     def resolve(self, compiler):
         '''
@@ -467,13 +470,13 @@ class FieldToLiteralComparisonOpDeclNode(OperatorDeclNode):
         super(FieldToLiteralComparisonOpDeclNode, self).__init__(
             operator, type_name)
 
-    def static_evaluate(self, compiler, node, arg_list):
+    def static_evaluate(self, compiler, expr, arg_list):
         '''
         Do replace generic OperatorExprNode by a much more specific
         FieldToLiteralComparisonOpExprNode
         '''
 
-        assert isinstance(node, OperatorExprNode)
+        assert isinstance(expr, node.OperatorExprNode)
         assert len(arg_list.childs_arguments) == 2
 
         member = arg_list.childs_arguments[0]
@@ -482,23 +485,23 @@ class FieldToLiteralComparisonOpDeclNode(OperatorDeclNode):
         orig_value = arg_list.childs_arguments[1].get_static_value()
         value = member.get_type().inverse_meaning(orig_value)
 
-        assert isinstance(member, MemberAccessExprNode)
+        assert isinstance(member, node.MemberAccessExprNode)
         reply_expr = member.child_expression
         field_sequence = member.get_member_field_sequence()
 
-        expr = compiler.init_node(
-            FieldToLiteralComparisonOpExprNode(), node.ctx)
+        result = compiler.init_node(
+            FieldToLiteralComparisonOpExprNode(), expr.ctx)
 
-        expr.set_replaced(node)
-        expr.ref_declaration = self
-        expr.ref_reply_expr = reply_expr
+        result.set_replaced(expr)
+        result.ref_declaration = self
+        result.ref_reply_expr = reply_expr
 
-        expr.field_sequence = field_sequence
-        expr.value = value
+        result.field_sequence = field_sequence
+        result.value = value
 
-        expr.set_type(self.get_type())
+        result.set_type(self.get_type())
 
-        return expr
+        return result
 
 
 class FieldToLiteralComparisonOpExprNode(ExpressionNode):
@@ -523,10 +526,10 @@ class FieldToLiteralComparisonOpExprNode(ExpressionNode):
         self.field_sequence = None
         self.value = None
 
-    def set_replaced(self, node):
+    def set_replaced(self, child):
         '''
         replaced setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_replaced = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_replaced = child

@@ -13,9 +13,10 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.node import (DeclarationListNode, LiteralCastExprNode,
-                                  Node, OperatorExprNode, ResolutionHelper,
-                                  StaticEvaluatedExprNode, TypeDeclNode)
+import smartanthill_zc.node as node
+
+from smartanthill_zc.node import (Node, ResolutionHelper,
+    TypeDeclNode, DeclarationListNode)
 
 
 def create_builtins(compiler, root):
@@ -133,7 +134,7 @@ class LiteralTypeDeclNode(TypeDeclNode):
         assert self == expr.get_type()
         assert self._base_type == target_type
 
-        c = compiler.init_node(LiteralCastExprNode(), expr.ctx)
+        c = compiler.init_node(node.LiteralCastExprNode(), expr.ctx)
         c.set_expression(expr)
         c.set_type(target_type)
 
@@ -176,13 +177,13 @@ class ParameterListNode(Node):
         self.childs_parameters = []
         self._already_resolved = False
 
-    def add_parameter(self, node):
+    def add_parameter(self, child):
         '''
         argument adder
         '''
-        assert isinstance(node, ParameterDeclNode)
-        node.set_parent(self)
-        self.childs_parameters.append(node)
+        assert isinstance(child, ParameterDeclNode)
+        child.set_parent(self)
+        self.childs_parameters.append(child)
 
     def resolve(self, compiler):
         '''
@@ -241,13 +242,13 @@ class OperatorDeclNode(Node, ResolutionHelper):
         self.txt_operator = operator
         self.txt_type_name = type_name
 
-    def set_parameter_list(self, node):
+    def set_parameter_list(self, child):
         '''
         parameter_list setter
         '''
-        assert isinstance(node, ParameterListNode)
-        node.set_parent(self)
-        self.child_parameter_list = node
+        assert isinstance(child, ParameterListNode)
+        child.set_parent(self)
+        self.child_parameter_list = child
 
     def do_resolve_declaration(self, compiler):
         '''
@@ -260,7 +261,7 @@ class OperatorDeclNode(Node, ResolutionHelper):
 
         return scope.lookup_type(self.txt_type_name)
 
-    def static_evaluate(self, compiler, node, arg_list):
+    def static_evaluate(self, compiler, expr, arg_list):
         '''
         Do static evaluation of expressions when possible
         '''
@@ -291,18 +292,18 @@ class NumberLiteralOpDeclNode(OperatorDeclNode):
         '''
         super(NumberLiteralOpDeclNode, self).__init__(operator, type_name)
 
-    def static_evaluate(self, compiler, node, arg_list):
+    def static_evaluate(self, compiler, expr, arg_list):
         '''
         Do static evaluation of expressions when possible
         '''
 
-        assert isinstance(node, OperatorExprNode)
-        assert len(node.child_argument_list.childs_arguments) == 2
+        assert isinstance(expr, node.OperatorExprNode)
+        assert len(expr.child_argument_list.childs_arguments) == 2
 
-        lhs = node.child_argument_list.childs_arguments[0].get_static_value()
-        rhs = node.child_argument_list.childs_arguments[1].get_static_value()
+        lhs = expr.child_argument_list.childs_arguments[0].get_static_value()
+        rhs = expr.child_argument_list.childs_arguments[1].get_static_value()
 
-        result = compiler.init_node(StaticEvaluatedExprNode(), node.ctx)
+        result = compiler.init_node(node.StaticEvaluatedExprNode(), expr.ctx)
 
         if self.txt_operator == '+':
             result.set_static_value(lhs + rhs)
@@ -316,7 +317,7 @@ class NumberLiteralOpDeclNode(OperatorDeclNode):
             assert False
 
         result.set_type(self.get_type())
-        result.set_replaced(node)
+        result.set_replaced(expr)
 
         return result
 
@@ -334,13 +335,13 @@ class McuSleepDeclNode(Node, ResolutionHelper):
         super(McuSleepDeclNode, self).__init__()
         self.child_parameter_list = None
 
-    def set_parameter_list(self, node):
+    def set_parameter_list(self, child):
         '''
         parameter_list setter
         '''
-        assert isinstance(node, ParameterListNode)
-        node.set_parent(self)
-        self.child_parameter_list = node
+        assert isinstance(child, ParameterListNode)
+        child.set_parent(self)
+        self.child_parameter_list = child
 
     def do_resolve_declaration(self, compiler):
         '''

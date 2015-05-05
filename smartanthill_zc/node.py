@@ -13,11 +13,10 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.errors import (PreviousResolutionError,
-                                    ResolutionCycleError, ResolutionError,
-                                    UnresolvedError)
-from smartanthill_zc.lookup import (ReturnStmtScope, RootScope,
-                                    StatementListScope, lookup_variable)
+
+import smartanthill_zc.errors as error
+from smartanthill_zc.lookup import (StatementListScope, RootScope,
+    lookup_variable, ReturnStmtScope)
 
 
 class ResolutionHelper(object):
@@ -53,7 +52,7 @@ class ResolutionHelper(object):
                 assert self._resolved_type
                 self._resolved_flag = self._RESOLVED_OK
             elif self._resolved_flag == self._RESOLVING_NOW:
-                raise ResolutionCycleError()
+                raise error.ResolutionCycleError()
             elif self._resolved_flag == self._RESOLVED_OK:
                 pass
             elif self.resolved_flag == self._RESOLUTION_ERROR:
@@ -72,13 +71,13 @@ class ResolutionHelper(object):
         '''
 
         if self._resolved_flag == self._NOT_RESOLVED:
-            raise UnresolvedError()
+            raise error.UnresolvedError()
         elif self._resolved_flag == self._RESOLVING_NOW:
-            raise ResolutionCycleError()
+            raise error.ResolutionCycleError()
         elif self._resolved_flag == self._RESOLVED_OK:
             return self._resolved_type
         elif self._resolved_flag == self._RESOLUTION_ERROR:
-            raise PreviousResolutionError()
+            raise error.PreviousResolutionError()
         else:
             assert False
 
@@ -459,13 +458,13 @@ class ArgumentListNode(Node):
         super(ArgumentListNode, self).__init__()
         self.childs_arguments = []
 
-    def add_argument(self, node):
+    def add_argument(self, child):
         '''
         argument adder
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.childs_arguments.append(node)
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.childs_arguments.append(child)
 
     def resolve(self, compiler):
         for i in range(len(self.childs_arguments)):
@@ -498,11 +497,11 @@ class ArgumentListNode(Node):
             elif len(cast_match) == 0:
                 compiler.report_error(
                     self.ctx, "None of candidates can match the arguments")
-                raise ResolutionError()
+                compiler.raise_error()
             elif len(cast_match) > 1:
                 compiler.report_error(
                     self.ctx, "More than a candidate can match the arguments")
-                raise ResolutionError()
+                compiler.raise_error()
             else:
                 assert False
         else:
@@ -545,7 +544,7 @@ class ArgumentListNode(Node):
             compiler.report_error(
                 self.ctx, "Wrong number of arguments, given %s but need %s" %
                 str(params.get_size()), str(len(self.childs_arguments)))
-            raise ResolutionError()
+            compiler.raise_error()
 
         for i in range(len(self.childs_arguments)):
             t = params.get_type_at(i)
@@ -555,7 +554,7 @@ class ArgumentListNode(Node):
             if r == TypeDeclNode.NO_MATCH:
                 compiler.report_error(
                     self.ctx, "Argument type mismatch at position %s" & str(i))
-                raise ResolutionError()
+                compiler.raise_error()
             elif r == TypeDeclNode.EXACT_MATCH:
                 pass
             elif r == TypeDeclNode.CAST_MATCH:
@@ -581,15 +580,15 @@ class StatementListStmtNode(StatementNode):
         self.childs_statements = []
         self._scope = StatementListScope(self)
 
-    def add_statement(self, node):
+    def add_statement(self, child):
         '''
         statement adder
         '''
-        if not node:
+        if not child:
             assert False
-        assert isinstance(node, StatementNode)
-        node.set_parent(self)
-        self.childs_statements.append(node)
+        assert isinstance(child, StatementNode)
+        child.set_parent(self)
+        self.childs_statements.append(child)
 
     def resolve(self, compiler):
         for stmt in self.childs_statements:
@@ -673,13 +672,13 @@ class ReturnStmtNode(StatementNode):
         super(ReturnStmtNode, self).__init__()
         self.child_expression = None
 
-    def set_expression(self, node):
+    def set_expression(self, child):
         '''
         expression setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_expression = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_expression = child
 
     def resolve(self, compiler):
         resolve_expression(compiler, self, 'child_expression')
@@ -706,13 +705,13 @@ class VariableDeclarationStmtNode(StatementNode, ResolutionHelper):
         self.txt_name = None
         self.child_initializer = None
 
-    def set_initializer(self, node):
+    def set_initializer(self, child):
         '''
         expression setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_initializer = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_initializer = child
 
     def do_resolve_declaration(self, compiler):
 
@@ -739,13 +738,13 @@ class ExpressionStmtNode(StatementNode):
         super(ExpressionStmtNode, self).__init__()
         self.child_expression = None
 
-    def set_expression(self, node):
+    def set_expression(self, child):
         '''
         expression setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_expression = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_expression = child
 
     def resolve(self, compiler):
         resolve_expression(compiler, self, 'child_expression')
@@ -766,29 +765,29 @@ class IfElseStmtNode(StatementNode):
         self.child_if_branch = None
         self.child_else_branch = None
 
-    def set_expression(self, node):
+    def set_expression(self, child):
         '''
         expression setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_expression = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_expression = child
 
-    def set_if_branch(self, node):
+    def set_if_branch(self, child):
         '''
         if_branch setter
         '''
-        assert isinstance(node, StatementListStmtNode)
-        node.set_parent(self)
-        self.child_if_branch = node
+        assert isinstance(child, StatementListStmtNode)
+        child.set_parent(self)
+        self.child_if_branch = child
 
-    def set_else_branch(self, node):
+    def set_else_branch(self, child):
         '''
         else_branch setter
         '''
-        assert isinstance(node, StatementListStmtNode)
-        node.set_parent(self)
-        self.child_else_branch = node
+        assert isinstance(child, StatementListStmtNode)
+        child.set_parent(self)
+        self.child_else_branch = child
 
     def resolve(self, compiler):
         resolve_expression(compiler, self, 'child_expression')
@@ -817,13 +816,13 @@ class McuSleepStmtNode(StatementNode):
         self.child_argument_list = None
         self._ref_decl = None
 
-    def set_argument_list(self, node):
+    def set_argument_list(self, child):
         '''
         argument_list setter
         '''
-        assert isinstance(node, ArgumentListNode)
-        node.set_parent(self)
-        self.child_argument_list = node
+        assert isinstance(child, ArgumentListNode)
+        child.set_parent(self)
+        self.child_argument_list = child
 
     def resolve(self, compiler):
         compiler.resolve_node(self.child_argument_list)
@@ -865,29 +864,29 @@ class SimpleForStmtNode(StatementNode):
         self.child_statement_list = None
         self._scope = StatementListScope(self)
 
-    def set_begin_expression(self, node):
+    def set_begin_expression(self, child):
         '''
         begin_expression setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_begin_expression = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_begin_expression = child
 
-    def set_end_expression(self, node):
+    def set_end_expression(self, child):
         '''
         end_expression setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_end_expression = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_end_expression = child
 
-    def set_statement_list(self, node):
+    def set_statement_list(self, child):
         '''
         statement_list setter
         '''
-        assert isinstance(node, StatementListStmtNode)
-        node.set_parent(self)
-        self.child_statement_list = node
+        assert isinstance(child, StatementListStmtNode)
+        child.set_parent(self)
+        self.child_statement_list = child
 
     def get_stmt_scope(self):
         ''''
@@ -916,13 +915,13 @@ class FunctionCallExprNode(ExpressionNode):
         self.txt_name = None
         self.child_argument_list = None
 
-    def set_argument_list(self, node):
+    def set_argument_list(self, child):
         '''
         argument_list setter
         '''
-        assert isinstance(node, ArgumentListNode)
-        node.set_parent(self)
-        self.child_argument_list = node
+        assert isinstance(child, ArgumentListNode)
+        child.set_parent(self)
+        self.child_argument_list = child
 
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
@@ -947,13 +946,13 @@ class BodyPartCallExprNode(ExpressionNode):
         self.ref_bodypart_decl = None
         self.ref_method_decl = None
 
-    def set_argument_list(self, node):
+    def set_argument_list(self, child):
         '''
         argument_list setter
         '''
-        assert isinstance(node, ArgumentListNode)
-        node.set_parent(self)
-        self.child_argument_list = node
+        assert isinstance(child, ArgumentListNode)
+        child.set_parent(self)
+        self.child_argument_list = child
 
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
@@ -963,7 +962,7 @@ class BodyPartCallExprNode(ExpressionNode):
         if not plugin:
             compiler.report_error(self.ctx, "Unresolved plug-in name '%s'",
                                   self.txt_bodypart)
-            raise ResolutionError()
+            compiler.raise_error()
 
         method = plugin.lookup_method(self.txt_method)
         if not method:
@@ -971,7 +970,7 @@ class BodyPartCallExprNode(ExpressionNode):
                                   "Method '%s' not found at plug-in '%s'" %
                                   (self.txt_method,
                                    self.txt_bodypart))
-            raise ResolutionError()
+            compiler.raise_error()
 
         self.child_argument_list.make_match(compiler,
                                             method.child_parameter_list)
@@ -983,7 +982,7 @@ class BodyPartCallExprNode(ExpressionNode):
         return None
 
     def get_data_value(self, compiler):
-        return self.bodypart_decl.get_data_value(compiler, self)
+        return self.ref_bodypart_decl.get_data_value(compiler, self)
 
 
 class MemberAccessExprNode(ExpressionNode):
@@ -1002,13 +1001,13 @@ class MemberAccessExprNode(ExpressionNode):
         self.type_decl = None
         self.member_decl = None
 
-    def set_expression(self, node):
+    def set_expression(self, child):
         '''
         argument_list setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_expression = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_expression = child
 
     def resolve_expr(self, compiler):
         resolve_expression(compiler, self, 'child_expression')
@@ -1018,7 +1017,7 @@ class MemberAccessExprNode(ExpressionNode):
         if not m:
             compiler.report_error(self.ctx, "Member '%s' not found",
                                   self.txt_member)
-            raise ResolutionError()
+            compiler.raise_error()
 
         self.type_decl = t
         self.member_decl = m
@@ -1106,13 +1105,13 @@ class StaticEvaluatedExprNode(ExpressionNode):
         self.child_replaced = None
         self._static_value = None
 
-    def set_replaced(self, node):
+    def set_replaced(self, child):
         '''
         replaced setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_replaced = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_replaced = child
 
     def set_static_value(self, static_value):
         '''
@@ -1141,13 +1140,13 @@ class LiteralCastExprNode(ExpressionNode):
         super(LiteralCastExprNode, self).__init__()
         self.child_expression = None
 
-    def set_expression(self, node):
+    def set_expression(self, child):
         '''
         argument_list setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_expression = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_expression = child
 
     def get_static_value(self):
         return self.child_expression.get_static_value()
@@ -1173,7 +1172,7 @@ class VariableExprNode(ExpressionNode):
         if not decl:
             compiler.report_error(
                 self.ctx, "Unresolved variable '%s'", self.txt_name)
-            raise ResolutionError()
+            compiler.raise_error()
 
         self.ref_decl = decl
 
@@ -1196,13 +1195,13 @@ class AssignmentExprNode(ExpressionNode):
         self.child_rhs = None
         self.ref_decl = None
 
-    def set_rhs(self, node):
+    def set_rhs(self, child):
         '''
         rhs setter
         '''
-        assert isinstance(node, ExpressionNode)
-        node.set_parent(self)
-        self.child_rhs = node
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_rhs = child
 
     def resolve_expr(self, compiler):
 
@@ -1212,7 +1211,7 @@ class AssignmentExprNode(ExpressionNode):
         if not decl:
             compiler.report_error(
                 self.ctx, "Unresolved variable '%s'" % self.txt_name)
-            raise ResolutionError()
+            compiler.raise_error()
 
         self.ref_decl = decl
         t = self.ref_decl.get_type()
@@ -1242,13 +1241,13 @@ class OperatorExprNode(ExpressionNode):
         self.child_argument_list = None
         self.ref_decl = None
 
-    def set_argument_list(self, node):
+    def set_argument_list(self, child):
         '''
         argument_list setter
         '''
-        assert isinstance(node, ArgumentListNode)
-        node.set_parent(self)
-        self.child_argument_list = node
+        assert isinstance(child, ArgumentListNode)
+        child.set_parent(self)
+        self.child_argument_list = child
 
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
@@ -1257,7 +1256,7 @@ class OperatorExprNode(ExpressionNode):
         if len(candidates) == 0:
             compiler.report_error(
                 self.ctx, "Unresolved operator '%s'" % self.txt_operator)
-            raise ResolutionError()
+            compiler.raise_error()
 
         self.ref_decl = self.child_argument_list.overload_filter(
             compiler, candidates)

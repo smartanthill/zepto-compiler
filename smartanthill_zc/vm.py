@@ -195,7 +195,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
     def visit_BodyPartCallExprNode(self, node):
         op = self._compiler.init_node(ExecOpNode(), node.ctx)
-        op.bodypart_id = node.bodypart_decl.bodypart_id
+        op.bodypart_id = node.ref_bodypart_decl.bodypart_id
         op.data = node.get_data_value(self._compiler)
 
         self._op_list.add_operation(op)
