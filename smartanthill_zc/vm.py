@@ -15,7 +15,8 @@
 
 
 from smartanthill_zc import expression
-from smartanthill_zc.op_node import JumpDesptination
+from smartanthill_zc.op_node import JumpDesptination, MoveReplyOpNode,\
+    PopRepliesOpNode
 import smartanthill_zc.op_node as op
 from smartanthill_zc.visitor import NodeVisitor, visit_node
 from smartanthill_zc.writer import SizeWriter
@@ -70,43 +71,150 @@ class Level(object):
     MEDIUM = _VmLevelImpl(4, 'Medium')
 
 
-class ReplyBufferRef(object):
-
-    def __init__(self, index):
-        self._index = index
-        self._valid = True
-
-    def invalidate(self):
-        self._valid = False
-
-
 class ReplyBuffer(object):
 
     def __init__(self):
 
         self._buffer = []
-        self._buffer = []
-        self._references = []
+        self._stack = []
 
-    def push_reply(self, bodypart):
-        pass
+    def push_reply(self, var):
 
-    def find_variable(self, variable_decl):
-        return 0
+        self._buffer.append(var)
 
-    def assign_last_to_variable(self, variable_decl):
-        pass
+    def find_variable(self, var):
 
-    def match_reply_type(self, return_types):
+        for i in range(len(self._buffer)):
+            if self._buffer[i] == var:
+                return i
 
-        if len(return_types) != len(self._buffer):
-            return False
+        assert False
 
-        for i in range(len(return_types)):
-            if return_types[i] != self._buffer[i][0]:
-                return False
+    def _move_to_front(self, compiler, ctx, i):
+        '''
+        Helper to move one element to the front
+        '''
+        elem = self._buffer.pop(i)
+        self._buffer.insert(0, elem)
+        move = compiler.init_node(MoveReplyOpNode(i), ctx)
+        return move
 
-        return True
+    def _remove_back(self, compiler, ctx, target_size):
+        '''
+        Helper to remove elements from the back
+        '''
+        assert len(self._buffer) > target_size
+        count = len(self._buffer) - target_size
+        self._buffer = self._buffer[0:target_size]
+        pop = compiler.init_node(PopRepliesOpNode(count), ctx)
+        return pop
+
+    def reassing_reply(self, compiler, ctx, var):
+
+        ops = []
+        if self._buffer[-1] != var:
+            # move to the top
+            pos = self.find_variable(var)
+
+            for i in reversed(range(pos, len(self._buffer))):  # reversed?
+                m = self._move_to_front(compiler, ctx, i)
+                ops.append(m)
+
+        assert self._buffer[-1] == var
+        remove = compiler.init_node(PopRepliesOpNode(1), ctx)
+        ops.append(remove)
+
+        return ops
+
+    def clear(self, compiler, ctx):
+        '''
+        Removes every reply in the reply buffer
+        '''
+        if len(self._buffer) != 0:
+            self._buffer = []
+            pop = compiler.init_node(PopRepliesOpNode(0), ctx)
+            return pop
+        else:
+            return None
+
+    def leave_only_reply(self, compiler, ctx, var):
+        '''
+        Removes every reply in the reply buffer, with exception of var
+        '''
+        assert len(self._buffer) != 0
+
+        if len(self._buffer) != 1:
+            # move to the top
+            ops = []
+            pos = self.find_variable(var)
+
+            if pos != 0:
+                m = self._move_to_front(compiler, ctx, pos)
+                ops.append(m)
+
+            pop = self._remove_back(compiler, ctx, 1)
+            ops.append(pop)
+            return ops
+        else:
+            return []
+
+    def conditional_code_begin(self):
+        '''
+        Marks the beginning of a conditional block of code.
+        We must save the stack state, so at the conditional code end
+        we can make the stack state match.
+        This way the stack state will not depend on the excution or not
+        of the conditional code block
+        '''
+        self._stack.append(list(self._buffer))
+
+    def conditional_code_pop(self):
+        '''
+        Marks the end of a conditional block of code without fall.
+        This means code was not able to fall down here,
+        so we not need to care about stack
+        '''
+        self._buffer = self._stack.pop()
+
+    def conditional_code_end(self, compiler, ctx):
+        '''
+        Marks the end of a conditional block of code.
+        We must make the stack state match.
+        '''
+        last = self._stack.pop()
+
+        assert len(last) <= len(self._buffer)
+        result = []
+
+        if last == self._buffer:
+            # nothing to do
+            pass
+        elif len(last) == 0:
+            # was empty, pop everything
+            pop = self.clear(compiler, ctx)
+            assert pop
+            result.append(pop)
+        elif last == self._buffer[0:len(last)]:
+            # only have to remove the back
+            pop = self._remove_back(compiler, ctx, len(last))
+            result.append(pop)
+        else:
+            # sort, moving to the front
+            # TODO make smarter! so it does not always move everything
+            for current in reversed(last):
+                pos = self.find_variable(current)
+
+                if pos != 0:
+                    m = self._move_to_front(compiler, ctx, pos)
+                    result.append(m)
+
+            # remove the unneeded from the back
+            if len(self._buffer) != len(last):
+                pop = self._remove_back(compiler, ctx, len(last))
+                result.append(pop)
+
+        assert last == self._buffer
+        return result
 
 
 class _ZeptoVmOneVisitor(NodeVisitor):
@@ -200,13 +308,20 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         pass
 
     def visit_ReturnStmtNode(self, node):
-        # pylint: disable=unidiomatic-typecheck
         if isinstance(node.child_expression, expression.BodyPartCallExprNode):
-            visit_node(self, node.child_expression)
+
+            pop = self._replybuffer.clear(self._compiler, node.ctx)
+            if pop:
+                self._add_op(pop)
+
+            self.visit_BodyPartCallExprNode(node.child_expression)
         elif isinstance(node.child_expression, expression.VariableExprNode):
             self._assert_level(Level.TINY, node.ctx)
 
-            # TODO fix reply buffer
+            ops = self._replybuffer.leave_only_reply(
+                self._compiler, node.ctx, node.child_expression.ref_decl)
+            for each in ops:
+                self._add_op(each)
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at 'return' statement could not be "
@@ -228,7 +343,6 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         exprop.bodypart_id = node.ref_bodypart_decl.bodypart_id
         exprop.data = node.get_data_value(self._compiler)
 
-        self._replybuffer.push_reply(node.ref_bodypart_decl)
         self._add_op(exprop)
 
     def visit_IfElseStmtNode(self, node):
@@ -240,7 +354,17 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         # first visit the body
         temp = self._op_list
         self._op_list = body
+        self._replybuffer.conditional_code_begin()
         visit_node(self, node.child_if_branch)
+
+        # TODO when EXIT, buffer is messed
+        if node.child_if_branch.has_flow_stmt:
+            self._replybuffer.conditional_code_pop()
+        else:
+            ops = self._replybuffer.conditional_code_end(
+                self._compiler, node.child_if_branch.ctx)
+            for current in ops:
+                self._add_op(current)
         self._op_list = temp
 
         # we will not support side effects on condition, so just return
@@ -265,8 +389,8 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
         if isinstance(node.child_initializer, expression.BodyPartCallExprNode):
             self._assert_level(Level.TINY, node.ctx)
-            visit_node(self, node.child_initializer)
-            self._replybuffer.assign_last_to_variable(node)
+            self._replybuffer.push_reply(node)
+            self.visit_BodyPartCallExprNode(node.child_initializer)
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at declaration statement could not be "

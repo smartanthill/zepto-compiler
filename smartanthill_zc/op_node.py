@@ -101,12 +101,19 @@ class BitField(object):
         self.values = {}
 
     def set(self, name, value):
+        '''
+        Sets a flag value by name
+        '''
+
         if name not in self.names:
             assert False
 
         self.values[name] = value
 
     def get(self, name):
+        '''
+        Gets a flag value by name
+        '''
         if name not in self.names:
             assert False
 
@@ -340,13 +347,13 @@ class PopRepliesOpNode(OpcodeNode):
     Node for ZEPTOVM_OP_POPREPLIES opcode
     '''
 
-    def __init__(self):
+    def __init__(self, replies_count):
         '''
         Constructor
         '''
         super(PopRepliesOpNode, self).__init__()
         self._opcode = Op.POPREPLIES
-        self._replies_count = 0
+        self._replies_count = replies_count
 
     def write(self, writer):
         '''
@@ -519,3 +526,25 @@ class JumpIfFieldOpNode(OpcodeNode):
         writer.write_field_sequence(self.field_sequence)
         writer.write_half_float(self.threshold)
         writer.write_delta(self.destination, self.delta, self.delta_lines)
+
+
+class MoveReplyOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_POPREPLIES opcode
+    '''
+
+    def __init__(self, reply_number):
+        '''
+        Constructor
+        '''
+        super(MoveReplyOpNode, self).__init__()
+        self._opcode = Op.MOVEREPLYTOFRONT
+        self._reply_number = reply_number
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        writer.write_opcode(self._opcode)
+        writer.write_int_2(self._reply_number)

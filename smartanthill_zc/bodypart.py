@@ -132,8 +132,8 @@ class FieldTypeFactoryNode(Node):
             op = compiler.init_node(
                 FieldToLiteralComparisonOpDeclNode(current, '_zc_bool'), et)
             op.set_parameter_list(
-                builtin.create_parameter_list(compiler, et,
-                                              [field_name, '_zc_number_literal']))
+                builtin.create_parameter_list(
+                    compiler, et, [field_name, '_zc_number_literal']))
             self.child_operator_list.add_declaration(op)
 
         return field
@@ -513,40 +513,42 @@ class FieldToLiteralComparisonOpDeclNode(builtin.OperatorDeclNode):
         return result
 
 
+_negate_comparison_map = {'==': '!=',
+                          '!=': '==',
+                          '<': '>=',
+                          '>': '<=',
+                          '<=': '>',
+                          '>=': '<'}
+
+
 def negate_comparison(txt_op, negate):
+    '''
+    If negate is False, returns the same txt_op,
+    If negate is True, return the negated comparison operator
+    '''
+
     if negate:
-        if txt_op == '==':
-            return '!='
-        elif txt_op == '!=':
-            return '=='
-        elif txt_op == '<':
-            return '>='
-        elif txt_op == '>':
-            return '<='
-        elif txt_op == '<=':
-            return '>'
-        elif txt_op == '>=':
-            return '<'
-        else:
-            assert False
+        return _negate_comparison_map[txt_op]
     else:
         return txt_op
 
 
+_swap_comparison_map = {'==': '==',
+                        '!=': '!=',
+                        '<': '>',
+                        '>': '<',
+                        '<=': '>=',
+                        '>=': '<='}
+
+
 def swap_comparison(txt_op, swap):
+    '''
+    If swap is False, returns the same txt_op,
+    If swap is True, return the comparison operator needed to swap lhs y rhs
+    '''
+
     if swap:
-        if txt_op == '==' or txt_op == '!=':
-            return txt_op
-        elif txt_op == '<':
-            return '>'
-        elif txt_op == '>':
-            return '<'
-        elif txt_op == '<=':
-            return '>='
-        elif txt_op == '>=':
-            return '<='
-        else:
-            assert False
+        return _swap_comparison_map[txt_op]
     else:
         return txt_op
 

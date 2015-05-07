@@ -33,6 +33,7 @@ class StatementListStmtNode(StatementNode):
         super(StatementListStmtNode, self).__init__()
         self.childs_statements = []
         self._scope = StatementListScope(self)
+        self.has_flow_stmt = False
 
     def add_statement(self, child):
         '''
@@ -47,6 +48,10 @@ class StatementListStmtNode(StatementNode):
     def resolve(self, compiler):
         for stmt in self.childs_statements:
             compiler.resolve_node(stmt)
+            if self.has_flow_stmt:
+                compiler.report_error(stmt.ctx, "Unreachable statement")
+            if stmt.is_flow_stmt:
+                self.has_flow_stmt = True
 
     def get_stmt_scope(self):
         ''''
@@ -125,6 +130,7 @@ class ReturnStmtNode(StatementNode):
         '''
         super(ReturnStmtNode, self).__init__()
         self.child_expression = None
+        self.is_flow_stmt = True
 
     def set_expression(self, child):
         '''

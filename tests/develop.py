@@ -40,8 +40,9 @@ def main():
             #            u'  temp = TemperatureSensor.Execute();',
             u'}',
             u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
-            u'  if(temp.Temperature > 38.0)',
-            u'    return temp;',
+            u'  var temp2 = TemperatureSensor.Execute();',
+            u'  if(temp2.Temperature > 38.0)',
+            u'    return temp2;',
             u'  mcu_sleep(5*60);',
             u'}',
             u'return TemperatureSensor.Execute();']

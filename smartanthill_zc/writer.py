@@ -150,6 +150,7 @@ class _TextWriter(object):
         '''
         Adds a half-float field
         '''
+        del delta
         self._current += '|(+%d):%s' % (delta_lines, destination)
 
     def write_bitfield(self, bits):
@@ -204,6 +205,7 @@ class SizeWriter(object):
         '''
         Begins a new operation, all opcode are 1 byte
         '''
+        # pylint: disable=unused-argument
         self.index += 1
 
     def _write_bytes(self, data):
@@ -212,39 +214,37 @@ class SizeWriter(object):
         '''
         self.index += len(data)
 
-    def _write_long(self, value):
-        '''
-        Adds a binary field to current operation
-        '''
-#        self._current += '|%d' % value
-
     def write_int_2(self, value):
         '''
         Adds an Encoded-Signed-Int<max=2> field
         '''
+        # pylint: disable=unused-argument
         self.index += 2  # TODO
 
     def write_uint_2(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=2> field
         '''
+        # pylint: disable=unused-argument
         self.index += 2  # TODO
 
     def write_uint_4(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=4> field
         '''
+        # pylint: disable=unused-argument
         self.index += 4  # TODO
 
     def write_half_float(self, value):
         '''
         Adds a half-float field, 2 bytes
         '''
+        # pylint: disable=unused-argument
         self.index += 2
 
     def write_field_sequence(self, fs):
         '''
-        Adds a field sequence, 1 byte by element plus one 
+        Adds a field sequence, 1 byte by element plus one
         '''
         self.index += field_sequence_byte_size(fs)
 
@@ -252,12 +252,14 @@ class SizeWriter(object):
         '''
         Adds a jump delta (signed-int<max=2>)
         '''
+        # pylint: disable=unused-argument
         self.write_int_2(delta)
 
     def write_bitfield(self, bits):
         '''
         Adds a bitfield from a list of booleans. MSB completed with 0
         '''
+        # pylint: disable=unused-argument
         self.index += 1
 
     def write_opaque_data_2(self, data):
@@ -276,4 +278,6 @@ class SizeWriter(object):
         '''
         Add a free text, only for easier testing
         '''
-        # do nothing here
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+        pass
