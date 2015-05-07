@@ -197,3 +197,69 @@ def encode_bitfield(bits):
         i *= 2
 
     return result
+
+
+class _EncodingImpl(object):
+
+    '''
+    Helper class to hold encodings extra data
+    '''
+
+    def __init__(self, name, code, min_value, max_value):
+        '''
+        Constructor
+        '''
+        self.name = name
+        self.code = code
+        self.min_value = min_value
+        self.max_value = max_value
+
+    def __repr__(self):
+        '''
+        String representation
+        '''
+        return self.name
+
+
+class Encoding(object):
+
+    '''
+    Enum like, for FIELD-SEQUENCE
+    '''
+    END_OF_SEQUENCE = _EncodingImpl('<eos>', 0, 0, 0)
+    SIGNED_INT = _EncodingImpl('INT', 1, -32768L, 32767L)
+    UNSIGNED_INT = _EncodingImpl('UINT', 2, 0L, 65535)
+
+
+def field_sequence_to_str(field_sequence):
+    '''
+    makes text representation of a FIELD-SEQUENCE
+    '''
+    result = []
+    for current in field_sequence:
+        result.append(current.name)
+
+    return ','.join(result)
+
+
+def field_sequence_byte_size(field_sequence):
+    '''
+    Calculates the byte size of encoding a FIELD-SEQUENCE
+    '''
+    return len(field_sequence) + 1
+
+
+def get_encoding_min_max(encoding, max_bytes):
+    '''
+    Returns a tuple with minimum and maximum values for a given encoding
+    with number of bytes
+    '''
+
+    if encoding == Encoding.SIGNED_INT:
+        if max_bytes == 2:
+            return (-32768, 32767)
+    elif encoding == Encoding.UNSIGNED_INT:
+        if max_bytes == 2:
+            return (0L, 65535)
+
+    assert False

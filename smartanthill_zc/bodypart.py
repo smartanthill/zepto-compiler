@@ -13,53 +13,10 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
 from smartanthill_zc import builtin, expression
+from smartanthill_zc.encode import Encoding, get_encoding_min_max
 from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
                                   ResolutionHelper, TypeDeclNode)
-
-
-class _EncodingImpl(object):
-
-    '''
-    Helper class to hold encodings extra data
-    '''
-
-    def __init__(self, name, code, min_value, max_value):
-        '''
-        Constructor
-        '''
-        self.name = name
-        self.code = code
-        self.min_value = min_value
-        self.max_value = max_value
-
-    def __repr__(self):
-        '''
-        String representation
-        '''
-        return self.name
-
-
-class Encoding(object):
-
-    '''
-    Enum like, for FIELD-SEQUENCE
-    '''
-    END_OF_SEQUENCE = _EncodingImpl('<eos>', 0, 0, 0)
-    SIGNED_INT_2 = _EncodingImpl('SIGNED_INT', 1, -32768L, 32767L)
-    UNSIGNED_INT_2 = _EncodingImpl('UNSIGNED_INT', 2, 0L, 65535)
-
-
-def field_sequence_to_str(field_sequence):
-    '''
-    makes text representation of a FIELD-SEQUENCE
-    '''
-    result = []
-    for current in field_sequence:
-        result.append(current.name)
-
-    return ','.join(result)
 
 
 class FieldTypeFactoryNode(Node):
@@ -124,15 +81,20 @@ class FieldTypeFactoryNode(Node):
         field = compiler.init_node(FieldTypeDeclNode(field_name), et)
 
         encoding = None
-        if t == 'encoded-signed-int<max=2>':
-            encoding = Encoding.SIGNED_INT_2
-        elif t == 'encoded-unsigned-int<max=2>S':
-            encoding = Encoding.UNSIGNED_INT_2
+        max_bytes = 0
+        if (t == 'encoded-signed-int[max=2]' or
+                t == 'encoded-signed-int<max=2>'):
+            encoding = Encoding.SIGNED_INT
+            max_bytes = 2
+        elif (t == 'encoded-unsigned-int[max=2]' or
+              t == 'encoded-unsigned-int<max=2>'):
+            encoding = Encoding.UNSIGNED_INT
+            max_bytes = 2
         else:
             compiler.report_error(et, "Unknown type '%s'" % t)
             compiler.raise_error()
 
-        min_value = encoding.min_value
+        min_value, max_value = get_encoding_min_max(encoding, max_bytes)
         try:
             if 'min' in att:
                 min_value = long(att['min'])
@@ -145,7 +107,6 @@ class FieldTypeFactoryNode(Node):
         except:
             compiler.report_error(et, "Bad min '%s'" % att['min'])
 
-        max_value = encoding.max_value
         try:
             if 'max' in att:
                 max_value = long(att['max'])
@@ -161,6 +122,10 @@ class FieldTypeFactoryNode(Node):
         field.min_value = min_value
         field.max_value = max_value
 
+        meaning = LinearScalingFloat()
+        meaning.set_points("100", "10", "200", "20")
+        field.meaning = meaning
+
         self.child_type_list.add_declaration(field)
 
         for current in ['<', '>', '<=', '>=']:
@@ -168,11 +133,41 @@ class FieldTypeFactoryNode(Node):
                 FieldToLiteralComparisonOpDeclNode(current, '_zc_bool'), et)
             op.set_parameter_list(
                 builtin.create_parameter_list(compiler, et,
-                                              [field_name,
-                                               '_zc_number_literal']))
+                                              [field_name, '_zc_number_literal']))
             self.child_operator_list.add_declaration(op)
 
         return field
+
+
+class LinearScalingFloat(object):
+
+    '''
+    Linear scale helper
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self._a = 0
+        self._b = 0
+
+    def set_points(self, in0, out0, in1, out1):
+        '''
+        Initialize the scale by two points
+        '''
+        in0 = int(in0)
+        in1 = int(in1)
+        out0 = float(out0)
+        out1 = float(out1)
+        self._a = (out1 - out0) / (in1 - in0)
+        self._b = out0 - self._a * in0
+
+    def inverse(self, value):
+        '''
+        Returns inverse scaling of value
+        '''
+        return (value - self._b) / self._a
 
 
 class FieldTypeDeclNode(TypeDeclNode):
@@ -231,7 +226,28 @@ class FieldTypeDeclNode(TypeDeclNode):
         value returned by a body-part
         '''
         assert value
-        return value
+        if self.meaning:
+            return self.meaning.inverse(value)
+        else:
+            return value
+
+    def next_up(self, value):
+        '''
+        TODO add the function that increments by epsilon of this type
+        '''
+        if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
+            return value + 1
+        else:
+            assert False
+
+    def next_down(self, value):
+        '''
+        TODO add the function that decrements by epsilon of this type
+        '''
+        if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
+            return value - 1
+        else:
+            assert False
 
 
 class MemberDeclNode(Node, ResolutionHelper):
@@ -314,14 +330,9 @@ class MessageTypeDeclNode(TypeDeclNode):
         fs = []
         for current in self.childs_elements:
             fs.append(current.ref_field_type.encoding)
+            current.field_sequence = tuple(fs)
 
-            fs_current = list(fs)
-            fs_current.append(Encoding.END_OF_SEQUENCE)
-
-            current.field_sequence = fs_current
-
-        fs.append(Encoding.END_OF_SEQUENCE)
-        self.field_sequence = fs
+        self.field_sequence = tuple(fs)
 
 
 class BodyPartDeclNode(Node, ResolutionHelper):
@@ -468,6 +479,7 @@ class FieldToLiteralComparisonOpDeclNode(builtin.OperatorDeclNode):
         '''
         super(FieldToLiteralComparisonOpDeclNode, self).__init__(
             operator, type_name)
+        self.swap_flag = False
 
     def static_evaluate(self, compiler, expr, arg_list):
         '''
@@ -480,27 +492,75 @@ class FieldToLiteralComparisonOpDeclNode(builtin.OperatorDeclNode):
 
         member = arg_list.childs_arguments[0]
         assert isinstance(member.get_type(), FieldTypeDeclNode)
+        assert isinstance(member, expression.MemberAccessExprNode)
+        assert isinstance(member.child_expression, expression.VariableExprNode)
 
         orig_value = arg_list.childs_arguments[1].get_static_value()
-        value = member.get_type().inverse_meaning(orig_value)
-
-        assert isinstance(member, expression.MemberAccessExprNode)
-        reply_expr = member.child_expression
-        field_sequence = member.get_member_field_sequence()
+        assert orig_value
 
         result = compiler.init_node(
             FieldToLiteralComparisonOpExprNode(), expr.ctx)
 
         result.set_replaced(expr)
+        result.txt_op = swap_comparison(expr.txt_operator, self.swap_flag)
         result.ref_declaration = self
-        result.ref_reply_expr = reply_expr
+        result.ref_member_expr = member
 
-        result.field_sequence = field_sequence
-        result.value = value
+        result.literal_value = orig_value
 
         result.set_type(self.get_type())
 
         return result
+
+
+def negate_comparison(txt_op, negate):
+    if negate:
+        if txt_op == '==':
+            return '!='
+        elif txt_op == '!=':
+            return '=='
+        elif txt_op == '<':
+            return '>='
+        elif txt_op == '>':
+            return '<='
+        elif txt_op == '<=':
+            return '>'
+        elif txt_op == '>=':
+            return '<'
+        else:
+            assert False
+    else:
+        return txt_op
+
+
+def swap_comparison(txt_op, swap):
+    if swap:
+        if txt_op == '==' or txt_op == '!=':
+            return txt_op
+        elif txt_op == '<':
+            return '>'
+        elif txt_op == '>':
+            return '<'
+        elif txt_op == '<=':
+            return '>='
+        elif txt_op == '>=':
+            return '<='
+        else:
+            assert False
+    else:
+        return txt_op
+
+
+def simplify_comparison(txt_op, value, value_type):
+
+    if txt_op in ['==', '!=', '<', '>']:
+        return (txt_op, value)
+    elif txt_op == '<=':
+        return ('<', value_type.next_up(value))
+    elif txt_op == '>=':
+        return ('>', value_type.next_down(value))
+    else:
+        assert False
 
 
 class FieldToLiteralComparisonOpExprNode(ExpressionNode):
@@ -519,11 +579,10 @@ class FieldToLiteralComparisonOpExprNode(ExpressionNode):
         '''
         super(FieldToLiteralComparisonOpExprNode, self).__init__()
         self.child_replaced = None
+        self.txt_op = None
         self.ref_declaration = None
-        self.ref_reply_expr = None
-#        self.operator = None
-        self.field_sequence = None
-        self.value = None
+        self.ref_member_expr = None
+        self.literal_value = None
 
     def set_replaced(self, child):
         '''
@@ -532,3 +591,23 @@ class FieldToLiteralComparisonOpExprNode(ExpressionNode):
         assert isinstance(child, ExpressionNode)
         child.set_parent(self)
         self.child_replaced = child
+
+    def get_variable_decl(self):
+        return self.ref_member_expr.child_expression.ref_decl
+
+    def get_field_sequence(self):
+        return self.ref_member_expr.get_member_field_sequence()
+
+    def get_subcode_and_threshold(self, negate):
+        '''
+        Converts the literal value to the reply field type,
+        Using reverse linear scaling
+        And simplify >= and <= to < and > by modifying literal value by epsilon
+        Also apply an optional negation flag, as helper for code generator
+        '''
+        target_type = self.ref_member_expr.get_type()
+        threshold = target_type.inverse_meaning(self.literal_value)
+
+        txt_op = negate_comparison(self.txt_op, negate)
+
+        return simplify_comparison(txt_op, threshold, target_type)

@@ -15,13 +15,13 @@
 
 import sys
 
+from smartanthill_zc import builtin
 from smartanthill_zc import compiler, parse_xml
 from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
-from smartanthill_zc import builtin
-from smartanthill_zc.vm import convert_to_zepto_vm_one
-from smartanthill_zc.writer import write_text_op_codes
 from smartanthill_zc.compiler import Compiler
+from smartanthill_zc.vm import convert_to_zepto_vm_one, convert_to_zepto_vm_tiny
+from smartanthill_zc.writer import write_text_op_codes
 
 
 def main():
@@ -35,8 +35,16 @@ def main():
     #             u'}'
     #             u'return TemperatureSensor.Execute();']
     code = [u'var temp = TemperatureSensor.Execute();',
-            u'if(temp.Temperature > 24) ;',
-            u'return temp;']
+            u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
+            u'  mcu_sleep(5*60);',
+            #            u'  temp = TemperatureSensor.Execute();',
+            u'}',
+            u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
+            u'  if(temp.Temperature > 38.0)',
+            u'    return temp;',
+            u'  mcu_sleep(5*60);',
+            u'}',
+            u'return TemperatureSensor.Execute();']
 
     xml = [
         u'<smartanthill.plugin name="TemperatureSensor" id="1" version="1.0">',
@@ -79,7 +87,7 @@ def main():
 
     print '\n'.join(actual)
 
-    target = convert_to_zepto_vm_one(comp, root)
+    target = convert_to_zepto_vm_tiny(comp, root)
     txt = write_text_op_codes(comp, target)
     print '\n'.join(txt)
 

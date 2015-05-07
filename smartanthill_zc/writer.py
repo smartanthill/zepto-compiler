@@ -13,10 +13,10 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
 import binascii
 
-from smartanthill_zc.encode import ZeptoEncoder
+from smartanthill_zc.encode import ZeptoEncoder, field_sequence_to_str,\
+    field_sequence_byte_size
 
 
 def write_text_op_codes(compiler, node):
@@ -134,6 +134,24 @@ class _TextWriter(object):
         lvalue = check_uint_range(4, value)
         self.write_long(lvalue)
 
+    def write_half_float(self, value):
+        '''
+        Adds a half-float field
+        '''
+        self._current += '|%g' % value
+
+    def write_field_sequence(self, fs):
+        '''
+        Adds a half-float field
+        '''
+        self._current += '|{%s}' % field_sequence_to_str(fs)
+
+    def write_delta(self, destination, delta, delta_lines):
+        '''
+        Adds a half-float field
+        '''
+        self._current += '|(+%d):%s' % (delta_lines, destination)
+
     def write_bitfield(self, bits):
         '''
         Adds a bitfield from a list of booleans. MSB completed with 0
@@ -166,3 +184,96 @@ class _TextWriter(object):
         '''
         self._finish_current()
         self._result.append('/* %s */' % text)
+
+
+class SizeWriter(object):
+
+    '''
+    Writer implementation for calculation of operations byte size
+    Needed to calculate jumps delta
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self._encoder = ZeptoEncoder()
+        self.index = 0
+
+    def write_opcode(self, opcode):
+        '''
+        Begins a new operation, all opcode are 1 byte
+        '''
+        self.index += 1
+
+    def _write_bytes(self, data):
+        '''
+        Adds a binary field to current operation
+        '''
+        self.index += len(data)
+
+    def _write_long(self, value):
+        '''
+        Adds a binary field to current operation
+        '''
+#        self._current += '|%d' % value
+
+    def write_int_2(self, value):
+        '''
+        Adds an Encoded-Signed-Int<max=2> field
+        '''
+        self.index += 2  # TODO
+
+    def write_uint_2(self, value):
+        '''
+        Adds an Encoded-Unsigned-Int<max=2> field
+        '''
+        self.index += 2  # TODO
+
+    def write_uint_4(self, value):
+        '''
+        Adds an Encoded-Unsigned-Int<max=4> field
+        '''
+        self.index += 4  # TODO
+
+    def write_half_float(self, value):
+        '''
+        Adds a half-float field, 2 bytes
+        '''
+        self.index += 2
+
+    def write_field_sequence(self, fs):
+        '''
+        Adds a field sequence, 1 byte by element plus one 
+        '''
+        self.index += field_sequence_byte_size(fs)
+
+    def write_delta(self, destination, delta, delta_lines):
+        '''
+        Adds a jump delta (signed-int<max=2>)
+        '''
+        self.write_int_2(delta)
+
+    def write_bitfield(self, bits):
+        '''
+        Adds a bitfield from a list of booleans. MSB completed with 0
+        '''
+        self.index += 1
+
+    def write_opaque_data_2(self, data):
+        '''
+        Adds an opaque data binary field to current operation
+        First adds a field with the data size, and data itself after it
+        '''
+        if not data:
+            self.write_uint_2(0)
+            self._write_bytes([])
+        else:
+            self.write_uint_2(len(data))
+            self._write_bytes(data)
+
+    def write_text(self, text):
+        '''
+        Add a free text, only for easier testing
+        '''
+        # do nothing here
