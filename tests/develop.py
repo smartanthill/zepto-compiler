@@ -37,7 +37,7 @@ def main():
     code = [u'var temp = TemperatureSensor.Execute();',
             u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
             u'  mcu_sleep(5*60);',
-            #            u'  temp = TemperatureSensor.Execute();',
+            u'  temp = TemperatureSensor.Execute();',
             u'}',
             u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
             u'  var temp2 = TemperatureSensor.Execute();',

@@ -73,90 +73,98 @@ class Level(object):
 
 class ReplyBuffer(object):
 
-    def __init__(self):
+    '''
+    Maintains a record of replies in buffer.
+    and creates ZEPTOVM_OP_POPREPLIES and ZEPTOVM_OP_MOVEREPLYTOFRONT
+    as needed to rearrange and maintain the buffer.
+    Also provides lookup for a reply inside the buffer
+    '''
 
+    def __init__(self):
+        '''
+        Constructor
+        '''
         self._buffer = []
         self._stack = []
+        self._will_exit = False
 
     def push_reply(self, var):
-
+        '''
+        Adds a new reply to the buffer
+        '''
         self._buffer.append(var)
 
     def find_variable(self, var):
+        '''
+        Looks-up for a reply in the buffer
+        '''
+        return self._buffer.index(var)
 
-        for i in range(len(self._buffer)):
-            if self._buffer[i] == var:
-                return i
-
-        assert False
-
-    def _move_to_front(self, compiler, ctx, i):
+    def _move_to_front(self, factory, i):
         '''
         Helper to move one element to the front
         '''
-        elem = self._buffer.pop(i)
-        self._buffer.insert(0, elem)
-        move = compiler.init_node(MoveReplyOpNode(i), ctx)
-        return move
+        if i != 0:
+            elem = self._buffer.pop(i)
+            self._buffer.insert(0, elem)
+            factory.add_move_reply_to_front(i)
 
-    def _remove_back(self, compiler, ctx, target_size):
+    def _pop_back(self, factory, target_size):
         '''
         Helper to remove elements from the back
         '''
-        assert len(self._buffer) > target_size
-        count = len(self._buffer) - target_size
-        self._buffer = self._buffer[0:target_size]
-        pop = compiler.init_node(PopRepliesOpNode(count), ctx)
-        return pop
+        assert len(self._buffer) >= target_size
+        if len(self._buffer) != target_size:
+            if target_size == 0:
+                # pop everything
+                self._buffer = []
+                factory.add_pop_replies(0)
+            else:
+                count = len(self._buffer) - target_size
+                self._buffer = self._buffer[0:target_size]
+                factory.add_pop_replies(count)
 
-    def reassing_reply(self, compiler, ctx, var):
-
-        ops = []
-        if self._buffer[-1] != var:
-            # move to the top
-            pos = self.find_variable(var)
-
-            for i in reversed(range(pos, len(self._buffer))):  # reversed?
-                m = self._move_to_front(compiler, ctx, i)
-                ops.append(m)
-
-        assert self._buffer[-1] == var
-        remove = compiler.init_node(PopRepliesOpNode(1), ctx)
-        ops.append(remove)
-
-        return ops
-
-    def clear(self, compiler, ctx):
+    def remove_reply(self, factory, var):
         '''
-        Removes every reply in the reply buffer
-        '''
-        if len(self._buffer) != 0:
-            self._buffer = []
-            pop = compiler.init_node(PopRepliesOpNode(0), ctx)
-            return pop
-        else:
-            return None
-
-    def leave_only_reply(self, compiler, ctx, var):
-        '''
-        Removes every reply in the reply buffer, with exception of var
+        Removes a reply from the buffer
+        First moves all replies after it to the front,
+        and then the required reply is poped from the stack
         '''
         assert len(self._buffer) != 0
 
-        if len(self._buffer) != 1:
-            # move to the top
-            ops = []
+        if self._buffer[-1] != var:
+            # move to the back
             pos = self.find_variable(var)
 
-            if pos != 0:
-                m = self._move_to_front(compiler, ctx, pos)
-                ops.append(m)
+            for i in reversed(range(pos + 1, len(self._buffer))):  # reversed?
+                self._move_to_front(factory, i)
 
-            pop = self._remove_back(compiler, ctx, 1)
-            ops.append(pop)
-            return ops
-        else:
-            return []
+        # pop it from the back
+        assert self._buffer[-1] == var
+        self._pop_back(factory, len(self._buffer) - 1)
+
+    def clear_for_exit(self, factory):
+        '''
+        Removes every reply in the reply buffer
+        '''
+        self._will_exit = True
+
+        return self._pop_back(factory, 0)
+
+    def reply_for_exit(self, factory, var):
+        '''
+        Removes every reply in the reply buffer, with exception of one
+        Used before ZEPTOVM_OP_EXIT to leave only the reply to be sent back
+        '''
+        assert len(self._buffer) != 0
+
+        self._will_exit = True
+        # move to the front
+        pos = self.find_variable(var)
+        self._move_to_front(factory, pos)
+
+        # remove everything else
+        self._pop_back(factory, 1)
 
     def conditional_code_begin(self):
         '''
@@ -168,53 +176,57 @@ class ReplyBuffer(object):
         '''
         self._stack.append(list(self._buffer))
 
-    def conditional_code_pop(self):
+    def conditional_code_end(self, factory, was_exit):
         '''
-        Marks the end of a conditional block of code without fall.
-        This means code was not able to fall down here,
-        so we not need to care about stack
-        '''
-        self._buffer = self._stack.pop()
-
-    def conditional_code_end(self, compiler, ctx):
-        '''
-        Marks the end of a conditional block of code.
+        Marks the end of a conditional block of code that may fall
         We must make the stack state match.
         '''
-        last = self._stack.pop()
+        if was_exit:
+            # Just update
+            assert self._will_exit
+            self._will_exit = False
+            self._buffer = self._stack.pop()
 
-        assert len(last) <= len(self._buffer)
-        result = []
-
-        if last == self._buffer:
-            # nothing to do
-            pass
-        elif len(last) == 0:
-            # was empty, pop everything
-            pop = self.clear(compiler, ctx)
-            assert pop
-            result.append(pop)
-        elif last == self._buffer[0:len(last)]:
-            # only have to remove the back
-            pop = self._remove_back(compiler, ctx, len(last))
-            result.append(pop)
         else:
-            # sort, moving to the front
-            # TODO make smarter! so it does not always move everything
-            for current in reversed(last):
-                pos = self.find_variable(current)
+            # We need to restore the reply buffer before fall
+            assert not self._will_exit
 
-                if pos != 0:
-                    m = self._move_to_front(compiler, ctx, pos)
-                    result.append(m)
+            last = self._stack.pop()
+            # first try to find an already sorted slice
+            end = reply_buffer_sort_helper(last, self._buffer)
 
-            # remove the unneeded from the back
-            if len(self._buffer) != len(last):
-                pop = self._remove_back(compiler, ctx, len(last))
-                result.append(pop)
+            # then sort the rest
+            for i in reversed(range(end)):
+                pos = self.find_variable(last[i])
+                self._move_to_front(factory, pos)
 
-        assert last == self._buffer
-        return result
+            # last remove the back
+            self._pop_back(factory, len(last))
+
+            assert last == self._buffer
+
+
+def reply_buffer_sort_helper(target, current):
+    '''
+    Helper to find an slice of the reply buffer that is already sorted
+    returns the size of target that needs to be sorted
+    It is assumed that current is equal or bigger than target
+    '''
+    assert len(target) <= len(current)
+
+    if len(target) > 0:
+        last = target[-1]
+        s = current.index(last) + 1
+        if len(target) >= s:
+            # try to find an slice that is already sorted
+            cu_sl = current[:s]
+            ta_sl = target[-s:]
+            assert len(cu_sl) == s
+            assert len(ta_sl) == s
+            if cu_sl == ta_sl:
+                return len(target) - s
+
+    return len(target)
 
 
 class _ZeptoVmOneVisitor(NodeVisitor):
@@ -293,6 +305,24 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._compiler.report_error(node.ctx, "Statement not supported by "
                                     + self._vm.fullname)
 
+    def add_move_reply_to_front(self, i):
+        '''
+        Factory method to add a ZEPTOVM_OP_MOVEREPLYTOFRONT
+        '''
+        assert i != 0
+        move = self._compiler.init_node(MoveReplyOpNode(i), None)
+        self._add_op(move)
+
+    def add_pop_replies(self, i):
+        '''
+        Factory method to add a ZEPTOVM_OP_POPREPLIES
+        '''
+        if i != 0:
+            assert self._vm != Level.ONE
+
+        pop = self._compiler.init_node(PopRepliesOpNode(i), None)
+        self._add_op(pop)
+
     def visit_ProgramNode(self, node):
 
         fs = node.get_return_scope().get_return_type().field_sequence
@@ -310,18 +340,15 @@ class _ZeptoVmOneVisitor(NodeVisitor):
     def visit_ReturnStmtNode(self, node):
         if isinstance(node.child_expression, expression.BodyPartCallExprNode):
 
-            pop = self._replybuffer.clear(self._compiler, node.ctx)
-            if pop:
-                self._add_op(pop)
-
+            self._replybuffer.clear_for_exit(self)
             self.visit_BodyPartCallExprNode(node.child_expression)
+
         elif isinstance(node.child_expression, expression.VariableExprNode):
+
             self._assert_level(Level.TINY, node.ctx)
 
-            ops = self._replybuffer.leave_only_reply(
-                self._compiler, node.ctx, node.child_expression.ref_decl)
-            for each in ops:
-                self._add_op(each)
+            self._replybuffer.reply_for_exit(
+                self, node.child_expression.ref_decl)
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at 'return' statement could not be "
@@ -357,14 +384,8 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._replybuffer.conditional_code_begin()
         visit_node(self, node.child_if_branch)
 
-        # TODO when EXIT, buffer is messed
-        if node.child_if_branch.has_flow_stmt:
-            self._replybuffer.conditional_code_pop()
-        else:
-            ops = self._replybuffer.conditional_code_end(
-                self._compiler, node.child_if_branch.ctx)
-            for current in ops:
-                self._add_op(current)
+        self._replybuffer.conditional_code_end(
+            self, node.child_if_branch.has_flow_stmt)
         self._op_list = temp
 
         # we will not support side effects on condition, so just return
@@ -394,6 +415,24 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at declaration statement could not be "
+                "resolved for " + self._vm.fullname)
+
+    def visit_ExpressionStmtNode(self, node):
+
+        if isinstance(node.child_expression, expression.AssignmentExprNode) \
+                and isinstance(node.child_expression.child_rhs,
+                               expression.BodyPartCallExprNode):
+
+            self._assert_level(Level.TINY, node.ctx)
+            self._replybuffer.remove_reply(
+                self, node.child_expression.ref_decl)
+
+            self._replybuffer.push_reply(node.child_expression.ref_decl)
+            self.visit_BodyPartCallExprNode(node.child_expression.child_rhs)
+
+        else:
+            self._compiler.report_error(
+                node.ctx, "Expression at statement could not be "
                 "resolved for " + self._vm.fullname)
 
 
