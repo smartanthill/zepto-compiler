@@ -25,7 +25,12 @@ def common_test_run(code):
         u'  <command/>',
         u'  <reply>',
         u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;"',
-        u'     min="0" max="255" />',
+        u'     min="0" max="500">',
+        u'      <meaning type="float">',
+        u'        <linear-conversion input-point0="100" output-point0="10.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
+        u'      </meaning>',
+        u'    </field>',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
         u'</smartanthill.plugin>'

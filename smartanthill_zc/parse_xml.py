@@ -14,9 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-import xml.etree.ElementTree as ET
-
 from smartanthill_zc import bodypart, builtin
+import xml.etree.ElementTree as ET
 
 
 def parse_xml_body_parts(compiler, data):
@@ -171,12 +170,45 @@ def _make_field(compiler, manager, et):
     att = _get_attributes(compiler, et,
                           ['name', 'type'], ['min', 'max'])
 
-    field = manager.child_field_type_factory.create_field_type(
-        compiler, et, att)
+    factory = manager.child_field_type_factory
+    field = factory.create_field_type(compiler, et, att)
 
     member = compiler.init_node(bodypart.MemberDeclNode(att['name']), et)
     member.ref_field_type = field
 
-    # TODO handle <meaning>
+    tags = _get_tags(compiler, et, [], ['meaning'])
+    if 'meaning' in tags:
+        m = tags['meaning']
+        meaning_att = _get_attributes(compiler, m, ['type'], [])
+        if meaning_att['type'] != 'float':
+            compiler.report_error(
+                m, "Unsuported meaning type '%s'" % meaning_att['type'])
+            compiler.raise_error()
+
+        meaning_conv = _get_tags(
+            compiler, m, [], ['linear-conversion'])
+
+        if 'linear-conversion' in meaning_conv:
+            conv = _get_attributes(compiler, meaning_conv['linear-conversion'],
+                                   ['input-point0', 'output-point0',
+                                    'input-point1', 'output-point1'], [])
+
+            in0 = conv['input-point0']
+            out0 = conv['output-point0']
+
+            in1 = conv['input-point1']
+            out1 = conv['output-point1']
+
+            meaning = factory.create_linear_conversion_float(
+                in0, out0, in1, out1)
+            field.meaning = meaning
+        else:
+            # create convertion 1 to 1
+            meaning = factory.create_linear_conversion_float(
+                '0', '0.', '1', '1.')
+            field.meaning = meaning
+
+
+# TODO handle <meaning>
 
     return member

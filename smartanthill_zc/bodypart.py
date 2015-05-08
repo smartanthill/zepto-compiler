@@ -72,8 +72,7 @@ class FieldTypeFactoryNode(Node):
 
     def create_field_type(self, compiler, et, att):
         '''
-        Created a new FieldTypeDeclNode from data in att dictionary or
-        returns a previously created one if all data matches
+        Created a new FieldTypeDeclNode from data in att dictionary
         '''
         t = ''.join(att['type'].split())  # to remove whites
 
@@ -122,10 +121,6 @@ class FieldTypeFactoryNode(Node):
         field.min_value = min_value
         field.max_value = max_value
 
-        meaning = LinearScalingFloat()
-        meaning.set_points("100", "10", "200", "20")
-        field.meaning = meaning
-
         self.child_type_list.add_declaration(field)
 
         for current in ['<', '>', '<=', '>=']:
@@ -138,8 +133,17 @@ class FieldTypeFactoryNode(Node):
 
         return field
 
+    def create_linear_conversion_float(self, in0, out0, in1, out1):
+        '''
+        Created a new LinearConvertionFloat
+        '''
 
-class LinearScalingFloat(object):
+        meaning = LinearConvertionFloat()
+        meaning.set_points(in0, out0, in1, out1)
+        return meaning
+
+
+class LinearConvertionFloat(object):
 
     '''
     Linear scale helper
@@ -221,10 +225,11 @@ class FieldTypeDeclNode(TypeDeclNode):
 
     def inverse_meaning(self, value):
         '''
-        TODO add the inverse function of meaning here
+        Inverse function of meaning
         Used for mapping literal number for comparison with
         value returned by a body-part
         '''
+        # TODO check range
         assert value
         if self.meaning:
             return self.meaning.inverse(value)
@@ -233,8 +238,9 @@ class FieldTypeDeclNode(TypeDeclNode):
 
     def next_up(self, value):
         '''
-        TODO add the function that increments by epsilon of this type
+        Increments value by the minimum representable amount
         '''
+        # TODO check range
         if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
             return value + 1
         else:
@@ -242,8 +248,9 @@ class FieldTypeDeclNode(TypeDeclNode):
 
     def next_down(self, value):
         '''
-        TODO add the function that decrements by epsilon of this type
+        Decrements value by the minimum representable amount
         '''
+        # TODO check range
         if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
             return value - 1
         else:
