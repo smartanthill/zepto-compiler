@@ -1,11 +1,8 @@
 # Generated from java-escape by ANTLR 4.5
 # encoding: utf-8
 from __future__ import print_function
-
-from io import StringIO
-
 from antlr4 import *
-
+from io import StringIO
 package = globals().get("__package__", None)
 ischild = len(package)>0 if package is not None else False
 if ischild:
@@ -5161,3 +5158,7 @@ class ECMAScriptParser ( Parser ):
     def eos_sempred(self, localctx, predIndex):
             if predIndex == 10:
                 return self._input.LT(1).type == self.CloseBrace
+         
+
+
+

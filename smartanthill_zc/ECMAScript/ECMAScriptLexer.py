@@ -1,10 +1,8 @@
 # Generated from java-escape by ANTLR 4.5
 # encoding: utf-8
 from __future__ import print_function
-
-from io import StringIO
-
 from antlr4 import *
+from io import StringIO
 
 
 def serializedATN():
@@ -756,3 +754,6 @@ class ECMAScriptLexer(Lexer):
     def OctalIntegerLiteral_sempred(self, localctx, predIndex):
             if predIndex == 1:
                 return False
+         
+
+

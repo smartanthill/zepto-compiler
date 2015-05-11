@@ -139,7 +139,7 @@ emptyStatement
  ;
 
 /// ExpressionStatement :
-///     [lookahead ∉ {{, function}] Expression ;
+///     [lookahead ? {{, function}] Expression ;
 expressionStatement
  : {(self._input.LA(1) != self.OpenBrace) and (self._input.LA(1) != self.Function)}? expressionSequence SemiColon
  ;
