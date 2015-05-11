@@ -135,6 +135,7 @@ class StatementNode(Node):
 
     def __init__(self):
         super(StatementNode, self).__init__()
+        self.is_flow_stmt = False
 
 
 class ExpressionNode(Node):

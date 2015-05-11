@@ -24,8 +24,13 @@ def common_test_run(code):
         u'  <description>Short description here</description>',
         u'  <command/>',
         u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;"',
-        u'     min="0" max="255" />',
+        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'     min="0" max="500">',
+        u'      <meaning type="float">',
+        u'        <linear-conversion input-point0="100" output-point0="10.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
+        u'      </meaning>',
+        u'    </field>',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
         u'</smartanthill.plugin>'
@@ -49,33 +54,51 @@ def common_test_run(code):
     visitor.check_all_nodes_reachables(comp, root)
     compiler.process_syntax_tree(comp, root)
 
-    target = vm.convert_to_zepto_vm_one(comp, root)
+    target = vm.convert_to_zepto_vm_tiny(comp, root)
 
     return writer.write_text_op_codes(comp, target)
 
 
-def test_js_pattern_1():
+def test_js_tiny_2():
 
-    code = [u'return TemperatureSensor.Execute();']
-
-    out = ['/* target vm: One */',
-           '/* mcusleep: False */',
-           '/* reply: {INT} */',
-           '|EXEC|1|0|[]|',
-           '/* exit|islast */']
-
-    assert common_test_run(code) == out
-
-
-def test_js_pattern_2():
-
-    code = [u'mcu_sleep(5*60);',
+    code = [u'var temp = TemperatureSensor.Execute();',
+            u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
+            u'  mcu_sleep(5*60);',
+            u'  temp = TemperatureSensor.Execute();',
+            u'}',
+            u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
+            u'  var temp2 = TemperatureSensor.Execute();',
+            u'  if(temp2.Temperature > 38.0)',
+            u'    return temp2;',
+            u'  mcu_sleep(5*60);',
+            u'}',
             u'return TemperatureSensor.Execute();']
 
-    out = ['/* target vm: One */',
+    out = ['/* target vm: Tiny */',
            '/* mcusleep: True */',
            '/* reply: {INT} */',
+           '|EXEC|1|0|[]|',
+           '|JMPIFREPLYFIELD_LT|0|{INT}|351|(+9):begin:|',
+           '|JMPIFREPLYFIELD_LT|0|{INT}|420|(+14):end:|',
+           '/* begin: */',
            '|MCUSLEEP|300|0|',
+           '|POPREPLIES|0|',
+           '|EXEC|1|0|[]|',
+           '/* end: */',
+           '|JMPIFREPLYFIELD_LT|0|{INT}|361|(+40):end:|',
+           '|JMPIFREPLYFIELD_GT|0|{INT}|399|(+31):end:|',
+           '/* begin: */',
+           '|EXEC|1|0|[]|',
+           '|JMPIFREPLYFIELD_LT|1|{INT}|381|(+8):end:|',
+           '/* begin: */',
+           '|MOVEREPLYTOFRONT|1|',
+           '|POPREPLIES|1|',
+           '|EXIT|ISFIRST|',
+           '/* end: */',
+           '|MCUSLEEP|300|0|',
+           '|POPREPLIES|1|',
+           '/* end: */',
+           '|POPREPLIES|0|',
            '|EXEC|1|0|[]|',
            '|EXIT|ISFIRST|']
 
