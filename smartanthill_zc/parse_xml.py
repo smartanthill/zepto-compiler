@@ -193,14 +193,9 @@ def _make_field(compiler, manager, et):
                                    ['input-point0', 'output-point0',
                                     'input-point1', 'output-point1'], [])
 
-            in0 = conv['input-point0']
-            out0 = conv['output-point0']
-
-            in1 = conv['input-point1']
-            out1 = conv['output-point1']
-
             meaning = factory.create_linear_conversion_float(
-                in0, out0, in1, out1)
+                conv['input-point0'], conv['output-point0'],
+                conv['input-point1'], conv['output-point1'])
             field.meaning = meaning
         else:
             # create convertion 1 to 1

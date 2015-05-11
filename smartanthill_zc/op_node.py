@@ -445,29 +445,23 @@ class IfOpNode(OpcodeNode):
     def calculate_byte_size(self, calculator):
         '''
         Set the jumps offsets
-        TODO calculate jump size in bytes
         '''
 
         body = 0
-        body_lines = len(self.child_body.childs_operations)
         for current in self.child_body.childs_operations:
             body += current.get_byte_size()  # already calculated
 
         begin = 0
-        begin_lines = 0
         for current in reversed(self.child_condition.childs_operations):
             if current.destination == JumpDesptination.BEGIN:
                 current.delta = begin
-                current.delta_lines = begin_lines
             elif current.destination == JumpDesptination.END:
                 current.delta = begin + body
-                current.delta_lines = begin_lines + body_lines
             else:
                 assert False
 
             current.calculate_byte_size(calculator)
             begin += current.get_byte_size()
-            begin_lines += 1
 
         self._byte_size = begin + body
 
@@ -499,7 +493,6 @@ class JumpIfFieldOpNode(OpcodeNode):
         self.threshold = 0
         self.destination = None
         self.delta = 0
-        self.delta_lines = 0
 
     def set_subcode(self, subcode):
         '''
@@ -525,7 +518,7 @@ class JumpIfFieldOpNode(OpcodeNode):
         writer.write_int_2(self.reply)
         writer.write_field_sequence(self.field_sequence)
         writer.write_half_float(self.threshold)
-        writer.write_delta(self.destination, self.delta, self.delta_lines)
+        writer.write_delta(self.delta, self.destination)
 
 
 class MoveReplyOpNode(OpcodeNode):

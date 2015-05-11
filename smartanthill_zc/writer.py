@@ -146,12 +146,11 @@ class _TextWriter(object):
         '''
         self._current += '|{%s}' % field_sequence_to_str(fs)
 
-    def write_delta(self, destination, delta, delta_lines):
+    def write_delta(self, delta, destination):
         '''
         Adds a half-float field
         '''
-        del delta
-        self._current += '|(+%d):%s' % (delta_lines, destination)
+        self._current += '|(+%d):%s' % (delta, destination)
 
     def write_bitfield(self, bits):
         '''
@@ -248,11 +247,11 @@ class SizeWriter(object):
         '''
         self.index += field_sequence_byte_size(fs)
 
-    def write_delta(self, destination, delta, delta_lines):
+    def write_delta(self, delta, destination):
         '''
         Adds a jump delta (signed-int<max=2>)
         '''
-        # pylint: disable=unused-argument
+        del destination
         self.write_int_2(delta)
 
     def write_bitfield(self, bits):
