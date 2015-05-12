@@ -14,7 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+from antlr4.ParserRuleContext import ParserRuleContext
 import antlr4.error.ErrorListener
+from antlr4.tree.Tree import TerminalNodeImpl
 
 
 def get_token_text(compiler, token):
@@ -31,6 +33,27 @@ def get_token_text(compiler, token):
                               "'_zc_' are reserved" % txt)
 
     return txt
+
+
+def get_reference_text(ctx):
+    '''
+    Returns the text associated with a context
+    used only for comment references with source code
+    '''
+    return str(ctx.getText())
+
+
+def get_reference_lines(ctx):
+    '''
+    Returns the line where this node was found
+    used only for comment references with source code
+    '''
+    if isinstance(ctx, TerminalNodeImpl):  # ctx.symbol is CommonToken
+        return (ctx.symbol.line, ctx.symbol.line)
+    elif isinstance(ctx, ParserRuleContext):
+        return (ctx.start.line, ctx.stop.line)
+    else:
+        return (0, 0)
 
 
 class _ProxyAntlrErrorListener(antlr4.error.ErrorListener.ErrorListener):

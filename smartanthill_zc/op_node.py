@@ -154,10 +154,11 @@ class OpcodeNode(Node):
         Calculates the size in bytes for this node.
         Needed by jumps to calculate jump offsets
         '''
-
+        assert not self._byte_size
         begin = calculator.index
         self.write(calculator)
         self._byte_size = calculator.index - begin
+        return self._byte_size
 
 
 class OpListNode(Node):
@@ -190,6 +191,18 @@ class OpListNode(Node):
         for op in self.childs_operations:
             op.write(writer)
 
+    def calculate_byte_size(self, calculator):
+        '''
+        Calculates the size in bytes for this node.
+        Needed by jumps to calculate jump offsets
+        '''
+
+        byte_size = 0
+        for op in self.childs_operations:
+            byte_size += op.calculate_byte_size(calculator)
+
+        return byte_size
+
 
 class TargetProgramNode(Node):
 
@@ -206,6 +219,7 @@ class TargetProgramNode(Node):
         self.vm_level = None
         self.mcusleep_invoked = False
         self.reply_fs = None
+        self.byte_size = 0
 # entry=NOT_ISFIRST,exit=IS_FIRST
 
     def set_op_list(self, child):
@@ -223,7 +237,15 @@ class TargetProgramNode(Node):
         writer.write_text('target vm: %s' % self.vm_level.name)
         writer.write_text('mcusleep: %s' % self.mcusleep_invoked)
         writer.write_text('reply: {%s}' % field_sequence_to_str(self.reply_fs))
+        writer.write_text('size: %d bytes' % self.byte_size)
         self.child_op_list.write(writer)
+
+    def calculate_byte_size(self, calculator):
+        '''
+        Calculates the size in bytes for this node.
+        Needed by jumps to calculate jump offsets
+        '''
+        self.byte_size = self.child_op_list.calculate_byte_size(calculator)
 
 
 class ExecOpNode(OpcodeNode):
@@ -425,6 +447,9 @@ class IfOpNode(OpcodeNode):
         self._opcode = Op.INVALID
         self.child_condition = None
         self.child_body = None
+        self.txt_condition = None
+        self.txt_begin = None
+        self.txt_end = None
 
     def set_condition(self, child):
         '''
@@ -447,33 +472,34 @@ class IfOpNode(OpcodeNode):
         Set the jumps offsets
         '''
 
-        body = 0
-        for current in self.child_body.childs_operations:
-            body += current.get_byte_size()  # already calculated
+        body = self.child_body.calculate_byte_size(calculator)
 
         begin = 0
         for current in reversed(self.child_condition.childs_operations):
             if current.destination == JumpDesptination.BEGIN:
+                current.destination = self.txt_begin
                 current.delta = begin
             elif current.destination == JumpDesptination.END:
+                current.destination = self.txt_end
                 current.delta = begin + body
             else:
                 assert False
 
-            current.calculate_byte_size(calculator)
-            begin += current.get_byte_size()
+            begin += current.calculate_byte_size(calculator)
 
         self._byte_size = begin + body
+
+        return self._byte_size
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        # writer.write_text('if')
+        writer.write_text("( %s )" % self.txt_condition)
         self.child_condition.write(writer)
-        writer.write_text(JumpDesptination.BEGIN)
+        writer.write_text("%s:" % self.txt_begin)
         self.child_body.write(writer)
-        writer.write_text(JumpDesptination.END)
+        writer.write_text("%s:" % self.txt_end)
 
 
 class JumpIfFieldOpNode(OpcodeNode):

@@ -15,6 +15,7 @@
 
 
 from smartanthill_zc import expression
+from smartanthill_zc.antlr_helper import get_reference_text, get_reference_lines
 from smartanthill_zc.op_node import JumpDesptination, MoveReplyOpNode,\
     PopRepliesOpNode
 import smartanthill_zc.op_node as op
@@ -31,6 +32,7 @@ def convert_to_zepto_vm_one(compiler, root):
     visit_node(v, root.child_program)
 
     target = v.finish()
+    target.calculate_byte_size(SizeWriter())
     compiler.check_stage('zepto_vm_one')
     return target
 
@@ -44,6 +46,7 @@ def convert_to_zepto_vm_tiny(compiler, root):
     visit_node(v, root.child_program)
 
     target = v.finish()
+    target.calculate_byte_size(SizeWriter())
     compiler.check_stage('zepto_vm_tiny')
     return target
 
@@ -266,7 +269,6 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         '''
         Add current op, and calculate its size in bytes
         '''
-        node.calculate_byte_size(SizeWriter())
         self._op_list.add_operation(node)
 
     def _assert_level(self, target_vm, ctx):
@@ -403,6 +405,10 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         ifop = self._compiler.init_node(op.IfOpNode(), node.ctx)
         ifop.set_condition(condition)
         ifop.set_body(body)
+        ifop.txt_condition = get_reference_text(node.child_expression.ctx)
+        begin, end = get_reference_lines(node.child_if_branch.ctx)
+        ifop.txt_begin = 'begin_' + str(begin)
+        ifop.txt_end = 'end_' + str(end)
 
         self._add_op(ifop)
 

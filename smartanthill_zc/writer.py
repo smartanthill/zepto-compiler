@@ -150,7 +150,7 @@ class _TextWriter(object):
         '''
         Adds a half-float field
         '''
-        self._current += '|(+%d):%s' % (delta, destination)
+        self._current += '|(+%d):%s:' % (delta, destination)
 
     def write_bitfield(self, bits):
         '''
