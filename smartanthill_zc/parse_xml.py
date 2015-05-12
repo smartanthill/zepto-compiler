@@ -14,8 +14,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+from xml.etree import ElementTree
+try:
+    from xml.etree.ElementTree import ParseError
+except ImportError:
+    from xml.parsers.expat import ExpatError as ParseError
 from smartanthill_zc import bodypart, builtin
-import xml.etree.ElementTree as ET
 
 
 def parse_xml_body_parts(compiler, data):
@@ -26,10 +30,10 @@ def parse_xml_body_parts(compiler, data):
     manager = bodypart.create_body_parts_manager(compiler, compiler.BUILTIN)
 
     try:
-        root = ET.fromstring(data)
-        for current in root.iter('smartanthill.plugin'):
+        root = ElementTree.fromstring(data)
+        for current in root.getiterator('smartanthill.plugin'):  # python 2.6
             _make_bodypart(compiler, manager, current)
-    except ET.ParseError:  # TODO improve
+    except ParseError:  # TODO improve
         compiler.report_error(compiler.BUILTIN, "Error parsing xml")
         compiler.raise_error()
 

@@ -14,12 +14,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc import array_lit
-from smartanthill_zc import expression
-from smartanthill_zc.antlr_helper import get_reference_text, get_reference_lines
-from smartanthill_zc.op_node import JumpDesptination, MoveReplyOpNode,\
-    PopRepliesOpNode
-import smartanthill_zc.op_node as op
+from smartanthill_zc import array_lit, op_node, expression
+from smartanthill_zc.antlr_helper import (
+    get_reference_text, get_reference_lines)
+from smartanthill_zc.op_node import JumpDesptination
 from smartanthill_zc.visitor import NodeVisitor, visit_node
 from smartanthill_zc.writer import SizeWriter
 
@@ -248,8 +246,9 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._vm = vm
 
         self._target = compiler.init_node(
-            op.TargetProgramNode(), compiler.BUILTIN)
-        self._op_list = compiler.init_node(op.OpListNode(), compiler.BUILTIN)
+            op_node.TargetProgramNode(), compiler.BUILTIN)
+        self._op_list = compiler.init_node(
+            op_node.OpListNode(), compiler.BUILTIN)
 
         self._target.set_op_list(self._op_list)
         self._target.vm_level = self._vm
@@ -313,7 +312,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         Factory method to add a ZEPTOVM_OP_MOVEREPLYTOFRONT
         '''
         assert i != 0
-        move = self._compiler.init_node(MoveReplyOpNode(i), None)
+        move = self._compiler.init_node(op_node.MoveReplyOpNode(i), None)
         self._add_op(move)
 
     def add_pop_replies(self, i):
@@ -323,7 +322,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         if i != 0:
             assert self._vm != Level.ONE
 
-        pop = self._compiler.init_node(PopRepliesOpNode(i), None)
+        pop = self._compiler.init_node(op_node.PopRepliesOpNode(i), None)
         self._add_op(pop)
 
     def visit_ProgramNode(self, node):
@@ -376,19 +375,19 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                 node.ctx, "Expression at 'return' statement could not be "
                 "resolved for " + self._vm.fullname)
 
-        exitop = self._compiler.init_node(op.ExitOpNode(), node.ctx)
+        exitop = self._compiler.init_node(op_node.ExitOpNode(), node.ctx)
 
         self._add_exit(exitop)
 
     def visit_McuSleepStmtNode(self, node):
-        stmtop = self._compiler.init_node(op.McuSleepOpNode(), node.ctx)
+        stmtop = self._compiler.init_node(op_node.McuSleepOpNode(), node.ctx)
         stmtop.sec_delay = node.get_delay_value()
 
         self._mcusleep_invoked = True
         self._add_op(stmtop)
 
     def visit_BodyPartCallExprNode(self, node):
-        exprop = self._compiler.init_node(op.ExecOpNode(), node.ctx)
+        exprop = self._compiler.init_node(op_node.ExecOpNode(), node.ctx)
         exprop.bodypart_id = node.ref_bodypart_decl.bodypart_id
         exprop.data = node.get_data_value(self._compiler)
 
@@ -398,7 +397,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
         self._assert_level(Level.TINY, node.ctx)
 
-        body = self._compiler.init_node(op.OpListNode(), node.ctx)
+        body = self._compiler.init_node(op_node.OpListNode(), node.ctx)
 
         # first visit the body
         temp = self._op_list
@@ -414,7 +413,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         if len(body.childs_operations) == 0:
             return
 
-        condition = self._compiler.init_node(op.OpListNode(), node.ctx)
+        condition = self._compiler.init_node(op_node.OpListNode(), node.ctx)
 
         # then the condition
         visitor = _ZeptoVmIfExprVisitor(
@@ -422,7 +421,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
         visit_node(visitor, node.child_expression)
 
-        ifop = self._compiler.init_node(op.IfOpNode(), node.ctx)
+        ifop = self._compiler.init_node(op_node.IfOpNode(), node.ctx)
         ifop.set_condition(condition)
         ifop.set_body(body)
         ifop.txt_condition = get_reference_text(node.child_expression.ctx)
@@ -509,7 +508,7 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
 
     def visit_FieldToLiteralComparisonOpExprNode(self, node):
 
-        jmpop = self._compiler.init_node(op.JumpIfFieldOpNode(), node.ctx)
+        jmpop = self._compiler.init_node(op_node.JumpIfFieldOpNode(), node.ctx)
         jmpop.reply = self._replybuffer.find_variable(node.get_variable_decl())
         jmpop.field_sequence = node.get_field_sequence()
         jmpop.destination = self._destination
