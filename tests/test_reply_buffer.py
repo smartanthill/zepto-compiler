@@ -78,3 +78,11 @@ def test_reply_buffer_8():
     current = ['a', 'b', 'e', 'c', 'd', 'f']
 
     assert reply_buffer_sort_helper(target, current) == len(target)
+
+
+def test_reply_buffer_9():
+
+    target = ['a', 'b', 'c', 'd']
+    current = ['c', 'a', 'b', 'd']
+
+    assert reply_buffer_sort_helper(target, current) == 2

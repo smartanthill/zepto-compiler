@@ -20,7 +20,7 @@ from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
 def common_test_run(code):
 
     xml = [
-        u'<smartanthill.plugin name="TemperatureSensor" id="1" version="1.0">',
+        u'<smartanthill.plugin name="TempSensor" id="1" version="1.0">',
         u'  <description>Short description here</description>',
         u'  <command/>',
         u'  <reply>',
@@ -61,18 +61,18 @@ def common_test_run(code):
 
 def test_js_tiny_2():
 
-    code = [u'var temp = TemperatureSensor.Execute();',
+    code = [u'var temp = TempSensor.Execute();',
             u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
             u'  mcu_sleep(5*60);',
-            u'  temp = TemperatureSensor.Execute();',
+            u'  temp = TempSensor.Execute();',
             u'}',
             u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
-            u'  var temp2 = TemperatureSensor.Execute();',
+            u'  var temp2 = TempSensor.Execute();',
             u'  if(temp2.Temperature > 38.0)',
             u'    return temp2;',
             u'  mcu_sleep(5*60);',
             u'}',
-            u'return TemperatureSensor.Execute();']
+            u'return TempSensor.Execute();']
 
     out = ['/* target vm: Tiny */',
            '/* mcusleep: True */',
@@ -105,5 +105,50 @@ def test_js_tiny_2():
            '|POPREPLIES|0|',
            '|EXEC|1|0|[]|',
            '|EXIT|ISFIRST|']
+
+    assert common_test_run(code) == out
+
+
+def test_js_tiny_3():
+
+    code = [
+        u'var a = TempSensor.Execute();',
+        u'var b = TempSensor.Execute();',
+        u'var c = TempSensor.Execute();',
+        u'var d = TempSensor.Execute();',
+        u'if (c.Temperature > 38) {'
+        u'  return [TempSensor.Execute(), b, TempSensor.Execute(), d];'
+        u'}'
+        u'return [a, TempSensor.Execute(), c, TempSensor.Execute()]']
+
+    out = [
+        '/* target vm: Tiny */',
+        '/* mcusleep: False */',
+        '/* reply: {INT,INT,INT,INT} */',
+        '/* size: 81 bytes */',
+        '|EXEC|1|0|[]|',
+        '|EXEC|1|0|[]|',
+        '|EXEC|1|0|[]|',
+        '|EXEC|1|0|[]|',
+        '/* ( c.Temperature>38 ) */',
+        '|JMPIFREPLYFIELD_LT|2|{INT}|381|(+30):end_5:|',
+        '/* begin_5: */',
+        '|MOVEREPLYTOFRONT|3|',
+        '|MOVEREPLYTOFRONT|2|',
+        '|POPREPLIES|2|',
+        '|EXEC|1|0|[]|',
+        '|EXEC|1|0|[]|',
+        '|MOVEREPLYTOFRONT|3|',
+        '|MOVEREPLYTOFRONT|1|',
+        '|MOVEREPLYTOFRONT|3|',
+        '|EXIT|ISLAST|',
+        '/* end_5: */',
+        '|MOVEREPLYTOFRONT|2|',
+        '|POPREPLIES|2|',
+        '|EXEC|1|0|[]|',
+        '|EXEC|1|0|[]|',
+        '|MOVEREPLYTOFRONT|2|',
+        '|MOVEREPLYTOFRONT|2|',
+        '/* exit|islast */']
 
     assert common_test_run(code) == out

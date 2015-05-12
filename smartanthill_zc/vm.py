@@ -145,28 +145,33 @@ class ReplyBuffer(object):
         assert self._buffer[-1] == var
         self._pop_back(factory, len(self._buffer) - 1)
 
-    def clear_for_exit(self, factory):
+    def clear_for_exit(self, factory, reply):
         '''
-        Removes every reply in the reply buffer
+        Removes every reply in the reply buffer, with exception of given list
+        Used before ZEPTOVM_OP_EXIT to leave only the replies to be sent back
         '''
         self._will_exit = True
+        if not reply or len(reply) == 0:
+            self._pop_back(factory, 0)
+        else:
+            # TODO improve algorithm
+            begin = 0
+            for i in range(len(self._buffer)):
+                if self._buffer[i] not in reply:
+                    begin = i
+                    break
 
-        return self._pop_back(factory, 0)
+            to_move = []
+            for i in reversed(range(begin, len(self._buffer))):
+                if self._buffer[i] in reply:
+                    to_move.append(self._buffer[i])
 
-    def reply_for_exit(self, factory, var):
-        '''
-        Removes every reply in the reply buffer, with exception of one
-        Used before ZEPTOVM_OP_EXIT to leave only the reply to be sent back
-        '''
-        assert len(self._buffer) != 0
+            for each in to_move:
+                pos = self.find_variable(each)
+                self._move_to_front(factory, pos)
 
-        self._will_exit = True
-        # move to the front
-        pos = self.find_variable(var)
-        self._move_to_front(factory, pos)
-
-        # remove everything else
-        self._pop_back(factory, 1)
+            # remove everything else
+            self._pop_back(factory, len(reply))
 
     def conditional_code_begin(self):
         '''
@@ -194,41 +199,50 @@ class ReplyBuffer(object):
             assert not self._will_exit
 
             last = self._stack.pop()
-            # first try to find an already sorted slice
-            end = reply_buffer_sort_helper(last, self._buffer)
+            # sort the buffer
+            self.sort_buffer(factory, last)
 
-            # then sort the rest
-            for i in reversed(range(end)):
-                pos = self.find_variable(last[i])
-                self._move_to_front(factory, pos)
+    def sort_buffer(self, factory, target):
+        '''
+        Sorts the reply buffer to a desired state
+        '''
+        # first try to find an already sorted slice
+        end = reply_buffer_sort_helper(target, self._buffer)
 
-            # last remove the back
-            self._pop_back(factory, len(last))
+        # then sort the rest
+        for i in reversed(range(end)):
+            pos = self.find_variable(target[i])
+            self._move_to_front(factory, pos)
 
-            assert last == self._buffer
+        # last remove the back
+        self._pop_back(factory, len(target))
+
+        assert target == self._buffer
 
 
 def reply_buffer_sort_helper(target, current):
     '''
-    Helper to find an slice of the reply buffer that is already sorted
+    Helper to find what part needs to be sorted
     returns the size of target that needs to be sorted
     It is assumed that current is equal or bigger than target
     '''
     assert len(target) <= len(current)
 
-    if len(target) > 0:
-        last = target[-1]
-        s = current.index(last) + 1
-        if len(target) >= s:
-            # try to find an slice that is already sorted
-            cu_sl = current[:s]
-            ta_sl = target[-s:]
-            assert len(cu_sl) == s
-            assert len(ta_sl) == s
-            if cu_sl == ta_sl:
-                return len(target) - s
+    begin = len(target)
 
-    return len(target)
+    for i in range(len(target)):
+        if current[i] not in target:
+            begin = i
+            break
+
+    for i in reversed(range(len(target))):
+        j = current.index(target[i])
+        if j < begin:
+            begin = j
+        else:
+            return i + 1
+
+    return 0
 
 
 class _ZeptoVmOneVisitor(NodeVisitor):
@@ -342,34 +356,45 @@ class _ZeptoVmOneVisitor(NodeVisitor):
     def visit_ReturnStmtNode(self, node):
         if isinstance(node.child_expression, expression.BodyPartCallExprNode):
 
-            self._replybuffer.clear_for_exit(self)
+            self._replybuffer.clear_for_exit(self, [])
             self.visit_BodyPartCallExprNode(node.child_expression)
 
         elif isinstance(node.child_expression, expression.VariableExprNode):
 
             self._assert_level(Level.TINY, node.ctx)
 
-            self._replybuffer.reply_for_exit(
-                self, node.child_expression.ref_decl)
+            self._replybuffer.clear_for_exit(
+                self, [node.child_expression.ref_decl])
         elif isinstance(node.child_expression, array_lit.ArrayLiteralExprNode):
+
+            already_here = []
+            target_order = []
+            bodypart_call = []
 
             for current in node.child_expression.childs_expressions:
 
-                self._replybuffer.clear_for_exit(self)
                 if isinstance(current, expression.BodyPartCallExprNode):
 
-                    self.visit_BodyPartCallExprNode(current)
+                    target_order.append(current)
+                    bodypart_call.append(current)
 
-#                 elif isinstance(current, expression.VariableExprNode):
-#
-#                     self._assert_level(Level.TINY, node.ctx)
-#
-#                     self._replybuffer.reply_for_exit(
-#                         self, node.child_expression.ref_decl)
+                elif isinstance(current, expression.VariableExprNode):
+
+                    target_order.append(current.ref_decl)
+                    already_here.append(current.ref_decl)
+
                 else:
                     self._compiler.report_error(
                         current.ctx, "Expression at 'return' statement could "
                         "not be resolved for " + self._vm.fullname)
+
+            self._replybuffer.clear_for_exit(self, already_here)
+            for current in bodypart_call:
+                self.visit_BodyPartCallExprNode(current)
+                self._replybuffer.push_reply(current)
+
+            self._replybuffer.sort_buffer(self, target_order)
+
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at 'return' statement could not be "
