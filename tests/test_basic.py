@@ -211,3 +211,9 @@ def test_js_operator_less_than():
 def test_js_operator_equal():
 
     common_test_run(u'return some == other;')
+
+
+def test_js_empty_array_raises():
+    with pytest.raises(compiler.CompilerError):
+
+        common_test_run(u'return [];')

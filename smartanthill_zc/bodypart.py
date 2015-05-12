@@ -136,7 +136,9 @@ class FieldTypeFactoryNode(Node):
     def create_linear_conversion_float(self, in0, out0, in1, out1):
         '''
         Created a new LinearConvertionFloat
+        TODO add cache, and verify if already created
         '''
+        # pylint: disable=no-self-use
 
         meaning = LinearConvertionFloat()
         meaning.set_points(in0, out0, in1, out1)

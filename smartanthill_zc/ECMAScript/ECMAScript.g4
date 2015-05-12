@@ -292,14 +292,14 @@ functionBody
 ///     [ ElementList ]
 ///     [ ElementList , Elision? ]
 arrayLiteral
- : '[' elementList? ','? elision? ']'
+ : '[' elementList? /* ','? elision? */ ']'
  ;
 
 /// ElementList :
 ///     Elision? AssignmentExpression
 ///     ElementList , Elision? AssignmentExpression
 elementList
- : elision? singleExpression ( ',' elision? singleExpression )*
+ : /* elision? */ singleExpression ( ',' /* elision? */ singleExpression )*
  ;
 
 /// Elision :
@@ -521,7 +521,7 @@ singleExpression // mb: oversimplified to begin with
 // | This                                                                   # ThisExpression
  | Identifier                                                             # IdentifierExpression
  | literal                                                                # LiteralExpression
-// | arrayLiteral                                                           # ArrayLiteralExpression
+ | arrayLiteral                                                           # ArrayLiteralExpression
 // | objectLiteral                                                          # ObjectLiteralExpression
  | '(' expressionSequence ')'                                             # ParenthesizedExpression
  ;

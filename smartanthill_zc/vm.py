@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+from smartanthill_zc import array_lit
 from smartanthill_zc import expression
 from smartanthill_zc.antlr_helper import get_reference_text, get_reference_lines
 from smartanthill_zc.op_node import JumpDesptination, MoveReplyOpNode,\
@@ -351,6 +352,25 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
             self._replybuffer.reply_for_exit(
                 self, node.child_expression.ref_decl)
+        elif isinstance(node.child_expression, array_lit.ArrayLiteralExprNode):
+
+            for current in node.child_expression.childs_expressions:
+
+                self._replybuffer.clear_for_exit(self)
+                if isinstance(current, expression.BodyPartCallExprNode):
+
+                    self.visit_BodyPartCallExprNode(current)
+
+#                 elif isinstance(current, expression.VariableExprNode):
+#
+#                     self._assert_level(Level.TINY, node.ctx)
+#
+#                     self._replybuffer.reply_for_exit(
+#                         self, node.child_expression.ref_decl)
+                else:
+                    self._compiler.report_error(
+                        current.ctx, "Expression at 'return' statement could "
+                        "not be resolved for " + self._vm.fullname)
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at 'return' statement could not be "

@@ -26,7 +26,8 @@ from smartanthill_zc.writer import write_text_op_codes
 
 def main():
 
-    #     code = [u'for (var i = 0; i < 5; i++) {'
+    code = [
+        u'return [TemperatureSensor.Execute(), TemperatureSensor.Execute()];']
     #             u'  var temp = TemperatureSensor.Execute();'
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
     #             u'    return temp;'
@@ -34,18 +35,18 @@ def main():
     #             u'  mcu_sleep(5*60);'
     #             u'}'
     #             u'return TemperatureSensor.Execute();']
-    code = [u'var temp = TemperatureSensor.Execute();',
-            u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
-            u'  mcu_sleep(5*60);',
-            u'  temp = TemperatureSensor.Execute();',
-            u'}',
-            u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
-            u'  var temp2 = TemperatureSensor.Execute();',
-            u'  if(temp2.Temperature > 38.0)',
-            u'    return temp2;',
-            u'  mcu_sleep(5*60);',
-            u'}',
-            u'return TemperatureSensor.Execute();']
+    #     code = [u'var temp = TemperatureSensor.Execute();',
+    #             u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
+    #             u'  mcu_sleep(5*60);',
+    #             u'  temp = TemperatureSensor.Execute();',
+    #             u'}',
+    #             u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
+    #             u'  var temp2 = TemperatureSensor.Execute();',
+    #             u'  if(temp2.Temperature > 38.0)',
+    #             u'    return temp2;',
+    #             u'  mcu_sleep(5*60);',
+    #             u'}',
+    #             u'return TemperatureSensor.Execute();']
 
     xml = [
         u'<smartanthill.plugin name="TemperatureSensor" id="1" version="1.0">',

@@ -17,11 +17,12 @@
 import antlr4
 
 from smartanthill_zc import expression, statement
-from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
-                                          get_token_text)
+from smartanthill_zc import array_lit
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
+from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
+                                          get_token_text)
 from smartanthill_zc.node import ArgumentListNode, ProgramNode, RootNode
 
 
@@ -387,6 +388,26 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitLiteralExpression(self, ctx):
 
         return self.visit(ctx.literal())
+
+    # Visit a parse tree produced by ECMAScriptParser#ArrayLiteralExpression.
+    def visitArrayLiteralExpression(self, ctx):
+
+        expr = self._compiler.init_node(array_lit.ArrayLiteralExprNode(), ctx)
+
+        elems = ctx.arrayLiteral().elementList()
+
+        if not elems:
+            self._compiler.report_error(
+                ctx,
+                "Empty array_lit expression not supported")
+        else:
+            exprs = elems.singleExpression()
+            assert len(exprs) >= 1
+            for current in exprs:
+                e = self.visit(current)
+                expr.add_expression(e)
+
+        return expr
 
     # Visit a parse tree produced by ECMAScriptParser#MemberDotExpression.
     def visitMemberDotExpression(self, ctx):

@@ -82,3 +82,19 @@ def test_js_pattern_2():
            '|EXIT|ISFIRST|']
 
     assert common_test_run(code) == out
+
+
+def test_js_return_array():
+
+    code = [
+        u'return [TemperatureSensor.Execute(), TemperatureSensor.Execute()];']
+
+    out = ['/* target vm: One */',
+           '/* mcusleep: False */',
+           '/* reply: {INT,INT} */',
+           '/* size: 10 bytes */',
+           '|EXEC|1|0|[]|',
+           '|EXEC|1|0|[]|',
+           '/* exit|islast */']
+
+    assert common_test_run(code) == out
