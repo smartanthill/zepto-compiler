@@ -17,7 +17,6 @@
 from smartanthill_zc import array_lit, op_node, expression
 from smartanthill_zc.antlr_helper import (
     get_reference_text, get_reference_lines)
-from smartanthill_zc.op_node import JumpDesptination
 from smartanthill_zc.visitor import NodeVisitor, visit_node
 from smartanthill_zc.writer import SizeWriter
 
@@ -47,6 +46,20 @@ def convert_to_zepto_vm_tiny(compiler, root):
     target = v.finish()
     target.calculate_byte_size(SizeWriter())
     compiler.check_stage('zepto_vm_tiny')
+    return target
+
+
+def convert_to_zepto_vm_small(compiler, root):
+    '''
+    Process source program and creates a target code tree suitable to run
+    at a Zepto VM Level Small
+    '''
+    v = _ZeptoVmOneVisitor(compiler, Level.SMALL)
+    visit_node(v, root.child_program)
+
+    target = v.finish()
+    target.calculate_byte_size(SizeWriter())
+    compiler.check_stage('zepto_vm_small')
     return target
 
 
@@ -245,6 +258,14 @@ def reply_buffer_sort_helper(target, current):
     return 0
 
 
+def _make_labels(ctx):
+    '''
+    Helper to create an OpListNode from an StatementListStmtNode
+    '''
+    begin, end = get_reference_lines(ctx)
+    return op_node.JumpLabel(begin, end + 1)
+
+
 class _ZeptoVmOneVisitor(NodeVisitor):
 
     '''
@@ -422,7 +443,8 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
         self._assert_level(Level.TINY, node.ctx)
 
-        body = self._compiler.init_node(op_node.OpListNode(), node.ctx)
+        body = self._compiler.init_node(
+            op_node.OpListNode(), node.child_if_branch.ctx)
 
         # first visit the body
         temp = self._op_list
@@ -439,10 +461,10 @@ class _ZeptoVmOneVisitor(NodeVisitor):
             return
 
         condition = self._compiler.init_node(op_node.OpListNode(), node.ctx)
-
+        labels = _make_labels(node.child_if_branch.ctx)
         # then the condition
         visitor = _ZeptoVmIfExprVisitor(
-            self._compiler, self._vm, self._replybuffer, condition)
+            self._compiler, self._vm, self._replybuffer, condition, labels)
 
         visit_node(visitor, node.child_expression)
 
@@ -450,9 +472,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         ifop.set_condition(condition)
         ifop.set_body(body)
         ifop.txt_condition = get_reference_text(node.child_expression.ctx)
-        begin, end = get_reference_lines(node.child_if_branch.ctx)
-        ifop.txt_begin = 'begin_' + str(begin)
-        ifop.txt_end = 'end_' + str(end)
+        ifop.labels = labels
 
         self._add_op(ifop)
 
@@ -485,6 +505,50 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                 node.ctx, "Expression at statement could not be "
                 "resolved for " + self._vm.fullname)
 
+    def visit_SimpleForStmtNode(self, node):
+
+        self._assert_level(Level.SMALL, node.ctx)
+
+        body = self._compiler.init_node(
+            op_node.OpListNode(), node.child_statement_list.ctx)
+
+        # first visit the body
+        temp = self._op_list
+        self._op_list = body
+        self._replybuffer.conditional_code_begin()
+        visit_node(self, node.child_statement_list)
+
+        self._replybuffer.conditional_code_end(
+            self, node.child_statement_list.has_flow_stmt)
+        self._op_list = temp
+
+        # we will not support side effects on condition, so just return
+        if len(body.childs_operations) == 0:
+            return
+
+        # TODO add alot of checks
+        labels = _make_labels(node.child_statement_list.ctx)
+
+        init = self._compiler.init_node(
+            op_node.PushConstantOpNode(), node.child_begin_expression.ctx)
+        init.const_value = node.child_begin_expression.get_static_value()
+
+        condition = self._compiler.init_node(
+            op_node.JumpLoopOpNode(), node.ctx)
+        condition.threshold = node.child_end_expression.get_static_value()
+        condition.destination = labels.begin
+
+        forop = self._compiler.init_node(op_node.LoopOpNode(), node.ctx)
+        forop.set_initialization(init)
+        forop.set_condition(condition)
+        forop.set_body(body)
+        forop.txt_initialization = get_reference_text(
+            node.child_begin_expression.ctx)
+        forop.txt_condition = get_reference_text(node.child_end_expression.ctx)
+        forop.labels = labels
+
+        self._add_op(forop)
+
 
 class _ZeptoVmIfExprVisitor(NodeVisitor):
 
@@ -493,7 +557,7 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
     This visitor goes through the source tree and creates a target tree
     '''
 
-    def __init__(self, compiler, vm, replybuffer, jmp_ops):
+    def __init__(self, compiler, vm, replybuffer, jmp_ops, labels):
         '''
         Constructor
         '''
@@ -503,7 +567,8 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
         self._jmp_ops = jmp_ops
         self._replybuffer = replybuffer
         self._negate = True
-        self._destination = JumpDesptination.END
+        self._labels = labels
+        self._destination = labels.end
 
     def default_visit(self, node):
         '''
@@ -522,10 +587,10 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
         elif node.txt_operator == '||':
             assert len(node.child_argument_list.childs_arguments) == 2
             self._negate = False
-            self._destination = JumpDesptination.BEGIN
+            self._destination = self._labels.begin
             visit_node(self, node.child_argument_list.childs_arguments[0])
             self._negate = True
-            self._destination = JumpDesptination.END
+            self._destination = self._labels.end
             visit_node(self, node.child_argument_list.childs_arguments[1])
 
         else:

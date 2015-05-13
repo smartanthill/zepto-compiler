@@ -175,6 +175,7 @@ class NumberLiteralExprNode(ExpressionNode):
         '''
         Returns the float value of this literal
         Used for complile-time evaluation of expressions
+        TODO check literal for validity
         '''
         return float(self.txt_literal)
 

@@ -60,7 +60,7 @@ class Op(object):
     MOVEREPLYTOFRONT = _OpImpl(15, 'MOVEREPLYTOFRONT')
 
     # below, instructions are not supported by Zepto VM-Tiny and below
-    PUSHEXPR_CONSTANT = _OpImpl(16, 'ZEPTOVM_OP_PUSHEXPR_CONSTANT')
+    PUSHEXPR_CONSTANT = _OpImpl(16, 'PUSHEXPR_CONSTANT')
     PUSHEXPR_REPLYFIELD = _OpImpl(17, 'ZEPTOVM_OP_PUSHEXPR_REPLYFIELD')
     EXPRUNOP = _OpImpl(18, 'ZEPTOVM_OP_EXPRUNOP')
     EXPRUNOP_EX = _OpImpl(19, 'ZEPTOVM_OP_EXPRUNOP_EX')
@@ -80,8 +80,8 @@ class Op(object):
     RET = _OpImpl(33, 'ZEPTOVM_OP_RET')
     SWITCH = _OpImpl(34, 'ZEPTOVM_OP_SWITCH')
     SWITCH_EX = _OpImpl(35, 'ZEPTOVM_OP_SWITCH_EX')
-    INCANDJMPIF = _OpImpl(36, 'ZEPTOVM_OP_INCANDJMPIF')
-    DECANDJMPIF = _OpImpl(37, 'ZEPTOVM_OP_DECANDJMPIF')
+    INCANDJMPIF = _OpImpl(36, 'INCANDJMPIF')
+    DECANDJMPIF = _OpImpl(37, 'DECANDJMPIF')
 
     # below, instructions are not supported by Zepto VM-Small and below
     PARALLEL = _OpImpl(38, 'ZEPTOVM_OP_PARALLEL')
@@ -149,6 +149,13 @@ class OpcodeNode(Node):
         assert self._byte_size
         return self._byte_size
 
+    def reset_byte_size(self):
+        '''
+        Resets the size for this node.
+        Allows for recalculation
+        '''
+        self._byte_size = None
+
     def calculate_byte_size(self, calculator):
         '''
         Calculates the size in bytes for this node.
@@ -173,7 +180,6 @@ class OpListNode(Node):
         '''
         super(OpListNode, self).__init__()
         self.childs_operations = []
-        self.target_level = 0
 
     def add_operation(self, child):
         '''
@@ -259,7 +265,6 @@ class ExecOpNode(OpcodeNode):
         Constructor
         '''
         super(ExecOpNode, self).__init__()
-        self._opcode = Op.EXEC
         self.bodypart_id = 0
         self.data = None
 
@@ -267,7 +272,7 @@ class ExecOpNode(OpcodeNode):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(Op.EXEC)
         writer.write_int_2(self.bodypart_id)
         writer.write_opaque_data_2(self.data)
 
@@ -283,14 +288,13 @@ class PushReplyOpNode(OpcodeNode):
         Constructor
         '''
         super(PushReplyOpNode, self).__init__()
-        self._opcode = Op.PUSHREPLY
         self.data = None
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(Op.PUSHREPLY)
         writer.write_opaque_data_2(self.data)
 
 
@@ -305,14 +309,13 @@ class TransmitterOpNode(OpcodeNode):
         Constructor
         '''
         super(TransmitterOpNode, self).__init__()
-        self._opcode = Op.TRANSMITTER
         self._bf = BitField(['ON'])
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(Op.TRANSMITTER)
         writer.write_bitfield(self._bf)
 
 
@@ -327,14 +330,13 @@ class SleepOpNode(OpcodeNode):
         Constructor
         '''
         super(SleepOpNode, self).__init__()
-        self._opcode = Op.SLEEP
         self.msec_delay = 0
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(Op.SLEEP)
         writer.write_uint_4(self.msec_delay)
 
 
@@ -349,7 +351,6 @@ class McuSleepOpNode(OpcodeNode):
         Constructor
         '''
         super(McuSleepOpNode, self).__init__()
-        self._opcode = Op.MCUSLEEP
         self.sec_delay = 0
         self._bf = BitField(['MAYDROPEARLIERINSTRUCTIONS',
                              'TRANSMITTERONWHENBACK'])
@@ -358,7 +359,7 @@ class McuSleepOpNode(OpcodeNode):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(Op.MCUSLEEP)
         writer.write_uint_4(self.sec_delay)
         writer.write_bitfield(self._bf)
 
@@ -374,14 +375,13 @@ class PopRepliesOpNode(OpcodeNode):
         Constructor
         '''
         super(PopRepliesOpNode, self).__init__()
-        self._opcode = Op.POPREPLIES
         self._replies_count = replies_count
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(Op.POPREPLIES)
         writer.write_uint_2(self._replies_count)
 
 
@@ -396,7 +396,6 @@ class ExitOpNode(OpcodeNode):
         Constructor
         '''
         super(ExitOpNode, self).__init__()
-        self._opcode = Op.EXIT
         self._bf = BitField(['FORCED-PADDING-FLAG', 'ISFIRST', 'ISLAST'])
         self._opt_padding_to = 0
         self.is_implicit = False
@@ -419,7 +418,7 @@ class ExitOpNode(OpcodeNode):
         Write this node to the output writer
         '''
         if not self.is_implicit:
-            writer.write_opcode(self._opcode)
+            writer.write_opcode(Op.EXIT)
             writer.write_bitfield(self._bf)
             if self._bf.get('FORCED-PADDING-FLAG'):
                 writer.write_uint_2(self._opt_padding_to)
@@ -427,10 +426,11 @@ class ExitOpNode(OpcodeNode):
             writer.write_text('exit|islast')
 
 
-class JumpDesptination(object):
+class JumpLabel(object):
 
-    BEGIN = 'begin:'
-    END = 'end:'
+    def __init__(self, begin, end):
+        self.begin = 'begin_' + str(begin)
+        self.end = 'end_' + str(end)
 
 
 class IfOpNode(OpcodeNode):
@@ -444,12 +444,10 @@ class IfOpNode(OpcodeNode):
         Constructor
         '''
         super(IfOpNode, self).__init__()
-        self._opcode = Op.INVALID
         self.child_condition = None
         self.child_body = None
         self.txt_condition = None
-        self.txt_begin = None
-        self.txt_end = None
+        self.labels = None
 
     def set_condition(self, child):
         '''
@@ -476,11 +474,9 @@ class IfOpNode(OpcodeNode):
 
         begin = 0
         for current in reversed(self.child_condition.childs_operations):
-            if current.destination == JumpDesptination.BEGIN:
-                current.destination = self.txt_begin
+            if current.destination == self.labels.begin:
                 current.delta = begin
-            elif current.destination == JumpDesptination.END:
-                current.destination = self.txt_end
+            elif current.destination == self.labels.end:
                 current.delta = begin + body
             else:
                 assert False
@@ -495,11 +491,17 @@ class IfOpNode(OpcodeNode):
         '''
         Write this node to the output writer
         '''
-        writer.write_text("( %s )" % self.txt_condition)
+        writer.write_text("if( %s )" % self.txt_condition)
         self.child_condition.write(writer)
-        writer.write_text("%s:" % self.txt_begin)
+        writer.write_text("%s:" % self.labels.begin)
         self.child_body.write(writer)
-        writer.write_text("%s:" % self.txt_end)
+        writer.write_text("%s:" % self.labels.end)
+
+
+_jump_if_field_subcode = {'==': Op.JMPIFREPLYFIELD_EQ,
+                          '!=': Op.JMPIFREPLYFIELD_NE,
+                          '<': Op.JMPIFREPLYFIELD_LT,
+                          '>': Op.JMPIFREPLYFIELD_GT}
 
 
 class JumpIfFieldOpNode(OpcodeNode):
@@ -513,7 +515,7 @@ class JumpIfFieldOpNode(OpcodeNode):
         Constructor
         '''
         super(JumpIfFieldOpNode, self).__init__()
-        self._opcode = Op.INVALID
+        self.subcode = None
         self.reply = 0
         self.field_sequence = None
         self.threshold = 0
@@ -524,23 +526,14 @@ class JumpIfFieldOpNode(OpcodeNode):
         '''
         Sets the conditional subcode ['==', '!=', '<', '>']
         '''
-
-        if subcode == '==':
-            self._opcode = Op.JMPIFREPLYFIELD_EQ
-        elif subcode == '!=':
-            self._opcode = Op.JMPIFREPLYFIELD_NE
-        elif subcode == '<':
-            self._opcode = Op.JMPIFREPLYFIELD_LT
-        elif subcode == '>':
-            self._opcode = Op.JMPIFREPLYFIELD_GT
-        else:
-            assert False
+        assert subcode in _jump_if_field_subcode
+        self.subcode = subcode
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(_jump_if_field_subcode[self.subcode])
         writer.write_int_2(self.reply)
         writer.write_field_sequence(self.field_sequence)
         writer.write_half_float(self.threshold)
@@ -558,12 +551,145 @@ class MoveReplyOpNode(OpcodeNode):
         Constructor
         '''
         super(MoveReplyOpNode, self).__init__()
-        self._opcode = Op.MOVEREPLYTOFRONT
         self._reply_number = reply_number
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(self._opcode)
+        writer.write_opcode(Op.MOVEREPLYTOFRONT)
         writer.write_int_2(self._reply_number)
+
+
+class PushConstantOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_PUSHEXPR_CONSTANT opcode
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(PushConstantOpNode, self).__init__()
+        self.const_value = 0
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        writer.write_opcode(Op.PUSHEXPR_CONSTANT)
+        writer.write_half_float(self.const_value)
+
+
+class LoopOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_INCANDJMPIF and ZEPTOVM_OP_DECANDJMPIF opcodes
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(LoopOpNode, self).__init__()
+        self.child_initialization = None
+        self.child_body = None
+        self.child_condition = None
+        self.txt_initialization = None
+        self.txt_condition = None
+        self.labels = None
+
+    def set_initialization(self, child):
+        '''
+        condition_op_list setter
+        '''
+        assert isinstance(child, PushConstantOpNode)
+        child.set_parent(self)
+        self.child_initialization = child
+
+    def set_body(self, child):
+        '''
+        body setter
+        '''
+        assert isinstance(child, OpListNode)
+        child.set_parent(self)
+        self.child_body = child
+
+    def set_condition(self, child):
+        '''
+        condition_op_list setter
+        '''
+        assert isinstance(child, JumpLoopOpNode)
+        child.set_parent(self)
+        self.child_condition = child
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        writer.write_text("for( var i = %s; .." % self.txt_initialization)
+        self.child_initialization.write(writer)
+        writer.write_text("%s:" % self.labels.begin)
+        self.child_body.write(writer)
+        writer.write_text("..; i < %s; i++ )" % self.txt_condition)
+        self.child_condition.write(writer)
+
+    def calculate_byte_size(self, calculator):
+        '''
+        Set the jumps offsets
+        Since the jump is at the end of the loop,
+        the jump delta depends on the jump instruction itself,
+        and the size of the jump instruction depends
+        on the encoded size of delta.
+        So, we first assign an estimate of delta, calculate the size
+        and then iteratively reassign the the delta and recalculate the size
+        '''
+
+        body = self.child_body.calculate_byte_size(calculator)
+
+        assert self.child_condition.destination == self.labels.begin
+
+        prev = 0
+        jump = 5  # Minimum JumpLoopOpNode size
+
+        while prev != jump:
+            prev = jump
+            self.child_condition.delta = -(body + jump)
+            self.child_condition.reset_byte_size()
+            jump = self.child_condition.calculate_byte_size(calculator)
+
+        self._byte_size = body + jump
+
+        return self._byte_size
+
+
+class JumpLoopOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_INCANDJMPIF and ZEPTOVM_OP_DECANDJMPIF opcodes
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(JumpLoopOpNode, self).__init__()
+        self.is_decrement = False
+        self.expr_offset = 1
+        self.threshold = 0
+        self.destination = None
+        self.delta = 0
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        if self.is_decrement:
+            writer.write_opcode(Op.DECANDJMPIF)
+        else:
+            writer.write_opcode(Op.INCANDJMPIF)
+
+        writer.write_int_2(self.expr_offset)
+        writer.write_half_float(self.threshold)
+        writer.write_delta(self.delta, self.destination)

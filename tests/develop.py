@@ -24,15 +24,13 @@ from smartanthill_zc.compiler import Compiler
 
 def main():
 
-    code = [
-        u'var a = TempSensor.Execute();',
-        u'var b = TempSensor.Execute();',
-        u'var c = TempSensor.Execute();',
-        u'var d = TempSensor.Execute();',
-        u'if (c.Temperature > 38) {'
-        u'  return [TempSensor.Execute(), b, TempSensor.Execute(), d];'
-        u'}'
-        u'return [a, TempSensor.Execute(), c, TempSensor.Execute()]']
+    code = [u'for( var i = 0; i < 10; i++) {',
+            u'  var temp = TempSensor.Execute();',
+            u'  if(temp.Temperature > 38.0)',
+            u'    return temp;',
+            u'  mcu_sleep(5*60);',
+            u'}',
+            u'return TempSensor.Execute();']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
@@ -95,7 +93,7 @@ def main():
 
     print '\n'.join(actual)
 
-    target = vm.convert_to_zepto_vm_tiny(comp, root)
+    target = vm.convert_to_zepto_vm_small(comp, root)
     txt = writer.write_text_op_codes(comp, target)
     print '\n'.join(txt)
 
