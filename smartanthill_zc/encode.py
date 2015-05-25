@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import math
 
 
 class ZeptoEncoder(object):
@@ -199,6 +200,176 @@ def encode_bitfield(bits):
     return result
 
 
+class HalfFloatOverflowError(Exception):
+    pass
+
+
+class _HalfFloatBits(object):
+
+    '''
+    TODO improve this!!!
+    This class holds the internal representation of a half float
+    allow bit manipulation and encoding
+    '''
+
+    def __init__(self, sign, exp, mantisa):
+        '''
+        Constructor
+        '''
+        if exp < 0 or exp >= 31:
+            raise HalfFloatOverflowError()
+
+        self.sign = sign
+        self.exp = exp
+        self.mantisa = mantisa
+
+        if self.mantisa == 0 and self.exp == 0:
+            self.sign = 0
+
+        self._check()
+
+    def _check(self):
+        '''
+        Check this number is a representable half float value
+        not infinite nor minus zero
+        '''
+        assert 0 <= self.exp <= 30
+        assert 0 <= self.mantisa < 2 ** 10
+        assert self.sign == 0 or self.sign == 1
+
+        if self.exp == 0 and self.mantisa == 0:
+            assert self.sign == 0
+
+    def _next(self):
+        '''
+        Helper to next absolute value
+        '''
+        if self.mantisa == 0x3ff:
+            if self.exp == 30:
+                raise HalfFloatOverflowError()
+            else:
+                self.mantisa = 0
+                self.exp += 1
+        else:
+            self.mantisa += 1
+
+    def _prev(self):
+        '''
+        Helper to previous absolute value
+        '''
+        if self.mantisa == 0:
+            if self.exp == 0:
+                assert False
+            else:
+                self.mantisa = 0x3ff
+                self.exp -= 1
+        else:
+            self.mantisa -= 1
+
+        if self.mantisa == 0 and self.exp == 0:
+            self.sign = 0
+
+    def next_up(self):
+        '''
+        Increments this half float by the minimum representable value
+        '''
+        if self.sign == 0:
+            self._next()
+        else:
+            self._prev()
+
+        self._check()
+
+    def next_down(self):
+        '''
+        Decrements this half float by the minimum representable value
+        '''
+
+        if self.mantisa == 0 and self.exp == 0:
+            self.sign = 1
+            self.mantisa = 1
+        elif self.sign == 0:
+            self._prev()
+        else:
+            self._next()
+
+        self._check()
+
+    def encode(self):
+        '''
+        Creates a bytes with the binary encoding of this half float value
+        '''
+
+        by = (self.sign << 15) | (self.exp << 10) | self.mantisa
+
+        assert 0 <= by <= 0xffff
+
+        byte0 = by >> 8
+        byte1 = self.mantisa & 0xff
+
+        enc = bytes([byte0, byte1])
+
+        return enc
+
+    def get_value(self):
+        '''
+        Returns the size in bytes of this type
+        '''
+        s = 1 if self.sign == 0 else -1
+
+        return math.ldexp(s * self.mantisa, self.exp - 25)
+
+
+def half_float_value(value):
+    '''
+    Converts value to a half float and back to float
+    Will round its precision to half float, and will raise if overflow
+    '''
+    hf = _create_half_float(value)
+    return hf.get_value()
+
+
+def half_float_next_up(value):
+    '''
+    Converts value to a half float and increments minimally
+    Will round its precision to half float, and will raise if overflow
+    '''
+    hf = _create_half_float(value)
+    hf.next_up()
+    return hf.get_value()
+
+
+def half_float_next_down(value):
+    '''
+    Converts value to a half float and decrements minimally
+    Will round its precision to half float, and will raise if overflow
+    '''
+    hf = _create_half_float(value)
+    hf.next_down()
+    return hf.get_value()
+
+
+def _create_half_float(value):
+    '''
+    Half float encoder implementation
+    '''
+    assert isinstance(value, float)
+    assert not math.isnan(value)
+    assert not math.isinf(value)
+
+    m, e = math.frexp(value)
+
+    signbit = 1 if m < 0. else 0
+
+    m2 = math.ldexp(m, 10)
+    m3 = math.fabs(m2)
+    m4 = math.trunc(m3)
+
+    e2 = e + 15
+
+    return _HalfFloatBits(signbit, e2, m4)
+
+
 class _EncodingImpl(object):
 
     '''
@@ -260,6 +431,6 @@ def get_encoding_min_max(encoding, max_bytes):
             return (-32768, 32767)
     elif encoding == Encoding.UNSIGNED_INT:
         if max_bytes == 2:
-            return (0L, 65535)
+            return (0, 65535)
 
     assert False

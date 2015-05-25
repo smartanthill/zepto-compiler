@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import math
 import sys
 
 from smartanthill_zc import builtin, vm, writer
@@ -24,13 +25,12 @@ from smartanthill_zc.compiler import Compiler
 
 def main():
 
-    code = [u'for( var i = 0; i < 10; i++) {',
-            u'  var temp = TempSensor.Execute();',
-            u'  if(temp.Temperature > 38.0)',
-            u'    return temp;',
+    code = [u'var temp = TempSensor.Execute();',
+            u'if(temp.Temperature + 1 < 36.6) {',
             u'  mcu_sleep(5*60);',
+            u'  return TempSensor.Execute();',
             u'}',
-            u'return TempSensor.Execute();']
+            u'return temp;']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
@@ -57,16 +57,28 @@ def main():
         u'  <description>Short description here</description>',
         u'  <command/>',
         u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;" min="0" max="255">',
+        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'     min="0" max="500">',
         u'      <meaning type="float">',
-        u'        <linear-conversion input-point0="0" output-point0="20.0"',
-        u'          input-point1="100" output-point1="40.0" />',
+        u'        <linear-conversion input-point0="100" output-point0="10.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
         u'      </meaning>',
         u'    </field>',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
         u'</smartanthill.plugin>'
     ]
+
+    c = 38.9
+    c1 = c / 0.1
+    inv2 = round(c1 * 2)  # magic trick to remove round
+    inv3 = inv2 / float(2.0)
+
+    c2 = inv3 + 1
+    c3 = math.floor(c2)
+
+    c10 = math.floor(inv3)
+    c11 = c10 + 1
 
     xml = '\n'.join(xml)
     code = '\n'.join(code)

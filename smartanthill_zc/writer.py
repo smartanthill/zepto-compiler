@@ -98,7 +98,40 @@ class _TextWriter(object):
 
         self._current = '|' + opcode.name
 
-    def write_bytes(self, data):
+    def write_subcode(self, opcode):
+        '''
+        Adds 1 byte subcode for ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        '''
+        self._current += '|' + opcode.name
+
+    def write_oparg(self, arg):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        OP-POP-FLAG-AND-EXPR-OFFSET | OPTIONAL-IMMEDIATE-OP
+        '''
+        if arg.optional_immediate:
+            self._current += '|->'
+            self.write_half_float(arg.optional_immediate)
+        elif arg.expr_offset:
+            self.write_int_2(arg.expr_offset)
+            self._current += ','
+            if arg.pop_flag:
+                self._current += ',POP'
+        else:
+            self.write_int_2(1)
+            self._current += ',POP'
+
+    def write_opresult(self, res):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP_EX2 and ZEPTOVM_OP_EXPRBINOP_EX2
+        PUSH-FLAG-AND-PUSH-EXPR-OFFSET
+        '''
+        assert res.expr_offset
+        self.write_int_2(res.expr_offset)
+        if res.insert_flag:
+            self._current += ',INSERT'
+
+    def _write_bytes(self, data):
         '''
         Adds a binary field to current operation
         '''
@@ -173,10 +206,10 @@ class _TextWriter(object):
         '''
         if not data:
             self.write_uint_2(0)
-            self.write_bytes([])
+            self._write_bytes([])
         else:
             self.write_uint_2(len(data))
-            self.write_bytes(data)
+            self._write_bytes(data)
 
     def write_text(self, text):
         '''
@@ -206,6 +239,34 @@ class SizeWriter(object):
         '''
         # pylint: disable=unused-argument
         self.index += 1
+
+    def write_subcode(self, opcode):
+        '''
+        Adds 1 byte subcode for ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        '''
+        # pylint: disable=unused-argument
+        self.index += 1
+
+    def write_oparg(self, arg):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        OP-POP-FLAG-AND-EXPR-OFFSET | OPTIONAL-IMMEDIATE-OP
+        '''
+        if arg.optional_immediate:
+            self.write_int_2(0)
+            self.write_half_float(arg.optional_immediate)
+        elif arg.expr_offset:
+            self.write_int_2(2 * arg.expr_offset + arg.pop_flag)
+        else:
+            self.write_int_2(3)  # expr_offset == 1, pop_flag == True
+
+    def write_opresult(self, res):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP_EX2 and ZEPTOVM_OP_EXPRBINOP_EX2
+        PUSH-FLAG-AND-PUSH-EXPR-OFFSET
+        '''
+        assert res.expr_offset
+        self.write_int_2(2 * res.expr_offset + res.insert_flag)
 
     def _write_bytes(self, data):
         '''

@@ -61,21 +61,21 @@ class Op(object):
 
     # below, instructions are not supported by Zepto VM-Tiny and below
     PUSHEXPR_CONSTANT = _OpImpl(16, 'PUSHEXPR_CONSTANT')
-    PUSHEXPR_REPLYFIELD = _OpImpl(17, 'ZEPTOVM_OP_PUSHEXPR_REPLYFIELD')
-    EXPRUNOP = _OpImpl(18, 'ZEPTOVM_OP_EXPRUNOP')
-    EXPRUNOP_EX = _OpImpl(19, 'ZEPTOVM_OP_EXPRUNOP_EX')
-    EXPRUNOP_EX2 = _OpImpl(20, 'ZEPTOVM_OP_EXPRUNOP_EX2')
-    EXPRBINOP = _OpImpl(21, 'ZEPTOVM_OP_EXPRBINOP')
-    EXPRBINOP_EX = _OpImpl(22, 'ZEPTOVM_OP_EXPRBINOP_EX')
-    EXPRBINOP_EX2 = _OpImpl(23, 'ZEPTOVM_OP_EXPRBINOP_EX2')
-    JMPIFEXPR_LT = _OpImpl(24, 'ZEPTOVM_OP_JMPIFEXPR_LT')
-    JMPIFEXPR_GT = _OpImpl(25, 'ZEPTOVM_OP_JMPIFEXPR_GT')
-    JMPIFEXPR_EQ = _OpImpl(26, 'ZEPTOVM_OP_JMPIFEXPR_EQ')
-    JMPIFEXPR_NE = _OpImpl(27, 'ZEPTOVM_OP_JMPIFEXPR_NE')
-    JMPIFEXPR_EX_LT = _OpImpl(28, 'ZEPTOVM_OP_JMPIFEXPR_EX_LT')
-    JMPIFEXPR_EX_GT = _OpImpl(29, 'ZEPTOVM_OP_JMPIFEXPR_EX_GT')
-    JMPIFEXPR_EX_EQ = _OpImpl(30, 'ZEPTOVM_OP_JMPIFEXPR_EX_EQ')
-    JMPIFEXPR_EX_NE = _OpImpl(31, 'ZEPTOVM_OP_JMPIFEXPR_EX_NE')
+    PUSHEXPR_REPLYFIELD = _OpImpl(17, 'PUSHEXPR_REPLYFIELD')
+    EXPRUNOP = _OpImpl(18, 'EXPRUNOP')
+    EXPRUNOP_EX = _OpImpl(19, 'EXPRUNOP_EX')
+    EXPRUNOP_EX2 = _OpImpl(20, 'EXPRUNOP_EX2')
+    EXPRBINOP = _OpImpl(21, 'EXPRBINOP')
+    EXPRBINOP_EX = _OpImpl(22, 'EXPRBINOP_EX')
+    EXPRBINOP_EX2 = _OpImpl(23, 'EXPRBINOP_EX2')
+    JMPIFEXPR_LT = _OpImpl(24, 'JMPIFEXPR_LT')
+    JMPIFEXPR_GT = _OpImpl(25, 'JMPIFEXPR_GT')
+    JMPIFEXPR_EQ = _OpImpl(26, 'JMPIFEXPR_EQ')
+    JMPIFEXPR_NE = _OpImpl(27, 'JMPIFEXPR_NE')
+    JMPIFEXPR_EX_LT = _OpImpl(28, 'JMPIFEXPR_EX_LT')
+    JMPIFEXPR_EX_GT = _OpImpl(29, 'JMPIFEXPR_EX_GT')
+    JMPIFEXPR_EX_EQ = _OpImpl(30, 'JMPIFEXPR_EX_EQ')
+    JMPIFEXPR_EX_NE = _OpImpl(31, 'JMPIFEXPR_EX_NE')
     CALL = _OpImpl(32, 'ZEPTOVM_OP_CALL')
     RET = _OpImpl(33, 'ZEPTOVM_OP_RET')
     SWITCH = _OpImpl(34, 'ZEPTOVM_OP_SWITCH')
@@ -85,6 +85,37 @@ class Op(object):
 
     # below, instructions are not supported by Zepto VM-Small and below
     PARALLEL = _OpImpl(38, 'ZEPTOVM_OP_PARALLEL')
+
+
+class UnOp(object):
+
+    '''
+    ZEPTOVM_OP_EXPRUNOP unary operators
+    '''
+
+    POP = _OpImpl(1, 'POP')
+    COPY = _OpImpl(2, 'COPY')
+    MINUS = _OpImpl(3, 'MINUS')
+    BITNEG = _OpImpl(4, 'BITNEG')
+    NOT = _OpImpl(5, 'NOT')
+    INC = _OpImpl(6, 'INC')
+    DEC = _OpImpl(7, 'DEC')
+
+
+class BinOp(object):
+
+    '''
+    ZEPTOVM_OP_EXPRBINOP binary operators
+    '''
+    PLUS = _OpImpl(1, 'PLUS')
+    MINUS = _OpImpl(1, 'MINUS')
+    SHL = _OpImpl(1, 'SHL')
+    SHR = _OpImpl(1, 'SHR')
+    USHR = _OpImpl(1, 'USHR')
+    BITAND = _OpImpl(1, 'BITAND')
+    BITOR = _OpImpl(1, 'BITOR')
+    AND = _OpImpl(1, 'AND')
+    OR = _OpImpl(1, 'OR')
 
 
 class BitField(object):
@@ -474,12 +505,15 @@ class IfOpNode(OpcodeNode):
 
         begin = 0
         for current in reversed(self.child_condition.childs_operations):
-            if current.destination == self.labels.begin:
-                current.delta = begin
-            elif current.destination == self.labels.end:
-                current.delta = begin + body
-            else:
-                assert False
+
+            if isinstance(current, JumpIfFieldOpNode) or \
+                    isinstance(current, JumpIfExprOpNode):
+                if current.destination == self.labels.begin:
+                    current.delta = begin
+                elif current.destination == self.labels.end:
+                    current.delta = begin + body
+                else:
+                    assert False
 
             begin += current.calculate_byte_size(calculator)
 
@@ -515,7 +549,7 @@ class JumpIfFieldOpNode(OpcodeNode):
         Constructor
         '''
         super(JumpIfFieldOpNode, self).__init__()
-        self.subcode = None
+        self._subcode = None
         self.reply = 0
         self.field_sequence = None
         self.threshold = 0
@@ -527,17 +561,45 @@ class JumpIfFieldOpNode(OpcodeNode):
         Sets the conditional subcode ['==', '!=', '<', '>']
         '''
         assert subcode in _jump_if_field_subcode
-        self.subcode = subcode
+        self._subcode = subcode
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
-        writer.write_opcode(_jump_if_field_subcode[self.subcode])
+        writer.write_opcode(_jump_if_field_subcode[self._subcode])
         writer.write_int_2(self.reply)
         writer.write_field_sequence(self.field_sequence)
         writer.write_half_float(self.threshold)
         writer.write_delta(self.delta, self.destination)
+
+
+class ReplyBufferMovementOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_POPREPLIES and ZEPTOVM_OP_MOVEREPLYTOFRONT
+    It wraps a set of movements of replies and a final optional pop
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ReplyBufferMovementOpNode, self).__init__()
+        self.moves = []
+        self.pop_number = None
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        for current in self.moves:
+            writer.write_opcode(Op.MOVEREPLYTOFRONT)
+            writer.write_int_2(current)
+
+        if self.pop_number:
+            writer.write_opcode(Op.POPREPLIES)
+            writer.write_uint_2(self.pop_number)
 
 
 class MoveReplyOpNode(OpcodeNode):
@@ -561,27 +623,6 @@ class MoveReplyOpNode(OpcodeNode):
         writer.write_int_2(self._reply_number)
 
 
-class PushConstantOpNode(OpcodeNode):
-
-    '''
-    Node for ZEPTOVM_OP_PUSHEXPR_CONSTANT opcode
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(PushConstantOpNode, self).__init__()
-        self.const_value = 0
-
-    def write(self, writer):
-        '''
-        Write this node to the output writer
-        '''
-        writer.write_opcode(Op.PUSHEXPR_CONSTANT)
-        writer.write_half_float(self.const_value)
-
-
 class LoopOpNode(OpcodeNode):
 
     '''
@@ -593,20 +634,10 @@ class LoopOpNode(OpcodeNode):
         Constructor
         '''
         super(LoopOpNode, self).__init__()
-        self.child_initialization = None
         self.child_body = None
         self.child_condition = None
-        self.txt_initialization = None
-        self.txt_condition = None
         self.labels = None
-
-    def set_initialization(self, child):
-        '''
-        condition_op_list setter
-        '''
-        assert isinstance(child, PushConstantOpNode)
-        child.set_parent(self)
-        self.child_initialization = child
+        self.txt_name = None
 
     def set_body(self, child):
         '''
@@ -628,12 +659,18 @@ class LoopOpNode(OpcodeNode):
         '''
         Write this node to the output writer
         '''
-        writer.write_text("for( var i = %s; .." % self.txt_initialization)
-        self.child_initialization.write(writer)
+        writer.write_text(
+            "for( var %s = %s; .." % (self.txt_name, self.init_value))
+
+        writer.write_opcode(Op.PUSHEXPR_CONSTANT)
+        writer.write_half_float(self.init_value)
+
         writer.write_text("%s:" % self.labels.begin)
         self.child_body.write(writer)
-        writer.write_text("..; i < %s; i++ )" % self.txt_condition)
         self.child_condition.write(writer)
+
+        writer.write_opcode(Op.EXPRUNOP)
+        writer.write_subcode(UnOp.POP)
 
     def calculate_byte_size(self, calculator):
         '''
@@ -680,16 +717,224 @@ class JumpLoopOpNode(OpcodeNode):
         self.threshold = 0
         self.destination = None
         self.delta = 0
+        self.txt_name = None
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
         if self.is_decrement:
+            writer.write_text("..; %s > %s; %s-- )" %
+                              (self.txt_name, self.threshold, self.txt_name))
             writer.write_opcode(Op.DECANDJMPIF)
         else:
+            writer.write_text("..; %s < %s; %s++ )" %
+                              (self.txt_name, self.threshold, self.txt_name))
             writer.write_opcode(Op.INCANDJMPIF)
 
         writer.write_int_2(self.expr_offset)
+        writer.write_half_float(self.threshold)
+        writer.write_delta(self.delta, self.destination)
+
+
+_binary_operator_subcode = {'+': BinOp.PLUS,
+                            '-': BinOp.MINUS}
+
+_unary_operator_subcode = {'-': UnOp.MINUS,
+                           '=': UnOp.COPY,
+                           'pop': UnOp.POP}
+
+
+class ExprOpArg(object):
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.expr_offset = None
+        self.pop_flag = True
+        self.optional_immediate = None
+
+    def is_default(self):
+        return not self.expr_offset and not self.optional_immediate
+
+
+class ExprOpResult(object):
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.expr_offset = None
+        self.insert_flag = False
+
+
+class ExpressionOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP opcodes
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ExpressionOpNode, self).__init__()
+        self._operator = None
+        self.args = None
+        self.result = ExprOpResult()
+
+    def set_binary_operator(self, txt):
+        assert not self._operator
+        assert txt in _binary_operator_subcode
+        self._operator = _binary_operator_subcode[txt]
+
+    def set_unary_operator(self, txt):
+        assert not self._operator
+        assert txt in _unary_operator_subcode
+        self._operator = _unary_operator_subcode[txt]
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+
+        assert self._operator
+        assert self.args
+        assert self.result
+
+        if self._operator in [UnOp.POP, UnOp.COPY, UnOp.MINUS, UnOp.BITNEG,
+                              UnOp.NOT, UnOp.INC, UnOp.DEC]:
+
+            assert len(self.args) == 1
+
+            if self.result.expr_offset:
+                writer.write_opcode(Op.EXPRUNOP_EX2)
+                writer.write_subcode(self._operator)
+                writer.write_oparg(self.args[0])
+                writer.write_opresult(self.result)
+            elif self.args[0].is_default():
+                writer.write_opcode(Op.EXPRUNOP)
+                writer.write_subcode(self._operator)
+            else:
+                writer.write_opcode(Op.EXPRUNOP_EX)
+                writer.write_subcode(self._operator)
+                writer.write_oparg(self.args[0])
+
+        elif self._operator in [BinOp.PLUS, BinOp.MINUS, BinOp.SHL, BinOp.SHR,
+                                BinOp.USHR, BinOp.BITAND, BinOp.BITOR,
+                                BinOp.AND, BinOp.OR]:
+            assert len(self.args) == 2
+            if self.result.expr_offset:
+                writer.write_opcode(Op.EXPRBINOP_EX2)
+                writer.write_subcode(self._operator)
+                writer.write_oparg(self.args[0])
+                writer.write_oparg(self.args[1])
+                writer.write_opresult(self.result)
+            elif self.args[0].is_default() and self.args[1].is_default():
+                writer.write_opcode(Op.EXPRBINOP)
+                writer.write_subcode(self._operator)
+            else:
+                writer.write_opcode(Op.EXPRBINOP_EX)
+                writer.write_subcode(self._operator)
+                writer.write_oparg(self.args[0])
+                writer.write_oparg(self.args[1])
+
+        else:
+            assert False
+
+
+class PushFieldOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_PUSHEXPR_REPLYFIELD opcodes
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(PushFieldOpNode, self).__init__()
+        self.reply = 0
+        self.field_sequence = None
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        writer.write_opcode(Op.PUSHEXPR_REPLYFIELD)
+        writer.write_int_2(self.reply)
+        writer.write_field_sequence(self.field_sequence)
+
+
+class PushConstantOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_PUSHEXPR_CONSTANT opcode
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(PushConstantOpNode, self).__init__()
+        self.const_value = 0
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        writer.write_opcode(Op.PUSHEXPR_CONSTANT)
+        writer.write_half_float(self.const_value)
+
+
+_jump_if_expr_subcode = {'==': Op.JMPIFEXPR_EQ,
+                         '!=': Op.JMPIFEXPR_NE,
+                         '<': Op.JMPIFEXPR_LT,
+                         '>': Op.JMPIFEXPR_GT}
+
+_jump_if_expr_ex_subcode = {'==': Op.JMPIFEXPR_EX_EQ,
+                            '!=': Op.JMPIFEXPR_EX_NE,
+                            '<': Op.JMPIFEXPR_EX_LT,
+                            '>': Op.JMPIFEXPR_EX_GT}
+
+
+class JumpIfExprOpNode(OpcodeNode):
+
+    '''
+    Node for ZEPTOVM_OP_JMPIFEXPR_XX and ZEPTOVM_OP_JMPIFEXPR_EX_XX opcodes
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(JumpIfExprOpNode, self).__init__()
+        self._subcode = None
+        self.args = None
+        self.threshold = 0
+        self.destination = None
+        self.delta = 0
+
+    def set_subcode(self, subcode):
+        '''
+        Sets the conditional subcode ['==', '!=', '<', '>']
+        '''
+        assert subcode in _jump_if_field_subcode
+        self._subcode = subcode
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        assert len(self.args) == 1
+        assert not self.args[0].optional_immediate
+
+        if self.args[0].is_default():
+            writer.write_opcode(_jump_if_expr_subcode[self._subcode])
+        else:
+            writer.write_opcode(_jump_if_expr_ex_subcode[self._subcode])
+            writer.write_oparg(self.args[0])
+
         writer.write_half_float(self.threshold)
         writer.write_delta(self.delta, self.destination)

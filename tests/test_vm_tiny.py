@@ -152,3 +152,53 @@ def test_js_tiny_3():
         '/* exit|islast */']
 
     assert common_test_run(code) == out
+
+
+def test_js_tiny_negate():
+
+    code = [u'var temp = TempSensor.Execute();',
+            u'if(!(temp.Temperature <= 35.0 || temp.Temperature >= 42.0)) {',
+            u'  mcu_sleep(5*60);',
+            u'  temp = TempSensor.Execute();',
+            u'}',
+            u'if(!(temp.Temperature > 36.0 && temp.Temperature < 40.0)) {',
+            u'  var temp2 = TempSensor.Execute();',
+            u'  if(!(temp2.Temperature > 38.0))',
+            u'    return temp2;',
+            u'  mcu_sleep(5*60);',
+            u'}',
+            u'return TempSensor.Execute();']
+
+    out = ['/* target vm: Tiny */',
+           '/* mcusleep: True */',
+           '/* reply: {INT} */',
+           '/* size: 96 bytes */',
+           '|EXEC|1|0|[]|',
+           '/* if( !(temp.Temperature<=35.0||temp.Temperature>=42.0) ) */',
+           '|JMPIFREPLYFIELD_LT|0|{INT}|351|(+23):end_6:|',
+           '|JMPIFREPLYFIELD_GT|0|{INT}|419|(+14):end_6:|',
+           '/* begin_2: */',
+           '|MCUSLEEP|300|0|',
+           '|POPREPLIES|0|',
+           '|EXEC|1|0|[]|',
+           '/* end_6: */',
+           '/* if( !(temp.Temperature>36.0&&temp.Temperature<40.0) ) */',
+           '|JMPIFREPLYFIELD_LT|0|{INT}|361|(+9):begin_6:|',
+           '|JMPIFREPLYFIELD_LT|0|{INT}|400|(+31):end_12:|',
+           '/* begin_6: */',
+           '|EXEC|1|0|[]|',
+           '/* if( !(temp2.Temperature>38.0) ) */',
+           '|JMPIFREPLYFIELD_GT|1|{INT}|380|(+8):end_10:|',
+           '/* begin_9: */',
+           '|MOVEREPLYTOFRONT|1|',
+           '|POPREPLIES|1|',
+           '|EXIT|ISFIRST|',
+           '/* end_10: */',
+           '|MCUSLEEP|300|0|',
+           '|POPREPLIES|1|',
+           '/* end_12: */',
+           '|POPREPLIES|0|',
+           '|EXEC|1|0|[]|',
+           '|EXIT|ISFIRST|']
+
+    assert common_test_run(code) == out

@@ -198,7 +198,7 @@ class BooleanLiteralExprNode(ExpressionNode):
         del compiler
 
         scope = self.get_root_scope()
-        self.set_type(scope.lookup_type('_zc_bool_literal'))
+        self.set_type(scope.lookup_type('_zc_boolean_literal'))
 
         return None
 
@@ -385,3 +385,45 @@ class OperatorExprNode(ExpressionNode):
         self.set_type(self.ref_decl.get_type())
         return self.ref_decl.static_evaluate(compiler, self,
                                              self.child_argument_list)
+
+
+class LogicOpExprNode(OperatorExprNode):
+
+    '''
+    Node class representing a logic operator expression
+    '&&', '||' and '!'
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(LogicOpExprNode, self).__init__()
+
+
+class ArithmeticOpExprNode(OperatorExprNode):
+
+    '''
+    Node class representing an arithmetic operator expression
+    '+', '-, '*', '/' and '%'
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ArithmeticOpExprNode, self).__init__()
+
+
+class ComparisonOpExprNode(OperatorExprNode):
+
+    '''
+    Node class representing a comparison operator expression
+    '<', '>', '<=', '>=', '==' and '!='
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ComparisonOpExprNode, self).__init__()

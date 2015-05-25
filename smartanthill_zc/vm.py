@@ -17,6 +17,8 @@
 from smartanthill_zc import array_lit, op_node, expression
 from smartanthill_zc.antlr_helper import (
     get_reference_text, get_reference_lines)
+from smartanthill_zc.builtin import negate_logic
+from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node
 from smartanthill_zc.writer import SizeWriter
 
@@ -26,7 +28,7 @@ def convert_to_zepto_vm_one(compiler, root):
     Process source program and creates a target code tree suitable to run
     at a Zepto VM Level One
     '''
-    v = _ZeptoVmOneVisitor(compiler, Level.ONE)
+    v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.ONE))
     visit_node(v, root.child_program)
 
     target = v.finish()
@@ -40,7 +42,7 @@ def convert_to_zepto_vm_tiny(compiler, root):
     Process source program and creates a target code tree suitable to run
     at a Zepto VM Level Tiny
     '''
-    v = _ZeptoVmOneVisitor(compiler, Level.TINY)
+    v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.TINY))
     visit_node(v, root.child_program)
 
     target = v.finish()
@@ -54,7 +56,7 @@ def convert_to_zepto_vm_small(compiler, root):
     Process source program and creates a target code tree suitable to run
     at a Zepto VM Level Small
     '''
-    v = _ZeptoVmOneVisitor(compiler, Level.SMALL)
+    v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.SMALL))
     visit_node(v, root.child_program)
 
     target = v.finish()
@@ -258,12 +260,168 @@ def reply_buffer_sort_helper(target, current):
     return 0
 
 
+class ExpressionStack(object):
+
+    '''
+    Maintains a record of expressions in stack
+    and creates any needed operation to rearrange and maintain the stack.
+    Also provides lookup for a named expression inside the stack
+
+    Current implementation separates expression stack in two parts,
+    the bottom part is for named expressions, that is declared variables.
+    While the top of the stack is for temporary expression evaluation.
+
+    TODO this class has two different responsibilities, split in two classes
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self._args = []
+        self._expression_stack = []
+        self._nameds = []
+        self._conditional_stack = []
+
+    def init_args(self):
+
+        self._expression_stack.append(self._args)
+        self._args = []
+
+    def get_args(self):
+        assert len(self._expression_stack) > 0
+        assert self._args
+        temp = self._args
+        self._args = self._expression_stack.pop()
+        return temp
+
+    def push_temp(self):
+        '''
+        Adds a new expression to the stack
+        '''
+        self._args.append(ExprOpArg())
+
+    def push_constant(self, value):
+        '''
+        Adds a new expression to the stack
+        '''
+        ref = ExprOpArg()
+        ref.optional_immediate = value
+        self._args.append(ref)
+
+    def push_variable(self, var):
+        ref = ExprOpArg()
+        ref.expr_offset = self.find_variable(var)
+        self._args.append(ref)
+
+    def add_variable(self, factory, var):
+        '''
+        Adds an temp expression as a variable name
+        '''
+        assert len(self._expression_stack) == 0
+        assert len(self._args) == 1
+        if self._args[0].is_default():
+            self._args.pop()
+            self._nameds.append(var)
+        elif self._args[0].optional_immediate:
+            factory.add_const_push(self._args[0].optional_immediate, var.ctx)
+            self._args = []
+            self._nameds.append(var)
+        elif self._args[0].expr_offset:
+            factory.add_copy_push(self._args, var.ctx)
+            self._args = []
+            self._nameds.append(var)
+        else:
+            assert False
+
+    def find_variable(self, var):
+        '''
+        Looks-up for a variable in the stack
+        '''
+        return self._nameds.index(var)
+
+    def assert_no_temps(self):
+        assert len(self._expression_stack) == 0
+        assert len(self._args) == 0
+
+    def _pop_variable(self, factory):
+        '''
+        Removes a variable from the stack
+        TODO currently only remove the last in the stack
+        '''
+        self.assert_no_temps()
+        assert len(self._nameds) != 0
+
+        self._nameds.pop()
+        factory.add_pop_expression()
+
+    def conditional_code_begin(self):
+        '''
+        Marks the beginning of a conditional block of code.
+        We must save the stack state, so at the conditional code end
+        we can make the stack state match.
+        This way the stack state will not depend on the execution or not
+        of the conditional code block
+        '''
+        self.assert_no_temps()
+        self._conditional_stack.append(list(self._nameds))
+
+    def conditional_code_end(self, factory, was_exit):
+        '''
+        Marks the end of a conditional block of code that may fall
+        We must make the stack state match.
+        '''
+        self.assert_no_temps()
+        if was_exit:
+            # Just update
+            self._nameds = self._conditional_stack.pop()
+
+        else:
+            # We need to restore the reply buffer before fall
+
+            last = self._conditional_stack.pop()
+
+            count = len(self._nameds) - len(last)
+            assert count >= 0
+            # pylint: disable=unused-variable
+            for i in range(count):
+                self._pop_variable(factory)
+
+            assert self._nameds == last
+
+
 def _make_labels(ctx):
     '''
     Helper to create an OpListNode from an StatementListStmtNode
     '''
     begin, end = get_reference_lines(ctx)
     return op_node.JumpLabel(begin, end + 1)
+
+
+class _ZeptoVm(object):
+
+    '''
+    Aggregate class to hold reference to the vm level,
+    the expression stack and the reply buffer
+    '''
+
+    def __init__(self, level):
+        '''
+        Constructor
+        '''
+        self.level = level
+        self.buffer = ReplyBuffer()
+        self.stack = ExpressionStack()
+
+    def assert_level(self, compiler, target_vm, ctx):
+        '''
+        Validates that required operation is supported by the target level
+        '''
+
+        if target_vm.number > self.level.number:
+            compiler.report_error(
+                ctx, "Operation is not supported by " + self.level.fullname)
+            compiler.raise_error()
 
 
 class _ZeptoVmOneVisitor(NodeVisitor):
@@ -286,12 +444,10 @@ class _ZeptoVmOneVisitor(NodeVisitor):
             op_node.OpListNode(), compiler.BUILTIN)
 
         self._target.set_op_list(self._op_list)
-        self._target.vm_level = self._vm
+        self._target.vm_level = self._vm.level
 
         self._exits = []
         self._mcusleep_invoked = False
-
-        self._replybuffer = ReplyBuffer()
 
     def _add_exit(self, node):
         '''
@@ -305,16 +461,6 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         Add current op, and calculate its size in bytes
         '''
         self._op_list.add_operation(node)
-
-    def _assert_level(self, target_vm, ctx):
-        '''
-        Validates that required operation is supported by the target level
-        '''
-
-        if target_vm.number > self._vm.number:
-            self._compiler.report_error(
-                ctx, "Operation is not supported by " + self._vm.fullname)
-            self._compiler.raise_error()
 
     def finish(self):
         '''
@@ -360,6 +506,61 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         pop = self._compiler.init_node(op_node.PopRepliesOpNode(i), None)
         self._add_op(pop)
 
+    def add_pop_expression(self):
+        op = self._compiler.init_node(op_node.ExpressionOpNode(), None)
+        op.set_unary_operator('pop')
+        op.args = [ExprOpArg()]
+        self._add_op(op)
+
+    def add_const_push(self, const_value, ctx):
+        '''
+        Factory method to push a constant value into the stack
+        '''
+        op = self._compiler.init_node(op_node.PushConstantOpNode(), ctx)
+        op.const_value = const_value
+        self._add_op(op)
+
+    def add_copy_push(self, args, ctx):
+        '''
+        Factory method to push a constant value into the stack
+        '''
+        op = self._compiler.init_node(op_node.ExpressionOpNode(), ctx)
+        op.set_unary_operator('=')
+        op.args = args
+        self._add_op(op)
+
+    def _visit_expression(self, node):
+        '''
+        Helper method to create an expression visitor an call it
+        '''
+
+        visitor = _ZeptoVmExprVisitor(self._compiler, self._vm, self._op_list)
+
+        visit_node(visitor, node)
+
+    def _visit_conditional(self, stmt_list):
+        '''
+        Helper method to create an expression visitor an call it
+        '''
+
+        body = self._compiler.init_node(
+            op_node.OpListNode(), stmt_list.ctx)
+
+        temp = self._op_list
+        self._op_list = body
+        self._vm.buffer.conditional_code_begin()
+        self._vm.stack.conditional_code_begin()
+
+        visit_node(self, stmt_list)
+
+        self._vm.buffer.conditional_code_end(
+            self, stmt_list.has_flow_stmt)
+        self._vm.stack.conditional_code_end(
+            self, stmt_list.has_flow_stmt)
+        self._op_list = temp
+
+        return body
+
     def visit_ProgramNode(self, node):
 
         fs = node.get_return_scope().get_return_type().field_sequence
@@ -377,14 +578,14 @@ class _ZeptoVmOneVisitor(NodeVisitor):
     def visit_ReturnStmtNode(self, node):
         if isinstance(node.child_expression, expression.BodyPartCallExprNode):
 
-            self._replybuffer.clear_for_exit(self, [])
-            self.visit_BodyPartCallExprNode(node.child_expression)
+            self._vm.buffer.clear_for_exit(self, [])
+            self._BodyPartCallExprNode(node.child_expression)
 
         elif isinstance(node.child_expression, expression.VariableExprNode):
 
-            self._assert_level(Level.TINY, node.ctx)
+            self._vm.assert_level(self._compiler, Level.TINY, node.ctx)
 
-            self._replybuffer.clear_for_exit(
+            self._vm.buffer.clear_for_exit(
                 self, [node.child_expression.ref_decl])
         elif isinstance(node.child_expression, array_lit.ArrayLiteralExprNode):
 
@@ -409,12 +610,12 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                         current.ctx, "Expression at 'return' statement could "
                         "not be resolved for " + self._vm.fullname)
 
-            self._replybuffer.clear_for_exit(self, already_here)
+            self._vm.buffer.clear_for_exit(self, already_here)
             for current in bodypart_call:
-                self.visit_BodyPartCallExprNode(current)
-                self._replybuffer.push_reply(current)
+                self._BodyPartCallExprNode(current)
+                self._vm.buffer.push_reply(current)
 
-            self._replybuffer.sort_buffer(self, target_order)
+            self._vm.buffer.sort_buffer(self, target_order)
 
         else:
             self._compiler.report_error(
@@ -432,7 +633,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._mcusleep_invoked = True
         self._add_op(stmtop)
 
-    def visit_BodyPartCallExprNode(self, node):
+    def _BodyPartCallExprNode(self, node):
         exprop = self._compiler.init_node(op_node.ExecOpNode(), node.ctx)
         exprop.bodypart_id = node.ref_bodypart_decl.bodypart_id
         exprop.data = node.get_data_value(self._compiler)
@@ -441,20 +642,23 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
     def visit_IfElseStmtNode(self, node):
 
-        self._assert_level(Level.TINY, node.ctx)
+        self._vm.assert_level(self._compiler, Level.TINY, node.ctx)
 
-        body = self._compiler.init_node(
-            op_node.OpListNode(), node.child_if_branch.ctx)
+        # first, check for tautology condition
+        # TODO add comment to output, an report warning
+        val = node.child_expression.get_static_value()
+        if val is True:
+            # just add statements
+            visit_node(self, node.child_if_branch)
+            return
+        elif val is False:
+            # do nothing
+            return
+        else:
+            assert val is None
 
-        # first visit the body
-        temp = self._op_list
-        self._op_list = body
-        self._replybuffer.conditional_code_begin()
-        visit_node(self, node.child_if_branch)
-
-        self._replybuffer.conditional_code_end(
-            self, node.child_if_branch.has_flow_stmt)
-        self._op_list = temp
+        # second visit the body
+        body = self._visit_conditional(node.child_if_branch)
 
         # we will not support side effects on condition, so just return
         if len(body.childs_operations) == 0:
@@ -464,7 +668,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         labels = _make_labels(node.child_if_branch.ctx)
         # then the condition
         visitor = _ZeptoVmIfExprVisitor(
-            self._compiler, self._vm, self._replybuffer, condition, labels)
+            self._compiler, self._vm, condition, labels)
 
         visit_node(visitor, node.child_expression)
 
@@ -479,26 +683,36 @@ class _ZeptoVmOneVisitor(NodeVisitor):
     def visit_VariableDeclarationStmtNode(self, node):
 
         if isinstance(node.child_initializer, expression.BodyPartCallExprNode):
-            self._assert_level(Level.TINY, node.ctx)
-            self._replybuffer.push_reply(node)
-            self.visit_BodyPartCallExprNode(node.child_initializer)
+            self._vm.assert_level(self._compiler, Level.TINY, node.ctx)
+            self._vm.buffer.push_reply(node)
+            self._BodyPartCallExprNode(node.child_initializer)
         else:
-            self._compiler.report_error(
-                node.ctx, "Expression at declaration statement could not be "
-                "resolved for " + self._vm.fullname)
+            self._vm.assert_level(self._compiler, Level.SMALL, node.ctx)
+            self._visit_expression(node.child_initializer)
+            self._vm.stack.add_variable(self, node)
 
     def visit_ExpressionStmtNode(self, node):
 
-        if isinstance(node.child_expression, expression.AssignmentExprNode) \
-                and isinstance(node.child_expression.child_rhs,
-                               expression.BodyPartCallExprNode):
+        if isinstance(node.child_expression, expression.AssignmentExprNode):
+            if isinstance(node.child_expression.child_rhs,
+                          expression.BodyPartCallExprNode):
 
-            self._assert_level(Level.TINY, node.ctx)
-            self._replybuffer.remove_reply(
-                self, node.child_expression.ref_decl)
+                self._vm.assert_level(self._compiler, Level.TINY, node.ctx)
+                self._vm.buffer.remove_reply(
+                    self, node.child_expression.ref_decl)
 
-            self._replybuffer.push_reply(node.child_expression.ref_decl)
-            self.visit_BodyPartCallExprNode(node.child_expression.child_rhs)
+                self._vm.buffer.push_reply(node.child_expression.ref_decl)
+                self._BodyPartCallExprNode(node.child_expression.child_rhs)
+            else:
+                self._vm.assert_level(self._compiler, Level.SMALL, node.ctx)
+                self._visit_expression(node.child_expression)
+                self._expressionstack.add_variable(node)
+
+                self._vm.buffer.remove_reply(
+                    self, node.child_expression.ref_decl)
+
+                self._vm.buffer.push_reply(node.child_expression.ref_decl)
+                self._BodyPartCallExprNode(node.child_expression.child_rhs)
 
         else:
             self._compiler.report_error(
@@ -507,20 +721,10 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
     def visit_SimpleForStmtNode(self, node):
 
-        self._assert_level(Level.SMALL, node.ctx)
-
-        body = self._compiler.init_node(
-            op_node.OpListNode(), node.child_statement_list.ctx)
+        self._vm.assert_level(self._compiler, Level.SMALL, node.ctx)
 
         # first visit the body
-        temp = self._op_list
-        self._op_list = body
-        self._replybuffer.conditional_code_begin()
-        visit_node(self, node.child_statement_list)
-
-        self._replybuffer.conditional_code_end(
-            self, node.child_statement_list.has_flow_stmt)
-        self._op_list = temp
+        body = self._visit_conditional(node.child_statement_list)
 
         # we will not support side effects on condition, so just return
         if len(body.childs_operations) == 0:
@@ -529,23 +733,20 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         # TODO add alot of checks
         labels = _make_labels(node.child_statement_list.ctx)
 
-        init = self._compiler.init_node(
-            op_node.PushConstantOpNode(), node.child_begin_expression.ctx)
-        init.const_value = node.child_begin_expression.get_static_value()
+        init_value = node.child_begin_expression.get_static_value()
 
         condition = self._compiler.init_node(
             op_node.JumpLoopOpNode(), node.ctx)
         condition.threshold = node.child_end_expression.get_static_value()
         condition.destination = labels.begin
+        condition.txt_name = node.txt_name
 
         forop = self._compiler.init_node(op_node.LoopOpNode(), node.ctx)
-        forop.set_initialization(init)
+        forop.init_value = init_value
         forop.set_condition(condition)
         forop.set_body(body)
-        forop.txt_initialization = get_reference_text(
-            node.child_begin_expression.ctx)
-        forop.txt_condition = get_reference_text(node.child_end_expression.ctx)
         forop.labels = labels
+        forop.txt_name = node.txt_name
 
         self._add_op(forop)
 
@@ -557,16 +758,14 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
     This visitor goes through the source tree and creates a target tree
     '''
 
-    def __init__(self, compiler, vm, replybuffer, jmp_ops, labels):
+    def __init__(self, compiler, vm, jmp_ops, labels):
         '''
         Constructor
         '''
         self._compiler = compiler
         self._vm = vm
-
         self._jmp_ops = jmp_ops
-        self._replybuffer = replybuffer
-        self._negate = True
+        self._negate = False
         self._labels = labels
         self._destination = labels.end
 
@@ -577,34 +776,148 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
         self._compiler.report_error(node.ctx, "Expression not supported by "
                                     + self._vm.fullname)
 
-    def visit_OperatorExprNode(self, node):
+    def _visit_expression(self, node):
+        '''
+        Helper method to create an expression visitor an call it
+        '''
 
-        if node.txt_operator == '&&':
+        visitor = _ZeptoVmExprVisitor(self._compiler, self._vm, self._jmp_ops)
+
+        visit_node(visitor, node)
+
+    def visit_LogicOpExprNode(self, node):
+
+        txt_op = negate_logic(node.txt_operator, self._negate)
+        if txt_op == '&&':
             assert len(node.child_argument_list.childs_arguments) == 2
             visit_node(self, node.child_argument_list.childs_arguments[0])
             visit_node(self, node.child_argument_list.childs_arguments[1])
 
-        elif node.txt_operator == '||':
+        elif txt_op == '||':
             assert len(node.child_argument_list.childs_arguments) == 2
-            self._negate = False
+            self._negate = not self._negate
             self._destination = self._labels.begin
             visit_node(self, node.child_argument_list.childs_arguments[0])
-            self._negate = True
+            self._negate = not self._negate
             self._destination = self._labels.end
             visit_node(self, node.child_argument_list.childs_arguments[1])
 
+        elif txt_op == '!':
+            assert len(node.child_argument_list.childs_arguments) == 1
+            self._negate = not self._negate
+            visit_node(self, node.child_argument_list.childs_arguments[0])
         else:
-            self.default_visit(node)
+            assert False
 
-    def visit_FieldToLiteralComparisonOpExprNode(self, node):
+    def visit_FieldToLiteralCompExprNode(self, node):
 
         jmpop = self._compiler.init_node(op_node.JumpIfFieldOpNode(), node.ctx)
-        jmpop.reply = self._replybuffer.find_variable(node.get_variable_decl())
+        jmpop.reply = self._vm.buffer.find_variable(node.get_variable_decl())
         jmpop.field_sequence = node.get_field_sequence()
         jmpop.destination = self._destination
 
-        sub, th = node.get_subcode_and_threshold(self._negate)
+        # instead of executing the body when condition is true,
+        # jump off the body when condition is false,
+        # so condition needs to be negated
+        sub, th = node.get_subcode_and_threshold(not self._negate)
         jmpop.threshold = th
         jmpop.set_subcode(sub)
 
         self._jmp_ops.add_operation(jmpop)
+
+    def visit_NumberToLiteralCompExprNode(self, node):
+
+        self._vm.assert_level(self._compiler, Level.SMALL, node.ctx)
+
+        jmpop = self._compiler.init_node(op_node.JumpIfExprOpNode(), node.ctx)
+
+        self._vm.stack.init_args()
+        self._visit_expression(node.get_expression())
+        jmpop.args = self._vm.stack.get_args()
+
+        jmpop.destination = self._destination
+
+        # instead of executing the body when condition is true,
+        # jump off the body when condition is false,
+        # so condition needs to be negated
+        sub, th = node.get_subcode_and_threshold(not self._negate)
+        jmpop.threshold = th
+        jmpop.set_subcode(sub)
+
+        self._jmp_ops.add_operation(jmpop)
+
+
+class _ZeptoVmExprVisitor(NodeVisitor):
+
+    '''
+    Visitor class for the expression inside if
+    This visitor goes through the source tree and creates a target tree
+    '''
+
+    def __init__(self, compiler, vm, ops):
+        '''
+        Constructor
+        '''
+        self._compiler = compiler
+        self._vm = vm
+        self._ops = ops
+
+    def default_visit(self, node):
+        '''
+        Default action when a node specific action is not found
+        '''
+        self._compiler.report_error(node.ctx, "Expression not supported by "
+                                    + self._vm.fullname)
+        self._compiler.raise_error()
+
+    def visit_MemberAccessExprNode(self, node):
+
+        op = self._compiler.init_node(
+            op_node.PushFieldOpNode(), node.ctx)
+
+        assert isinstance(node.child_expression, expression.VariableExprNode)
+
+        op.reply = self._vm.buffer.find_variable(
+            node.child_expression.ref_decl)
+        op.field_sequence = node.get_member_field_sequence()
+
+        self._vm.stack.push_temp()
+        self._ops.add_operation(op)
+
+    def visit_NumberLiteralExprNode(self, node):
+
+        self._vm.stack.push_constant(node.get_static_value())
+
+    def visit_StaticEvaluatedExprNode(self, node):
+
+        self._vm.stack.push_constant(node.get_static_value())
+
+    def visit_ArithmeticOpExprNode(self, node):
+
+        if node.txt_operator in ['+', '-']:
+            assert len(node.child_argument_list.childs_arguments) == 2
+
+            self._vm.stack.init_args()
+
+            visit_node(
+                self, node.child_argument_list.childs_arguments[0])
+            visit_node(
+                self, node.child_argument_list.childs_arguments[1])
+
+            op = self._compiler.init_node(
+                op_node.ExpressionOpNode(), node.ctx)
+            op.set_binary_operator(node.txt_operator)
+            op.args = self._vm.stack.get_args()
+
+            self._vm.stack.push_temp()
+            self._ops.add_operation(op)
+
+        else:
+            self.default_visit(node)
+
+    def visit_VariableExprNode(self, node):
+        self._vm.stack.push_variable(node.ref_decl)
+
+    def visit_LiteralCastExprNode(self, node):
+        # TODO insert real convertion here
+        visit_node(self, node.child_expression)
