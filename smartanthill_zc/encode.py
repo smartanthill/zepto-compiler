@@ -234,7 +234,7 @@ class _HalfFloatBits(object):
         not infinite nor minus zero
         '''
         assert 0 <= self.exp <= 30
-        assert 0 <= self.mantisa < 2 ** 10
+        assert 0 <= self.mantisa <= 0x3ff
         assert self.sign == 0 or self.sign == 1
 
         if self.exp == 0 and self.mantisa == 0:
@@ -307,17 +307,25 @@ class _HalfFloatBits(object):
         byte0 = by >> 8
         byte1 = self.mantisa & 0xff
 
-        enc = bytes([byte0, byte1])
-
-        return enc
+        return [byte0, byte1]
 
     def get_value(self):
         '''
         Returns the size in bytes of this type
         '''
-        s = 1 if self.sign == 0 else -1
+        if self.mantisa == 0 and self.exp == 0:
+            return 0.
 
-        return math.ldexp(s * self.mantisa, self.exp - 25)
+        m = self.mantisa
+        e = self.exp - 24
+        if self.exp != 0:  # normal
+            m += 1024
+            e -= 1
+
+        if self.sign == 1:
+            m *= -1
+
+        return math.ldexp(m, e)
 
 
 def half_float_value(value):
@@ -325,7 +333,7 @@ def half_float_value(value):
     Converts value to a half float and back to float
     Will round its precision to half float, and will raise if overflow
     '''
-    hf = _create_half_float(value)
+    hf = create_half_float(value)
     return hf.get_value()
 
 
@@ -334,7 +342,7 @@ def half_float_next_up(value):
     Converts value to a half float and increments minimally
     Will round its precision to half float, and will raise if overflow
     '''
-    hf = _create_half_float(value)
+    hf = create_half_float(value)
     hf.next_up()
     return hf.get_value()
 
@@ -344,12 +352,12 @@ def half_float_next_down(value):
     Converts value to a half float and decrements minimally
     Will round its precision to half float, and will raise if overflow
     '''
-    hf = _create_half_float(value)
+    hf = create_half_float(value)
     hf.next_down()
     return hf.get_value()
 
 
-def _create_half_float(value):
+def create_half_float(value):
     '''
     Half float encoder implementation
     '''
@@ -358,16 +366,30 @@ def _create_half_float(value):
     assert not math.isinf(value)
 
     m, e = math.frexp(value)
+    if m == 0 and e == 0:
+        return _HalfFloatBits(0, 0, 0)
 
     signbit = 1 if m < 0. else 0
 
-    m2 = math.ldexp(m, 10)
-    m3 = math.fabs(m2)
-    m4 = math.trunc(m3)
+    if e < -24 or e > 16:
+        raise HalfFloatOverflowError()
+    elif e >= -24 and e <= -14:  # subnormal
+        m2 = math.ldexp(m, e + 24)
+        m3 = math.fabs(m2)
+        m4 = round(m3)
+        m5 = math.trunc(m4)
 
-    e2 = e + 15
+        return _HalfFloatBits(signbit, 0, m5)
 
-    return _HalfFloatBits(signbit, e2, m4)
+    else:  # normal
+
+        m2 = math.ldexp(m, 11)
+        m3 = math.fabs(m2)
+        m4 = round(m3)
+        m5 = math.trunc(m4)
+        m6 = m5 - 1024
+
+        return _HalfFloatBits(signbit, e + 14, m6)
 
 
 class _EncodingImpl(object):

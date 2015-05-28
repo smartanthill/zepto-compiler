@@ -16,7 +16,8 @@
 from smartanthill_zc import builtin
 from smartanthill_zc.encode import Encoding, get_encoding_min_max
 from smartanthill_zc.node import (DeclarationListNode, Node,
-                                  ResolutionHelper, TypeDeclNode)
+                                  ResolutionHelper, TypeDeclNode,
+                                  ExpressionNode)
 
 
 class FieldTypeFactoryNode(Node):
@@ -168,6 +169,7 @@ class LinearConvertionFloat(object):
         '''
         self._a = 0
         self._b = 0
+        self._inv_a = 0
 
     def set_points(self, in0, out0, in1, out1):
         '''
@@ -178,18 +180,52 @@ class LinearConvertionFloat(object):
         out0 = float(out0)
         out1 = float(out1)
         self._a = (out1 - out0) / (in1 - in0)
+        self._inv_a = (in1 - in0) / (out1 - out0)
         self._b = out0 - self._a * in0
 
     def inverse(self, value):
         '''
         Returns inverse scaling of value
-        This method rounds result to exact integer (i.e. 3.0 )
-        or half way (i.e. 4.5)
+        This method rounds result to exact integer
+        or half way (i.e. 1.0, 1.5, 2.0, 2.5, etc)
         '''
 
-        inv = (value - self._b) / self._a
+        inv = (value - self._b) * self._inv_a
         inv2 = round(inv * 2) / 2  # magic trick to remove round error
         return inv2
+
+    def create_cast(self):
+        '''
+        Creates a new expression cast
+        '''
+        # pylint: disable=no-self-use
+
+        return FieldCastExprNode(self._a, self._b)
+
+
+class FieldCastExprNode(ExpressionNode):
+
+    '''
+    Node class representing an automatic conversion from a sensor output value
+    to a physical magnitude by linear scaling
+    '''
+
+    def __init__(self, a, b):
+        '''
+        Constructor
+        '''
+        super(FieldCastExprNode, self).__init__()
+        self.child_expression = None
+        self.a = a
+        self.b = b
+
+    def set_expression(self, child):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_expression = child
 
 
 class MemberDeclNode(Node, ResolutionHelper):

@@ -16,21 +16,24 @@
 import math
 import sys
 
-from smartanthill_zc import builtin, vm, writer
+from smartanthill_zc import builtin, vm, writer, encode
 from smartanthill_zc import compiler, parse_xml
 from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
 from smartanthill_zc.compiler import Compiler
+from smartanthill_zc.encode import create_half_float, half_float_value,\
+    half_float_next_down
 
 
 def main():
 
-    code = [u'var temp = TempSensor.Execute();',
-            u'if(temp.Temperature + 1 < 36.6) {',
+    code = [u'var temp1 = TempSensor.Execute();',
+            u'var temp2 = TempSensor.Execute();',
+            u'if(temp1.Temperature < temp2.Temperature) {',
             u'  mcu_sleep(5*60);',
             u'  return TempSensor.Execute();',
             u'}',
-            u'return temp;']
+            u'return temp1;']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
@@ -69,16 +72,7 @@ def main():
         u'</smartanthill.plugin>'
     ]
 
-    c = 38.9
-    c1 = c / 0.1
-    inv2 = round(c1 * 2)  # magic trick to remove round
-    inv3 = inv2 / float(2.0)
-
-    c2 = inv3 + 1
-    c3 = math.floor(c2)
-
-    c10 = math.floor(inv3)
-    c11 = c10 + 1
+    enc = create_half_float(5.96046e-8)
 
     xml = '\n'.join(xml)
     code = '\n'.join(code)

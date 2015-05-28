@@ -486,7 +486,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         Default action when a node specific action is not found
         '''
         self._compiler.report_error(node.ctx, "Statement not supported by "
-                                    + self._vm.fullname)
+                                    + self._vm.level.fullname)
 
     def add_move_reply_to_front(self, i):
         '''
@@ -608,7 +608,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                 else:
                     self._compiler.report_error(
                         current.ctx, "Expression at 'return' statement could "
-                        "not be resolved for " + self._vm.fullname)
+                        "not be resolved for " + self._vm.level.fullname)
 
             self._vm.buffer.clear_for_exit(self, already_here)
             for current in bodypart_call:
@@ -620,7 +620,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at 'return' statement could not be "
-                "resolved for " + self._vm.fullname)
+                "resolved for " + self._vm.level.fullname)
 
         exitop = self._compiler.init_node(op_node.ExitOpNode(), node.ctx)
 
@@ -717,7 +717,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at statement could not be "
-                "resolved for " + self._vm.fullname)
+                "resolved for " + self._vm.level.fullname)
 
     def visit_SimpleForStmtNode(self, node):
 
@@ -774,7 +774,7 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
         Default action when a node specific action is not found
         '''
         self._compiler.report_error(node.ctx, "Expression not supported by "
-                                    + self._vm.fullname)
+                                    + self._vm.level.fullname)
 
     def _visit_expression(self, node):
         '''
@@ -846,6 +846,41 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
 
         self._jmp_ops.add_operation(jmpop)
 
+    def visit_NumberToNumberCompExprNode(self, node):
+
+        self._vm.assert_level(self._compiler, Level.SMALL, node.ctx)
+
+        assert len(node.child_argument_list.childs_arguments) == 2
+
+        self._vm.stack.init_args()
+
+        self._visit_expression(node.child_argument_list.childs_arguments[0])
+        self._visit_expression(node.child_argument_list.childs_arguments[1])
+
+        op = self._compiler.init_node(op_node.ExpressionOpNode(), node.ctx)
+        op.set_binary_operator('-')
+        op.args = self._vm.stack.get_args()
+
+        self._jmp_ops.add_operation(op)
+
+        self._vm.stack.init_args()
+        self._vm.stack.push_temp()
+
+        jmpop = self._compiler.init_node(op_node.JumpIfExprOpNode(), node.ctx)
+
+        jmpop.args = self._vm.stack.get_args()
+
+        jmpop.destination = self._destination
+
+        # instead of executing the body when condition is true,
+        # jump off the body when condition is false,
+        # so condition needs to be negated
+        sub, th = node.get_subcode_and_threshold(not self._negate)
+        jmpop.threshold = th
+        jmpop.set_subcode(sub)
+
+        self._jmp_ops.add_operation(jmpop)
+
 
 class _ZeptoVmExprVisitor(NodeVisitor):
 
@@ -867,7 +902,7 @@ class _ZeptoVmExprVisitor(NodeVisitor):
         Default action when a node specific action is not found
         '''
         self._compiler.report_error(node.ctx, "Expression not supported by "
-                                    + self._vm.fullname)
+                                    + self._vm.level.fullname)
         self._compiler.raise_error()
 
     def visit_MemberAccessExprNode(self, node):
@@ -921,3 +956,37 @@ class _ZeptoVmExprVisitor(NodeVisitor):
     def visit_LiteralCastExprNode(self, node):
         # TODO insert real convertion here
         visit_node(self, node.child_expression)
+
+    def visit_FieldCastExprNode(self, node):
+
+        if node.a != 1 or node.b != 0:
+            self._vm.stack.init_args()
+
+        visit_node(self, node.child_expression)
+
+        if node.a != 1:
+            self._vm.stack.push_constant(node.a)
+
+            op = self._compiler.init_node(
+                op_node.ExpressionOpNode(), node.ctx)
+
+            op.set_binary_operator('*')
+            op.args = self._vm.stack.get_args()
+            self._ops.add_operation(op)
+
+            if node.b != 0:
+                self._vm.stack.init_args()
+            self._vm.stack.push_temp()
+
+        if node.b != 0:
+            self._vm.stack.push_constant(node.b)
+
+            op = self._compiler.init_node(
+                op_node.ExpressionOpNode(), node.ctx)
+
+            op.set_binary_operator('+')
+            op.args = self._vm.stack.get_args()
+
+            self._ops.add_operation(op)
+
+            self._vm.stack.push_temp()

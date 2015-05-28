@@ -94,12 +94,12 @@ class UnOp(object):
     '''
 
     POP = _OpImpl(1, 'POP')
-    COPY = _OpImpl(2, 'COPY')
-    MINUS = _OpImpl(3, 'MINUS')
-    BITNEG = _OpImpl(4, 'BITNEG')
-    NOT = _OpImpl(5, 'NOT')
-    INC = _OpImpl(6, 'INC')
-    DEC = _OpImpl(7, 'DEC')
+    COPY = _OpImpl(2, '=')
+    MINUS = _OpImpl(3, '-')
+    BITNEG = _OpImpl(4, '~')
+    NOT = _OpImpl(5, '!')
+    INC = _OpImpl(6, '++')
+    DEC = _OpImpl(7, '--')
 
 
 class BinOp(object):
@@ -107,15 +107,17 @@ class BinOp(object):
     '''
     ZEPTOVM_OP_EXPRBINOP binary operators
     '''
-    PLUS = _OpImpl(1, 'PLUS')
-    MINUS = _OpImpl(1, 'MINUS')
-    SHL = _OpImpl(1, 'SHL')
-    SHR = _OpImpl(1, 'SHR')
-    USHR = _OpImpl(1, 'USHR')
-    BITAND = _OpImpl(1, 'BITAND')
-    BITOR = _OpImpl(1, 'BITOR')
-    AND = _OpImpl(1, 'AND')
-    OR = _OpImpl(1, 'OR')
+    PLUS = _OpImpl(1, '+')
+    MINUS = _OpImpl(1, '-')
+    MUL = _OpImpl(1, '*')
+    DIV = _OpImpl(1, '/')
+    SHL = _OpImpl(1, '<<')
+    SHR = _OpImpl(1, '>>')
+    USHR = _OpImpl(1, '>>>')
+    BITAND = _OpImpl(1, '&')
+    BITOR = _OpImpl(1, '|')
+    AND = _OpImpl(1, '&&')
+    OR = _OpImpl(1, '||')
 
 
 class BitField(object):
@@ -738,7 +740,8 @@ class JumpLoopOpNode(OpcodeNode):
 
 
 _binary_operator_subcode = {'+': BinOp.PLUS,
-                            '-': BinOp.MINUS}
+                            '-': BinOp.MINUS,
+                            '*': BinOp.MUL}
 
 _unary_operator_subcode = {'-': UnOp.MINUS,
                            '=': UnOp.COPY,
@@ -821,8 +824,9 @@ class ExpressionOpNode(OpcodeNode):
                 writer.write_subcode(self._operator)
                 writer.write_oparg(self.args[0])
 
-        elif self._operator in [BinOp.PLUS, BinOp.MINUS, BinOp.SHL, BinOp.SHR,
-                                BinOp.USHR, BinOp.BITAND, BinOp.BITOR,
+        elif self._operator in [BinOp.PLUS, BinOp.MINUS, BinOp.MUL, BinOp.DIV,
+                                BinOp.SHL, BinOp.SHR, BinOp.USHR,
+                                BinOp.BITAND, BinOp.BITOR,
                                 BinOp.AND, BinOp.OR]:
             assert len(self.args) == 2
             if self.result.expr_offset:
@@ -842,6 +846,74 @@ class ExpressionOpNode(OpcodeNode):
 
         else:
             assert False
+
+
+class FieldCastOpNode(OpcodeNode):
+
+    '''
+    Node for linear scaling of a reply field
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(FieldCastOpNode, self).__init__()
+        self.args = None
+        self.a = 1
+        self.b = 0
+        self.result = ExprOpResult()
+
+    def write(self, writer):
+        '''
+        Write this node to the output writer
+        '''
+        # First push the field to the stack
+        # then multply
+        assert self.args
+        assert len(self.args) == 1
+        assert self.result
+
+        if self.a != 1:
+
+            inmediate = ExprOpArg()
+            inmediate.optional_immediate = self.a
+
+            if self.result.expr_offset and self.b == 0:
+                writer.write_opcode(Op.EXPRBINOP_EX2)
+                writer.write_subcode(BinOp.MUL)
+                writer.write_oparg(self.args[0])
+
+                writer.write_oparg(inmediate)
+                writer.write_opresult(self.result)
+            else:
+                writer.write_opcode(Op.EXPRBINOP_EX)
+                writer.write_subcode(BinOp.MUL)
+                writer.write_oparg(self.args[0])
+                writer.write_oparg(inmediate)
+
+        if self.b != 0:
+            inmediate = ExprOpArg()
+            inmediate.optional_immediate = self.b
+
+            if self.result.expr_offset:
+                writer.write_opcode(Op.EXPRBINOP_EX2)
+                writer.write_subcode(BinOp.PLUS)
+                if self.a == 1:
+                    writer.write_oparg(self.args[0])
+                else:
+                    writer.write_oparg(ExprOpArg())
+
+                writer.write_oparg(inmediate)
+                writer.write_opresult(self.result)
+            else:
+                writer.write_opcode(Op.EXPRBINOP_EX)
+                writer.write_subcode(BinOp.PLUS)
+                if self.a == 1:
+                    writer.write_oparg(self.args[0])
+                else:
+                    writer.write_oparg(ExprOpArg())
+                writer.write_oparg(inmediate)
 
 
 class PushFieldOpNode(OpcodeNode):
