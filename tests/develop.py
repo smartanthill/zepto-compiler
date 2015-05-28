@@ -69,6 +69,20 @@ def main():
         u'    </field>',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
+        u'</smartanthill.plugin>',
+        u'<smartanthill.plugin name="TempSensor2" id="2" version="1.0">',
+        u'  <description>Short description here</description>',
+        u'  <command/>',
+        u'  <reply>',
+        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'     min="0" max="500">',
+        u'      <meaning type="float">',
+        u'        <linear-conversion input-point0="100" output-point0="10.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
+        u'      </meaning>',
+        u'    </field>',
+        u'  </reply>',
+        u'  <peripheral>Right now compiler can ignore this</peripheral>',
         u'</smartanthill.plugin>'
     ]
 

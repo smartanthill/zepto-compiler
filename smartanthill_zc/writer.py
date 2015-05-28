@@ -15,8 +15,8 @@
 
 import binascii
 
-from smartanthill_zc.encode import ZeptoEncoder, field_sequence_to_str,\
-    field_sequence_byte_size
+from smartanthill_zc.encode import (ZeptoEncoder, field_sequence_byte_size,
+                                    field_sequence_to_str)
 
 
 def write_text_op_codes(compiler, node):

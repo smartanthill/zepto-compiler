@@ -15,11 +15,11 @@
 
 import math
 
-from smartanthill_zc import expression, encode
+from smartanthill_zc import encode, expression
 from smartanthill_zc.encode import Encoding
-from smartanthill_zc.node import (DeclarationListNode, Node, ResolutionHelper,
-                                  TypeDeclNode, ExpressionNode,
-                                  ArgumentListNode)
+from smartanthill_zc.node import (ArgumentListNode, DeclarationListNode,
+                                  ExpressionNode, Node, ResolutionHelper,
+                                  TypeDeclNode)
 
 
 def create_builtins(compiler, root):

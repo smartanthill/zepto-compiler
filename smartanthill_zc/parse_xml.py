@@ -15,11 +15,13 @@
 
 
 from xml.etree import ElementTree
+
+from smartanthill_zc import bodypart, builtin
+
 try:
     from xml.etree.ElementTree import ParseError
 except ImportError:
     from xml.parsers.expat import ExpatError as ParseError
-from smartanthill_zc import bodypart, builtin
 
 
 def parse_xml_body_parts(compiler, data):
@@ -31,8 +33,31 @@ def parse_xml_body_parts(compiler, data):
 
     try:
         root = ElementTree.fromstring(data)
-        for current in root.getiterator('smartanthill.plugin'):  # python 2.6
+        # python 2.6
+        for current in root.getiterator('smartanthill.plugin'):
             _make_bodypart(compiler, manager, current)
+    except ParseError:  # TODO improve
+        compiler.report_error(compiler.BUILTIN, "Error parsing xml")
+        compiler.raise_error()
+
+    compiler.check_stage('xml_bodyparts')
+
+    return manager
+
+
+def parse_xml_body_part_list(compiler, data_list):
+    '''
+    Parse unicode string containing xml bodyparts declarations
+    Returns a BodypartManagerNode with all the parsed bodyparts
+    '''
+    manager = bodypart.create_body_parts_manager(compiler, compiler.BUILTIN)
+
+    try:
+        for data in data_list:
+            root = ElementTree.fromstring(data)
+            # python 2.6
+            for current in root.getiterator('smartanthill.plugin'):
+                _make_bodypart(compiler, manager, current)
     except ParseError:  # TODO improve
         compiler.report_error(compiler.BUILTIN, "Error parsing xml")
         compiler.raise_error()

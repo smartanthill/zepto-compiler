@@ -15,9 +15,8 @@
 
 from smartanthill_zc import builtin
 from smartanthill_zc.encode import Encoding, get_encoding_min_max
-from smartanthill_zc.node import (DeclarationListNode, Node,
-                                  ResolutionHelper, TypeDeclNode,
-                                  ExpressionNode)
+from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
+                                  ResolutionHelper, TypeDeclNode)
 
 
 class FieldTypeFactoryNode(Node):

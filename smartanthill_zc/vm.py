@@ -14,9 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc import array_lit, op_node, expression
-from smartanthill_zc.antlr_helper import (
-    get_reference_text, get_reference_lines)
+from smartanthill_zc import array_lit, expression, op_node
+from smartanthill_zc.antlr_helper import (get_reference_lines,
+                                          get_reference_text)
 from smartanthill_zc.builtin import negate_logic
 from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node

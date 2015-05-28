@@ -14,8 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc.node import (ExpressionNode, resolve_expression_list,
-                                  TypeDeclNode)
+from smartanthill_zc.node import (ExpressionNode, TypeDeclNode,
+                                  resolve_expression_list)
 
 
 def _create_array_type_name(expressions):

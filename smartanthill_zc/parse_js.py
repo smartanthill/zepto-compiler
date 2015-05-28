@@ -16,13 +16,12 @@
 
 import antlr4
 
-from smartanthill_zc import array_lit
-from smartanthill_zc import expression, statement
+from smartanthill_zc import array_lit, expression, statement
+from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
+                                          get_token_text)
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
-                                          get_token_text)
 from smartanthill_zc.node import ArgumentListNode, ProgramNode, RootNode
 
 

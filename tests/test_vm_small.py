@@ -35,8 +35,25 @@ def common_test_run(code):
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
         u'</smartanthill.plugin>'
     ]
+    xml2 = [
+        u'<smartanthill.plugin name="TempSensor2" id="2" version="1.0">',
+        u'  <description>Short description here</description>',
+        u'  <command/>',
+        u'  <reply>',
+        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'     min="0" max="500">',
+        u'      <meaning type="float">',
+        u'        <linear-conversion input-point0="100" output-point0="15.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
+        u'      </meaning>',
+        u'    </field>',
+        u'  </reply>',
+        u'  <peripheral>Right now compiler can ignore this</peripheral>',
+        u'</smartanthill.plugin>'
+    ]
 
     xml = '\n'.join(xml)
+    xml2 = '\n'.join(xml2)
     code = '\n'.join(code)
 
     comp = compiler.Compiler()
@@ -48,7 +65,7 @@ def common_test_run(code):
 
 #     xml_tree = parse_xml.parse_xml_string(comp, xml)
 #     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml, xml2])
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)
@@ -163,7 +180,7 @@ def test_js_small_comp1():
 def test_js_small_comp2():
 
     code = [u'var temp1 = TempSensor.Execute();',
-            u'var temp2 = TempSensor.Execute();',
+            u'var temp2 = TempSensor2.Execute();',
             u'if(temp1.Temperature < temp2.Temperature) {',
             u'  mcu_sleep(5*60);',
             u'  return TempSensor.Execute();',
@@ -174,14 +191,15 @@ def test_js_small_comp2():
         '/* target vm: Small */',
         '/* mcusleep: True */',
         '/* reply: {INT} */',
-        '/* size: 64 bytes */',
+        '/* size: 72 bytes */',
         '|EXEC|1|0|[]|',
-        '|EXEC|1|0|[]|',
+        '|EXEC|2|0|[]|',
         '/* if( temp1.Temperature<temp2.Temperature ) */',
         '|PUSHEXPR_REPLYFIELD|0|{INT}|',
         '|EXPRBINOP_EX|*|1,POP|->|0.1|',
         '|PUSHEXPR_REPLYFIELD|1|{INT}|',
-        '|EXPRBINOP_EX|*|1,POP|->|0.1|',
+        '|EXPRBINOP_EX|*|1,POP|->|0.05|',
+        '|EXPRBINOP_EX|+|1,POP|->|10|',
         '|EXPRBINOP|-|',
         '|JMPIFEXPR_GT|-5.96046e-08|(+16):end_7:|',
         '/* begin_3: */',
