@@ -29,20 +29,7 @@ def parse_xml_body_parts(compiler, data):
     Parse unicode string containing xml bodyparts declarations
     Returns a BodypartManagerNode with all the parsed bodyparts
     '''
-    manager = bodypart.create_body_parts_manager(compiler, compiler.BUILTIN)
-
-    try:
-        root = ElementTree.fromstring(data)
-        # python 2.6
-        for current in root.getiterator('smartanthill.plugin'):
-            _make_bodypart(compiler, manager, current)
-    except ParseError:  # TODO improve
-        compiler.report_error(compiler.BUILTIN, "Error parsing xml")
-        compiler.raise_error()
-
-    compiler.check_stage('xml_bodyparts')
-
-    return manager
+    return parse_xml_body_part_list(compiler, [data])
 
 
 def parse_xml_body_part_list(compiler, data_list):

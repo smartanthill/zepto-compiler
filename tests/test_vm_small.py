@@ -212,3 +212,42 @@ def test_js_small_comp2():
         '|EXIT|ISFIRST|']
 
     assert common_test_run(code) == out
+
+
+def test_js_small_comp3():
+
+    code = [u'var temp = TempSensor.Execute();',
+            u'var temp1 = temp.Temperature + 1;',
+            u'var temp2 = TempSensor2.Execute();',
+            u'if(temp1 < temp2.Temperature) {',
+            u'  mcu_sleep(5*60);',
+            u'  return TempSensor.Execute();',
+            u'}',
+            u'return temp;']
+
+    out = [
+        '/* target vm: Small */',
+        '/* mcusleep: True */',
+        '/* reply: {INT} */',
+        '/* size: 80 bytes */',
+        '|EXEC|1|0|[]|',
+        '|PUSHEXPR_REPLYFIELD|0|{INT}|',
+        '|EXPRBINOP_EX|*|1,POP|->|0.1|',
+        '|EXPRBINOP_EX|+|1,POP|->|1|',
+        '|EXEC|2|0|[]|',
+        '/* if( temp1<temp2.Temperature ) */',
+        '|PUSHEXPR_REPLYFIELD|1|{INT}|',
+        '|EXPRBINOP_EX|*|1,POP|->|0.05|',
+        '|EXPRBINOP_EX|+|1,POP|->|10|',
+        '|EXPRBINOP|-|',
+        '|JMPIFEXPR_GT|-5.96046e-08|(+16):end_8:|',
+        '/* begin_4: */',
+        '|MCUSLEEP|300|0|',
+        '|POPREPLIES|0|',
+        '|EXEC|1|0|[]|',
+        '|EXIT|ISFIRST|',
+        '/* end_8: */',
+        '|POPREPLIES|1|',
+        '|EXIT|ISFIRST|']
+
+    assert common_test_run(code) == out

@@ -27,13 +27,14 @@ from smartanthill_zc.encode import create_half_float, half_float_value,\
 
 def main():
 
-    code = [u'var temp1 = TempSensor.Execute();',
-            u'var temp2 = TempSensor.Execute();',
-            u'if(temp1.Temperature < temp2.Temperature) {',
+    code = [u'var temp = TempSensor.Execute();',
+            u'var temp1 = temp.Temperature + 1;',
+            u'var temp2 = TempSensor2.Execute();',
+            u'if(temp1 < temp2.Temperature) {',
             u'  mcu_sleep(5*60);',
             u'  return TempSensor.Execute();',
             u'}',
-            u'return temp1;']
+            u'return temp;']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
@@ -69,7 +70,9 @@ def main():
         u'    </field>',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</smartanthill.plugin>',
+        u'</smartanthill.plugin>'
+    ]
+    xml2 = [
         u'<smartanthill.plugin name="TempSensor2" id="2" version="1.0">',
         u'  <description>Short description here</description>',
         u'  <command/>',
@@ -86,13 +89,12 @@ def main():
         u'</smartanthill.plugin>'
     ]
 
-    enc = create_half_float(5.96046e-8)
-
     xml = '\n'.join(xml)
+    xml2 = '\n'.join(xml2)
     code = '\n'.join(code)
     comp = Compiler()
 
-    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml, xml2])
     etdump = visitor.dump_tree(bodyparts)
 
     print '\n'.join(etdump)
