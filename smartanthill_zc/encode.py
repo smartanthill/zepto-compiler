@@ -61,26 +61,14 @@ def _encode_unsigned(value):
     Encoded-*-Int internal implemntation function
     '''
 
+    assert value >= 0
     result = bytearray()
-    not_last = False
 
     while value >= 128:
-        current = value % 128
-        if not_last:
-            current += 128
-
-        not_last = True
-        result.append(current)
-
-        value /= 128
-        value -= 1
-
-    if not_last:
-        value += 128
+        result.append((value & 0x7f) | 0x80)
+        value >>= 7
 
     result.append(value)
-
-    result.reverse()
 
     return result
 
@@ -114,24 +102,9 @@ def encode_signed_int(max_bytes, value):
     assert value <= (2 ** ((8 * max_bytes) - 1)) - 1
 
     if value >= 0:
-
-        limit = 64
-        while value >= limit:
-            limit *= 128
-            limit += 64
-
-        return _encode_unsigned(value + limit)
+        return _encode_unsigned(value << 1)
     else:
-        limit = 64
-        gap = 0
-        while value < -limit:
-            limit *= 128
-            limit += 64
-
-            gap *= 128
-            gap += 128
-
-        return _encode_unsigned(value + limit + gap)
+        return _encode_unsigned(((~value) << 1) | 1)
 
 
 def decode_unsigned_int(byte_list):
@@ -139,20 +112,17 @@ def decode_unsigned_int(byte_list):
     Encoded-Unsigned-Int decoder implementation
     '''
 
+    assert isinstance(byte_list, bytearray)
+
     i = 0
     value = 0
-    while byte_list[i] >= 128:
-        assert byte_list[i] < 256
-
-        c = byte_list[i] - 128 + 1
-
-        value += c
-        value *= 128
+    shift = 0
+    while byte_list[i] & 0x80 != 0:
+        value |= (byte_list[i] & 0x7f) << shift
+        shift += 7
         i += 1
 
-    assert byte_list[i] >= 0
-    assert byte_list[i] < 128
-    value += byte_list[i]
+    value |= byte_list[i] << shift
 
     assert len(byte_list) == i + 1
 
@@ -165,20 +135,10 @@ def decode_signed_int(byte_list):
     '''
 
     value = decode_unsigned_int(byte_list)
-    base = 0
-    half = 64
-    while value >= (base * 128) + 128:
-        base *= 128
-        base += 128
-
-        half *= 128
-
-    if value - base < half:
-        # negative
-        return value - half - base - base / 2
+    if value & 1 == 0:
+        return value >> 1
     else:
-        # positive
-        return value - half - base + base / 2
+        return ~(value >> 1)
 
 
 def encode_bitfield(bits):

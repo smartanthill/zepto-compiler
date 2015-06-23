@@ -34,17 +34,20 @@ def test_encode_unsigned_int():
     encode_unsigned_helper(1, 0, [0])
     encode_unsigned_helper(1, 127, [127])
 
-    encode_unsigned_helper(2, 128, [128, 0])
-    encode_unsigned_helper(2, 129, [128, 1])
-    encode_unsigned_helper(2, 255, [128, 127])
-    encode_unsigned_helper(2, 256, [129, 0])
-    encode_unsigned_helper(2, 16511, [255, 127])
+    encode_unsigned_helper(2, 128, [128, 1])
+    encode_unsigned_helper(2, 129, [129, 1])
+    encode_unsigned_helper(2, 255, [255, 1])
+    encode_unsigned_helper(2, 256, [128, 2])
+    encode_unsigned_helper(2, 16383, [255, 127])
+    encode_unsigned_helper(3, 16511, [255, 128, 1])
 
-    encode_unsigned_helper(3, 16512, [128, 128, 0])
-    encode_unsigned_helper(3, 2113663, [255, 255, 127])
+    encode_unsigned_helper(3, 16512, [128, 129, 1])
 
-    encode_unsigned_helper(4, 2113664, [128, 128, 128, 0])
-    encode_unsigned_helper(4, 270549119, [255, 255, 255, 127])
+    encode_unsigned_helper(3, 2097151, [255, 255, 127])
+    encode_unsigned_helper(4, 2113663, [255, 128, 129, 1])
+
+    encode_unsigned_helper(4, 2113664, [128, 129, 129, 1])
+    encode_unsigned_helper(5, 270549119, [255, 128, 129, 129, 1])
 
 
 def test_encode_unsigned_int_raise_0():
@@ -67,28 +70,28 @@ def encode_signed_helper(max_bytes, value, unsigned_value):
 
 def test_encode_signed_int():
 
-    encode_signed_helper(1, -64, 0)
-    encode_signed_helper(1, 0, 64)
-    encode_signed_helper(1, 63, 127)
+    encode_signed_helper(1, -64, 127)
+    encode_signed_helper(1, 0, 0)
+    encode_signed_helper(1, 63, 126)
 
     # 2 bytes
-    encode_signed_helper(2, -8256, 128)  # -8256 + 8256 + 128
-    encode_signed_helper(2, -65, 8319)  # -65 + 8256 + 128
+    encode_signed_helper(2, -8256, 16511)  # -8256 + 8256 + 128
+    encode_signed_helper(2, -65, 129)  # -65 + 8256 + 128
 
-    encode_signed_helper(2, 64, 8320)  # 64 + 8256
-    encode_signed_helper(2, 8255, 16511)  # 8255 + 8256
+    encode_signed_helper(2, 64, 128)  # 64 + 8256
+    encode_signed_helper(2, 8255, 16510)  # 8255 + 8256
 
-    encode_signed_helper(3, -1056832, 16512)
-    encode_signed_helper(3, -8257, 1065087)
+    encode_signed_helper(3, -1056832, 2113663)
+    encode_signed_helper(3, -8257, 16513)
 
-    encode_signed_helper(3, 8256, 1065088)
-    encode_signed_helper(3, 1056831, 2113663)
+    encode_signed_helper(3, 8256, 16512)
+    encode_signed_helper(3, 1056831, 2113662)
 
-    encode_signed_helper(4, -135274560, 2113664)
-    encode_signed_helper(4, -1056833, 136331391)
+    encode_signed_helper(4, -135274560, 270549119)
+    encode_signed_helper(4, -1056833, 2113665)
 
-    encode_signed_helper(4, 1056832, 136331392)
-    encode_signed_helper(4, 135274559, 270549119)
+    encode_signed_helper(4, 1056832, 2113664)
+    encode_signed_helper(4, 135274559, 270549118)
 
 
 def test_encode_signed_int_raise_0():
