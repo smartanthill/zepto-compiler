@@ -117,16 +117,16 @@ class ReplyBuffer(object):
         '''
         return self._buffer.index(var)
 
-    def _move_to_front(self, factory, i):
+    def _move_to_front(self, rearrange, i):
         '''
         Helper to move one element to the front
         '''
         if i != 0:
             elem = self._buffer.pop(i)
             self._buffer.insert(0, elem)
-            factory.add_move_reply_to_front(i)
+            rearrange.add_move(i)
 
-    def _pop_back(self, factory, target_size):
+    def _pop_back(self, rearrange, target_size):
         '''
         Helper to remove elements from the back
         '''
@@ -135,13 +135,13 @@ class ReplyBuffer(object):
             if target_size == 0:
                 # pop everything
                 self._buffer = []
-                factory.add_pop_replies(0)
+                rearrange.set_pop_all()
             else:
                 count = len(self._buffer) - target_size
                 self._buffer = self._buffer[0:target_size]
-                factory.add_pop_replies(count)
+                rearrange.set_pop(count)
 
-    def remove_reply(self, factory, var):
+    def remove_reply(self, rearrange, var):
         '''
         Removes a reply from the buffer
         First moves all replies after it to the front,
@@ -154,20 +154,20 @@ class ReplyBuffer(object):
             pos = self.find_variable(var)
 
             for i in reversed(range(pos + 1, len(self._buffer))):  # reversed?
-                self._move_to_front(factory, i)
+                self._move_to_front(rearrange, i)
 
         # pop it from the back
         assert self._buffer[-1] == var
-        self._pop_back(factory, len(self._buffer) - 1)
+        self._pop_back(rearrange, len(self._buffer) - 1)
 
-    def clear_for_exit(self, factory, reply):
+    def clear_for_exit(self, buffer_op, reply):
         '''
         Removes every reply in the reply buffer, with exception of given list
         Used before ZEPTOVM_OP_EXIT to leave only the replies to be sent back
         '''
         self._will_exit = True
         if not reply or len(reply) == 0:
-            self._pop_back(factory, 0)
+            self._pop_back(buffer_op, 0)
         else:
             # TODO improve algorithm
             begin = 0
@@ -183,10 +183,10 @@ class ReplyBuffer(object):
 
             for each in to_move:
                 pos = self.find_variable(each)
-                self._move_to_front(factory, pos)
+                self._move_to_front(buffer_op, pos)
 
             # remove everything else
-            self._pop_back(factory, len(reply))
+            self._pop_back(buffer_op, len(reply))
 
     def conditional_code_begin(self):
         '''
@@ -198,7 +198,7 @@ class ReplyBuffer(object):
         '''
         self._stack.append(list(self._buffer))
 
-    def conditional_code_end(self, factory, was_exit):
+    def conditional_code_end(self, rearrange, was_exit):
         '''
         Marks the end of a conditional block of code that may fall
         We must make the stack state match.
@@ -215,9 +215,9 @@ class ReplyBuffer(object):
 
             last = self._stack.pop()
             # sort the buffer
-            self.sort_buffer(factory, last)
+            self.sort_buffer(rearrange, last)
 
-    def sort_buffer(self, factory, target):
+    def sort_buffer(self, rearrange, target):
         '''
         Sorts the reply buffer to a desired state
         '''
@@ -227,10 +227,10 @@ class ReplyBuffer(object):
         # then sort the rest
         for i in reversed(range(end)):
             pos = self.find_variable(target[i])
-            self._move_to_front(factory, pos)
+            self._move_to_front(rearrange, pos)
 
         # last remove the back
-        self._pop_back(factory, len(target))
+        self._pop_back(rearrange, len(target))
 
         assert target == self._buffer
 
@@ -488,23 +488,17 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._compiler.report_error(node.ctx, "Statement not supported by "
                                     + self._vm.level.fullname)
 
-    def add_move_reply_to_front(self, i):
+    def add_reply_rearrange(self):
         '''
-        Factory method to add a ZEPTOVM_OP_MOVEREPLYTOFRONT
+        Factory method to add ReplyBufferRearrangeOpNode
+        that will write ZEPTOVM_OP_MOVEREPLYTOFRONT and ZEPTOVM_OP_POPREPLIES
+        to rearrange or sort the reply buffer to certain state
         '''
-        assert i != 0
-        move = self._compiler.init_node(op_node.MoveReplyOpNode(i), None)
-        self._add_op(move)
 
-    def add_pop_replies(self, i):
-        '''
-        Factory method to add a ZEPTOVM_OP_POPREPLIES
-        '''
-        if i != 0:
-            assert self._vm != Level.ONE
-
-        pop = self._compiler.init_node(op_node.PopRepliesOpNode(i), None)
-        self._add_op(pop)
+        op = self._compiler.init_node(op_node.ReplyBufferRearrangeOpNode(),
+                                      None)
+        self._add_op(op)
+        return op
 
     def add_pop_expression(self):
         op = self._compiler.init_node(op_node.ExpressionOpNode(), None)
@@ -553,8 +547,9 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
         visit_node(self, stmt_list)
 
+        rearrange = self.add_reply_rearrange()
         self._vm.buffer.conditional_code_end(
-            self, stmt_list.has_flow_stmt)
+            rearrange, stmt_list.has_flow_stmt)
         self._vm.stack.conditional_code_end(
             self, stmt_list.has_flow_stmt)
         self._op_list = temp
@@ -578,15 +573,17 @@ class _ZeptoVmOneVisitor(NodeVisitor):
     def visit_ReturnStmtNode(self, node):
         if isinstance(node.child_expression, expression.BodyPartCallExprNode):
 
-            self._vm.buffer.clear_for_exit(self, [])
+            rearrange = self.add_reply_rearrange()
+            self._vm.buffer.clear_for_exit(rearrange, [])
             self._BodyPartCallExprNode(node.child_expression)
 
         elif isinstance(node.child_expression, expression.VariableExprNode):
 
             self._vm.assert_level(self._compiler, Level.TINY, node.ctx)
 
+            rearrange = self.add_reply_rearrange()
             self._vm.buffer.clear_for_exit(
-                self, [node.child_expression.ref_decl])
+                rearrange, [node.child_expression.ref_decl])
         elif isinstance(node.child_expression, array_lit.ArrayLiteralExprNode):
 
             already_here = []
@@ -610,12 +607,16 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                         current.ctx, "Expression at 'return' statement could "
                         "not be resolved for " + self._vm.level.fullname)
 
-            self._vm.buffer.clear_for_exit(self, already_here)
+            # first rearrange to drop everything not needed
+            rearrange = self.add_reply_rearrange()
+            self._vm.buffer.clear_for_exit(rearrange, already_here)
             for current in bodypart_call:
                 self._BodyPartCallExprNode(current)
                 self._vm.buffer.push_reply(current)
 
-            self._vm.buffer.sort_buffer(self, target_order)
+            # rearrange again to put things in the right order
+            rearrange = self.add_reply_rearrange()
+            self._vm.buffer.sort_buffer(rearrange, target_order)
 
         else:
             self._compiler.report_error(
@@ -698,8 +699,9 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                           expression.BodyPartCallExprNode):
 
                 self._vm.assert_level(self._compiler, Level.TINY, node.ctx)
+                rearrange = self.add_reply_rearrange()
                 self._vm.buffer.remove_reply(
-                    self, node.child_expression.ref_decl)
+                    rearrange, node.child_expression.ref_decl)
 
                 self._vm.buffer.push_reply(node.child_expression.ref_decl)
                 self._BodyPartCallExprNode(node.child_expression.child_rhs)
@@ -707,12 +709,6 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                 self._vm.assert_level(self._compiler, Level.SMALL, node.ctx)
                 self._visit_expression(node.child_expression)
                 self._expressionstack.add_variable(node)
-
-                self._vm.buffer.remove_reply(
-                    self, node.child_expression.ref_decl)
-
-                self._vm.buffer.push_reply(node.child_expression.ref_decl)
-                self._BodyPartCallExprNode(node.child_expression.child_rhs)
 
         else:
             self._compiler.report_error(

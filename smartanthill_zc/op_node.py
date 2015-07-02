@@ -397,27 +397,6 @@ class McuSleepOpNode(OpcodeNode):
         writer.write_bitfield(self._bf)
 
 
-class PopRepliesOpNode(OpcodeNode):
-
-    '''
-    Node for ZEPTOVM_OP_POPREPLIES opcode
-    '''
-
-    def __init__(self, replies_count):
-        '''
-        Constructor
-        '''
-        super(PopRepliesOpNode, self).__init__()
-        self._replies_count = replies_count
-
-    def write(self, writer):
-        '''
-        Write this node to the output writer
-        '''
-        writer.write_opcode(Op.POPREPLIES)
-        writer.write_uint_2(self._replies_count)
-
-
 class ExitOpNode(OpcodeNode):
 
     '''
@@ -584,7 +563,7 @@ class JumpIfFieldOpNode(OpcodeNode):
         writer.write_delta(self.delta, self.destination)
 
 
-class ReplyBufferMovementOpNode(OpcodeNode):
+class ReplyBufferRearrangeOpNode(OpcodeNode):
 
     '''
     Node for ZEPTOVM_OP_POPREPLIES and ZEPTOVM_OP_MOVEREPLYTOFRONT
@@ -595,9 +574,18 @@ class ReplyBufferMovementOpNode(OpcodeNode):
         '''
         Constructor
         '''
-        super(ReplyBufferMovementOpNode, self).__init__()
+        super(ReplyBufferRearrangeOpNode, self).__init__()
         self.moves = []
         self.pop_number = None
+
+    def add_move(self, index):
+        self.moves.append(index)
+
+    def set_pop(self, count):
+        self.pop_number = count
+
+    def set_pop_all(self):
+        self.pop_number = 0
 
     def write(self, writer):
         '''
@@ -607,30 +595,9 @@ class ReplyBufferMovementOpNode(OpcodeNode):
             writer.write_opcode(Op.MOVEREPLYTOFRONT)
             writer.write_int_2(current)
 
-        if self.pop_number:
+        if self.pop_number != None:
             writer.write_opcode(Op.POPREPLIES)
             writer.write_uint_2(self.pop_number)
-
-
-class MoveReplyOpNode(OpcodeNode):
-
-    '''
-    Node for ZEPTOVM_OP_POPREPLIES opcode
-    '''
-
-    def __init__(self, reply_number):
-        '''
-        Constructor
-        '''
-        super(MoveReplyOpNode, self).__init__()
-        self._reply_number = reply_number
-
-    def write(self, writer):
-        '''
-        Write this node to the output writer
-        '''
-        writer.write_opcode(Op.MOVEREPLYTOFRONT)
-        writer.write_int_2(self._reply_number)
 
 
 class LoopOpNode(OpcodeNode):
