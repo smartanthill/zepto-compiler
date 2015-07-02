@@ -27,14 +27,13 @@ from smartanthill_zc.encode import create_half_float, half_float_value,\
 
 def main():
 
-    code = [u'var temp = TempSensor.Execute();',
-            u'var temp1 = temp.Temperature + 1;',
+    code = [u'var temp1 = TempSensor.Execute();',
             u'var temp2 = TempSensor2.Execute();',
-            u'if(temp1 < temp2.Temperature) {',
+            u'if(temp1.Temperature < temp2.Temperature) {',
             u'  mcu_sleep(5*60);',
             u'  return TempSensor.Execute();',
             u'}',
-            u'return temp;']
+            u'return temp1;']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'

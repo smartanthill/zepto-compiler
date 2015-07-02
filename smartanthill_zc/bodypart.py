@@ -121,26 +121,16 @@ class FieldTypeFactoryNode(Node):
         field.min_value = min_value
         field.max_value = max_value
 
+        f2l = builtin.create_field_to_literal_comparison(
+            compiler, et, field_name)
+        self.child_operator_list.add_declaration_list(f2l)
+
+        for current in self.child_type_list.childs_declarations:
+            f2f = builtin.create_field_to_field_comparison(
+                compiler, et, field_name, current)
+            self.child_operator_list.add_declaration_list(f2f)
+
         self.child_type_list.add_declaration(field)
-
-        for current in ['<', '>', '<=', '>=', '==', '!=']:
-
-            # field to literal
-            op = compiler.init_node(
-                builtin.FieldToLiteralCompDeclNode(current, '_zc_boolean'), et)
-            op.set_parameter_list(
-                builtin.create_parameter_list(
-                    compiler, et, [field_name, '_zc_number_literal']))
-            self.child_operator_list.add_declaration(op)
-
-            # and literal to field
-            op2 = compiler.init_node(
-                builtin.FieldToLiteralCompDeclNode(current, '_zc_boolean'), et)
-            op2.set_parameter_list(
-                builtin.create_parameter_list(
-                    compiler, et, ['_zc_number_literal', field_name]))
-            op2.swap_flag = True
-            self.child_operator_list.add_declaration(op2)
 
         return field
 

@@ -466,6 +466,14 @@ class JumpLabel(object):
         self.end = 'end_' + str(end)
 
 
+class ReplyRefs(object):
+
+    def __init(self):
+        self.useds_inside = []
+        self.useds_after = []
+        self.is_exit = False
+
+
 class IfOpNode(OpcodeNode):
 
     '''

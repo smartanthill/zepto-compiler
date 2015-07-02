@@ -881,6 +881,40 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
 
         self._jmp_ops.add_operation(jmpop)
 
+    def visit_FieldToFieldCompExprNode(self, node):
+
+        # TODO current logic is equal to NumberToNumber, add real optimization
+        self._vm.assert_level(self._compiler, Level.SMALL, node.ctx)
+
+        self._vm.stack.init_args()
+
+        self._visit_expression(node.child_lhs)
+        self._visit_expression(node.child_rhs)
+
+        op = self._compiler.init_node(op_node.ExpressionOpNode(), node.ctx)
+        op.set_binary_operator('-')
+        op.args = self._vm.stack.get_args()
+
+        self._jmp_ops.add_operation(op)
+
+        self._vm.stack.init_args()
+        self._vm.stack.push_temp()
+
+        jmpop = self._compiler.init_node(op_node.JumpIfExprOpNode(), node.ctx)
+
+        jmpop.args = self._vm.stack.get_args()
+
+        jmpop.destination = self._destination
+
+        # instead of executing the body when condition is true,
+        # jump off the body when condition is false,
+        # so condition needs to be negated
+        sub, th = node.get_subcode_and_threshold(not self._negate)
+        jmpop.threshold = th
+        jmpop.set_subcode(sub)
+
+        self._jmp_ops.add_operation(jmpop)
+
 
 class _ZeptoVmExprVisitor(NodeVisitor):
 

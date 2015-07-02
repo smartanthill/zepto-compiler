@@ -672,6 +672,34 @@ class FieldTypeDeclNode(TypeDeclNode):
             assert False
 
 
+def create_field_to_literal_comparison(compiler, et, field_name):
+    '''
+    Creates 12 comparison operators for a field and a literal
+    '''
+
+    result = []
+    for current in ['<', '>', '<=', '>=', '==', '!=']:
+
+        # field to literal
+        op = compiler.init_node(
+            FieldToLiteralCompDeclNode(current, '_zc_boolean'), et)
+        op.set_parameter_list(
+            create_parameter_list(
+                compiler, et, [field_name, '_zc_number_literal']))
+        result.append(op)
+
+        # and literal to field
+        op2 = compiler.init_node(
+            FieldToLiteralCompDeclNode(current, '_zc_boolean'), et)
+        op2.set_parameter_list(
+            create_parameter_list(
+                compiler, et, ['_zc_number_literal', field_name]))
+        op2.swap_flag = True
+        result.append(op2)
+
+    return result
+
+
 class FieldToLiteralCompDeclNode(OperatorDeclNode):
 
     '''
@@ -1049,5 +1077,142 @@ class NumberToNumberCompExprNode(ExpressionNode):
         op = negate_comparison(self.ref_decl.txt_operator, negate)
 
         ltype = self.child_argument_list.childs_arguments[0].get_type()
+
+        return simplify_comparison(op, 0.0, ltype)
+
+
+def create_field_to_field_comparison(compiler, et, field_name, other_field):
+    '''
+    Creates a list of 12 comparison operators, between two fields
+    It creates the six comparisons (>, <, >=, <=, ==, !=)
+    each one has two copies swaping lhs and rhs
+    '''
+
+    result = []
+    for current in ['<', '>', '<=', '>=', '==', '!=']:
+
+        op = compiler.init_node(
+            FieldToFieldCompDeclNode(current, '_zc_boolean'), et)
+        op.set_parameter_list(
+            create_parameter_list(
+                compiler, et, [field_name, other_field.txt_name]))
+        result.append(op)
+
+        op2 = compiler.init_node(
+            FieldToFieldCompDeclNode(current, '_zc_boolean'), et)
+        op2.set_parameter_list(
+            create_parameter_list(
+                compiler, et, [other_field.txt_name, field_name]))
+        result.append(op2)
+
+    return result
+
+
+class FieldToFieldCompDeclNode(OperatorDeclNode):
+
+    '''
+    Node class to represent an very special operator declaration
+    for comparison between two reply fields
+    This comparison is special because it can be optimized by mapping
+    reply field and literal to numbers in expression stack,
+    or converting one reply field to the type of the other as optimization,
+    using fewer stack operations.
+    aX+b >= cY+d  =>  X >= (c/a)Y+(d-b)/a => X - (c/a)Y >= (d-b)/a
+    '''
+
+    def __init__(self, operator, type_name):
+        '''
+        Constructor
+        '''
+        super(FieldToFieldCompDeclNode, self).__init__(
+            operator, type_name)
+        self._number_type = None
+
+    def resolve(self, compiler):
+        '''
+        resolve
+        '''
+        self._number_type = self.get_root_scope().lookup_type('_zc_number')
+        super(FieldToFieldCompDeclNode, self).resolve(compiler)
+
+    def static_evaluate(self, compiler, expr, arg_list):
+        '''
+        Do replace generic ComparisonOpExprNode by a much more specific
+        FieldToLiteralCompExprNode
+        '''
+
+        assert isinstance(expr, expression.ComparisonOpExprNode)
+        assert len(expr.child_argument_list.childs_arguments) == 2
+
+        result = compiler.init_node(FieldToFieldCompExprNode(), expr.ctx)
+        result.ref_decl = self
+
+        a0 = expr.child_argument_list.childs_arguments[0]
+        t0 = a0.get_type()
+        assert t0.can_cast_to(self._number_type) == TypeDeclNode.CAST_MATCH
+
+        c0 = t0.insert_cast_to(compiler, self._number_type, a0)
+        result.set_lhs(c0)
+
+        a1 = expr.child_argument_list.childs_arguments[1]
+        t1 = a1.get_type()
+        assert t1.can_cast_to(self._number_type) == TypeDeclNode.CAST_MATCH
+
+        c1 = t1.insert_cast_to(compiler, self._number_type, a1)
+        result.set_rhs(c1)
+
+        compiler.remove_node(expr.child_argument_list)
+        compiler.remove_node(expr)
+
+        result.set_type(self.get_type())
+
+        return result
+
+
+class FieldToFieldCompExprNode(ExpressionNode):
+
+    '''
+    Node class representing a very special operator comparison expression
+    between two reply fields.
+    This kind of expression is created from a regular ComparisonOpExprNode
+    by FieldToFieldCompDeclNode for all expression
+    This allows easier detection of this special comparison at a later time
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(FieldToFieldCompExprNode, self).__init__()
+        self.child_lhs = None
+        self.child_rhs = None
+        self.ref_decl = None
+
+    def set_lhs(self, child):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_lhs = child
+
+    def set_rhs(self, child):
+        '''
+        argument_list setter
+        '''
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_rhs = child
+
+    def get_subcode_and_threshold(self, negate):
+        '''
+        simplify >= and <= to < and > by modifying literal value by epsilon
+        Also apply an optional negation flag, as helper for code generator,
+        since normally if body is executed when condition is true,
+        but at implementation, body is jumped when condition is false
+        '''
+        op = negate_comparison(self.ref_decl.txt_operator, negate)
+
+        ltype = self.child_lhs.get_type()
 
         return simplify_comparison(op, 0.0, ltype)
