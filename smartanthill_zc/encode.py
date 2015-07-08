@@ -55,6 +55,12 @@ class ZeptoEncoder(object):
 
         return encode_bitfield(bits)
 
+    def encode_half_float(self, value):
+        '''
+        Encode a bit field
+        '''
+        return encode_half_float(value)
+
 
 def _encode_unsigned(value):
     '''
@@ -158,6 +164,14 @@ def encode_bitfield(bits):
         i *= 2
 
     return result
+
+
+def encode_half_float(value):
+    '''
+    Half float encoder implementation
+    '''
+    enc = create_half_float(value)
+    return enc.encode()
 
 
 class HalfFloatOverflowError(Exception):

@@ -35,56 +35,57 @@ class Op(object):
 
     '''
     Enum like, assigns a name to each opcode
+    from saccp_protocol_constants.h
     '''
 
     INVALID = _OpImpl(0, '<invalid>')
 
-    DEVICECAPS = _OpImpl(1, 'DEVICECAPS')
-    EXEC = _OpImpl(2, 'EXEC')
-    PUSHREPLY = _OpImpl(3, 'PUSHREPLY')
-    SLEEP = _OpImpl(4, 'SLEEP')
-    TRANSMITTER = _OpImpl(5, 'TRANSMITTER')
-    MCUSLEEP = _OpImpl(6, 'MCUSLEEP')
+    DEVICECAPS = _OpImpl(0x01, 'DEVICECAPS')
+    EXEC = _OpImpl(0x02, 'EXEC')
+    PUSHREPLY = _OpImpl(0x03, 'PUSHREPLY')
+    SLEEP = _OpImpl(0x04, 'SLEEP')
+    TRANSMITTER = _OpImpl(0x05, 'TRANSMITTER')
+    MCUSLEEP = _OpImpl(0x06, 'MCUSLEEP')
     # limited support in Zepto VM-One, full support from Zepto VM-Tiny
-    POPREPLIES = _OpImpl(7, 'POPREPLIES')
-    EXIT = _OpImpl(8, 'EXIT')
+    POPREPLIES = _OpImpl(0x07, 'POPREPLIES')
+    EXIT = _OpImpl(0x08, 'EXIT')
     # limited support in Zepto VM-One, full support from Zepto VM-Tiny
-    APPENDTOREPLY = _OpImpl(9, 'APPENDTOREPLY')
+    APPENDTOREPLY = _OpImpl(0x09, 'APPENDTOREPLY')
 
     # below, instructions are not supported by Zepto VM-One
-    JMP = _OpImpl(10, 'JMP')
-    JMPIFREPLYFIELD_LT = _OpImpl(11, 'JMPIFREPLYFIELD_LT')
-    JMPIFREPLYFIELD_GT = _OpImpl(12, 'JMPIFREPLYFIELD_GT')
-    JMPIFREPLYFIELD_EQ = _OpImpl(13, 'JMPIFREPLYFIELD_EQ')
-    JMPIFREPLYFIELD_NE = _OpImpl(14, 'JMPIFREPLYFIELD_NE')
-    MOVEREPLYTOFRONT = _OpImpl(15, 'MOVEREPLYTOFRONT')
+    JMP = _OpImpl(0x0a, 'JMP')
+    JMPIFREPLYFIELD_LT = _OpImpl(0x0b, 'JMPIFREPLYFIELD_LT')
+    JMPIFREPLYFIELD_GT = _OpImpl(0x0c, 'JMPIFREPLYFIELD_GT')
+    JMPIFREPLYFIELD_EQ = _OpImpl(0x0d, 'JMPIFREPLYFIELD_EQ')
+    JMPIFREPLYFIELD_NE = _OpImpl(0x0e, 'JMPIFREPLYFIELD_NE')
+    MOVEREPLYTOFRONT = _OpImpl(0x0f, 'MOVEREPLYTOFRONT')
 
     # below, instructions are not supported by Zepto VM-Tiny and below
-    PUSHEXPR_CONSTANT = _OpImpl(16, 'PUSHEXPR_CONSTANT')
-    PUSHEXPR_REPLYFIELD = _OpImpl(17, 'PUSHEXPR_REPLYFIELD')
-    EXPRUNOP = _OpImpl(18, 'EXPRUNOP')
-    EXPRUNOP_EX = _OpImpl(19, 'EXPRUNOP_EX')
-    EXPRUNOP_EX2 = _OpImpl(20, 'EXPRUNOP_EX2')
-    EXPRBINOP = _OpImpl(21, 'EXPRBINOP')
-    EXPRBINOP_EX = _OpImpl(22, 'EXPRBINOP_EX')
-    EXPRBINOP_EX2 = _OpImpl(23, 'EXPRBINOP_EX2')
-    JMPIFEXPR_LT = _OpImpl(24, 'JMPIFEXPR_LT')
-    JMPIFEXPR_GT = _OpImpl(25, 'JMPIFEXPR_GT')
-    JMPIFEXPR_EQ = _OpImpl(26, 'JMPIFEXPR_EQ')
-    JMPIFEXPR_NE = _OpImpl(27, 'JMPIFEXPR_NE')
-    JMPIFEXPR_EX_LT = _OpImpl(28, 'JMPIFEXPR_EX_LT')
-    JMPIFEXPR_EX_GT = _OpImpl(29, 'JMPIFEXPR_EX_GT')
-    JMPIFEXPR_EX_EQ = _OpImpl(30, 'JMPIFEXPR_EX_EQ')
-    JMPIFEXPR_EX_NE = _OpImpl(31, 'JMPIFEXPR_EX_NE')
-    CALL = _OpImpl(32, 'ZEPTOVM_OP_CALL')
-    RET = _OpImpl(33, 'ZEPTOVM_OP_RET')
-    SWITCH = _OpImpl(34, 'ZEPTOVM_OP_SWITCH')
-    SWITCH_EX = _OpImpl(35, 'ZEPTOVM_OP_SWITCH_EX')
-    INCANDJMPIF = _OpImpl(36, 'INCANDJMPIF')
-    DECANDJMPIF = _OpImpl(37, 'DECANDJMPIF')
+    PUSHEXPR_CONSTANT = _OpImpl(0x10, 'PUSHEXPR_CONSTANT')
+    PUSHEXPR_REPLYFIELD = _OpImpl(0x11, 'PUSHEXPR_REPLYFIELD')
+    EXPRUNOP = _OpImpl(0x12, 'EXPRUNOP')
+    EXPRUNOP_EX = _OpImpl(0x13, 'EXPRUNOP_EX')
+    EXPRUNOP_EX2 = _OpImpl(0x14, 'EXPRUNOP_EX2')
+    EXPRBINOP = _OpImpl(0x15, 'EXPRBINOP')
+    EXPRBINOP_EX = _OpImpl(0x16, 'EXPRBINOP_EX')
+    EXPRBINOP_EX2 = _OpImpl(0x17, 'EXPRBINOP_EX2')
+    JMPIFEXPR_LT = _OpImpl(0x18, 'JMPIFEXPR_LT')
+    JMPIFEXPR_GT = _OpImpl(0x19, 'JMPIFEXPR_GT')
+    JMPIFEXPR_EQ = _OpImpl(0x1a, 'JMPIFEXPR_EQ')
+    JMPIFEXPR_NE = _OpImpl(0x1b, 'JMPIFEXPR_NE')
+    JMPIFEXPR_EX_LT = _OpImpl(0x1c, 'JMPIFEXPR_EX_LT')
+    JMPIFEXPR_EX_GT = _OpImpl(0x1d, 'JMPIFEXPR_EX_GT')
+    JMPIFEXPR_EX_EQ = _OpImpl(0x1e, 'JMPIFEXPR_EX_EQ')
+    JMPIFEXPR_EX_NE = _OpImpl(0x1f, 'JMPIFEXPR_EX_NE')
+    CALL = _OpImpl(0x20, 'ZEPTOVM_OP_CALL')
+    RET = _OpImpl(0x21, 'ZEPTOVM_OP_RET')
+    SWITCH = _OpImpl(0x22, 'ZEPTOVM_OP_SWITCH')
+    SWITCH_EX = _OpImpl(0x23, 'ZEPTOVM_OP_SWITCH_EX')
+    INCANDJMPIF = _OpImpl(0x24, 'INCANDJMPIF')
+    DECANDJMPIF = _OpImpl(0x25, 'DECANDJMPIF')
 
     # below, instructions are not supported by Zepto VM-Small and below
-    PARALLEL = _OpImpl(38, 'ZEPTOVM_OP_PARALLEL')
+    PARALLEL = _OpImpl(0x26, 'ZEPTOVM_OP_PARALLEL')
 
 
 class UnOp(object):
