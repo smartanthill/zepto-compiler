@@ -20,7 +20,7 @@ from smartanthill_zc.antlr_helper import (get_reference_lines,
 from smartanthill_zc.builtin import negate_logic
 from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node
-from smartanthill_zc.writer import SizeWriter
+from smartanthill_zc.writer import BinaryWriter
 
 
 def convert_to_zepto_vm_one(compiler, root):
@@ -32,7 +32,7 @@ def convert_to_zepto_vm_one(compiler, root):
     visit_node(v, root.child_program)
 
     target = v.finish()
-    target.calculate_byte_size(SizeWriter())
+    target.calculate_byte_size(BinaryWriter())
     compiler.check_stage('zepto_vm_one')
     return target
 
@@ -46,7 +46,7 @@ def convert_to_zepto_vm_tiny(compiler, root):
     visit_node(v, root.child_program)
 
     target = v.finish()
-    target.calculate_byte_size(SizeWriter())
+    target.calculate_byte_size(BinaryWriter())
     compiler.check_stage('zepto_vm_tiny')
     return target
 
@@ -60,7 +60,7 @@ def convert_to_zepto_vm_small(compiler, root):
     visit_node(v, root.child_program)
 
     target = v.finish()
-    target.calculate_byte_size(SizeWriter())
+    target.calculate_byte_size(BinaryWriter())
     compiler.check_stage('zepto_vm_small')
     return target
 

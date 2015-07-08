@@ -27,13 +27,18 @@ from smartanthill_zc.encode import create_half_float, half_float_value,\
 
 def main():
 
-    code = [u'var temp1 = TempSensor.Execute();',
-            u'var temp2 = TempSensor2.Execute();',
-            u'if(temp1.Temperature < temp2.Temperature) {',
+    code = [u'var temp = TempSensor.Execute();',
+            u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
             u'  mcu_sleep(5*60);',
-            u'  return TempSensor.Execute();',
+            u'  temp = TempSensor.Execute();',
             u'}',
-            u'return temp1;']
+            u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
+            u'  var temp2 = TempSensor.Execute();',
+            u'  if(temp2.Temperature > 38.0)',
+            u'    return temp2;',
+            u'  mcu_sleep(5*60);',
+            u'}',
+            u'return TempSensor.Execute();']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
@@ -71,29 +76,13 @@ def main():
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
         u'</smartanthill.plugin>'
     ]
-    xml2 = [
-        u'<smartanthill.plugin name="TempSensor2" id="2" version="1.0">',
-        u'  <description>Short description here</description>',
-        u'  <command/>',
-        u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
-        u'     min="0" max="500">',
-        u'      <meaning type="float">',
-        u'        <linear-conversion input-point0="100" output-point0="10.0"',
-        u'                       input-point1="200" output-point1="20.0" />',
-        u'      </meaning>',
-        u'    </field>',
-        u'  </reply>',
-        u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</smartanthill.plugin>'
-    ]
 
     xml = '\n'.join(xml)
-    xml2 = '\n'.join(xml2)
+ #   xml2 = '\n'.join(xml2)
     code = '\n'.join(code)
     comp = Compiler()
 
-    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml, xml2])
+    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml])
     etdump = visitor.dump_tree(bodyparts)
 
     print '\n'.join(etdump)

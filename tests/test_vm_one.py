@@ -61,7 +61,7 @@ def test_js_pattern_1():
     out = ['/* target vm: One */',
            '/* mcusleep: False */',
            '/* reply: {INT} */',
-           '/* size: 5 bytes */',
+           '/* size: 3 bytes */',
            '|EXEC|1|0|[]|',
            '/* exit|islast */']
 
@@ -76,7 +76,7 @@ def test_js_pattern_2():
     out = ['/* target vm: One */',
            '/* mcusleep: True */',
            '/* reply: {INT} */',
-           '/* size: 13 bytes */',
+           '/* size: 9 bytes */',
            '|MCUSLEEP|300|0|',
            '|EXEC|1|0|[]|',
            '|EXIT|ISFIRST|']
@@ -92,7 +92,7 @@ def test_js_return_array():
     out = ['/* target vm: One */',
            '/* mcusleep: False */',
            '/* reply: {INT,INT} */',
-           '/* size: 10 bytes */',
+           '/* size: 6 bytes */',
            '|EXEC|1|0|[]|',
            '|EXEC|1|0|[]|',
            '/* exit|islast */']

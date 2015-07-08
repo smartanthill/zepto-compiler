@@ -156,6 +156,29 @@ class BitField(object):
         else:
             return False
 
+    def to_integer(self):
+        '''
+        Returns an integer representing this bitfield
+        '''
+        value = 0
+        for current in reversed(self.names):
+            value *= 2
+            if self.get(current):
+                value += 1
+
+        return value
+
+    def to_flag_list(self):
+        '''
+        Returns an integer representing this bitfield
+        '''
+        flags = []
+        for current in self.names:
+            if self.get(current):
+                flags.append(current)
+
+        return flags
+
 
 class OpcodeNode(Node):
 
@@ -190,15 +213,15 @@ class OpcodeNode(Node):
         '''
         self._byte_size = None
 
-    def calculate_byte_size(self, calculator):
+    def calculate_byte_size(self, writer):
         '''
         Calculates the size in bytes for this node.
         Needed by jumps to calculate jump offsets
         '''
         assert not self._byte_size
-        begin = calculator.index
-        self.write(calculator)
-        self._byte_size = calculator.index - begin
+        begin = writer.get_size()
+        self.write(writer)
+        self._byte_size = writer.get_size() - begin
         return self._byte_size
 
 
@@ -231,7 +254,7 @@ class OpListNode(Node):
         for op in self.childs_operations:
             op.write(writer)
 
-    def calculate_byte_size(self, calculator):
+    def calculate_byte_size(self, writer):
         '''
         Calculates the size in bytes for this node.
         Needed by jumps to calculate jump offsets
@@ -239,7 +262,7 @@ class OpListNode(Node):
 
         byte_size = 0
         for op in self.childs_operations:
-            byte_size += op.calculate_byte_size(calculator)
+            byte_size += op.calculate_byte_size(writer)
 
         return byte_size
 
@@ -280,12 +303,12 @@ class TargetProgramNode(Node):
         writer.write_text('size: %d bytes' % self.byte_size)
         self.child_op_list.write(writer)
 
-    def calculate_byte_size(self, calculator):
+    def calculate_byte_size(self, writer):
         '''
         Calculates the size in bytes for this node.
         Needed by jumps to calculate jump offsets
         '''
-        self.byte_size = self.child_op_list.calculate_byte_size(calculator)
+        self.byte_size = self.child_op_list.calculate_byte_size(writer)
 
 
 class ExecOpNode(OpcodeNode):
@@ -446,14 +469,6 @@ class JumpLabel(object):
         self.end = 'end_' + str(end)
 
 
-class ReplyRefs(object):
-
-    def __init(self):
-        self.useds_inside = []
-        self.useds_after = []
-        self.is_exit = False
-
-
 class IfOpNode(OpcodeNode):
 
     '''
@@ -486,12 +501,12 @@ class IfOpNode(OpcodeNode):
         child.set_parent(self)
         self.child_body = child
 
-    def calculate_byte_size(self, calculator):
+    def calculate_byte_size(self, writer):
         '''
         Set the jumps offsets
         '''
 
-        body = self.child_body.calculate_byte_size(calculator)
+        body = self.child_body.calculate_byte_size(writer)
 
         begin = 0
         for current in reversed(self.child_condition.childs_operations):
@@ -505,7 +520,7 @@ class IfOpNode(OpcodeNode):
                 else:
                     assert False
 
-            begin += current.calculate_byte_size(calculator)
+            begin += current.calculate_byte_size(writer)
 
         self._byte_size = begin + body
 
@@ -650,7 +665,7 @@ class LoopOpNode(OpcodeNode):
         writer.write_opcode(Op.EXPRUNOP)
         writer.write_subcode(UnOp.POP)
 
-    def calculate_byte_size(self, calculator):
+    def calculate_byte_size(self, writer):
         '''
         Set the jumps offsets
         Since the jump is at the end of the loop,
@@ -661,7 +676,7 @@ class LoopOpNode(OpcodeNode):
         and then iteratively reassign the the delta and recalculate the size
         '''
 
-        body = self.child_body.calculate_byte_size(calculator)
+        body = self.child_body.calculate_byte_size(writer)
 
         assert self.child_condition.destination == self.labels.begin
 
@@ -672,7 +687,7 @@ class LoopOpNode(OpcodeNode):
             prev = jump
             self.child_condition.delta = -(body + jump)
             self.child_condition.reset_byte_size()
-            jump = self.child_condition.calculate_byte_size(calculator)
+            jump = self.child_condition.calculate_byte_size(writer)
 
         self._byte_size = body + jump
 

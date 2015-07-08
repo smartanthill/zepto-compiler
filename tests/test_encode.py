@@ -19,8 +19,9 @@ import sys
 import pytest
 
 from smartanthill_zc.encode import encode_unsigned_int, encode_signed_int, \
-    decode_unsigned_int, decode_signed_int, encode_bitfield, create_half_float,\
+    decode_unsigned_int, decode_signed_int, create_half_float,\
     half_float_next_down, half_float_next_up, half_float_value
+from smartanthill_zc.op_node import BitField
 
 
 def encode_unsigned_helper(max_bytes, value, byte_values):
@@ -182,23 +183,25 @@ def test_random_signed_int():
         high *= 256
 
 
-def encode_bitfield_helper(bits, value):
-    enc = encode_bitfield(bits)
-    assert enc == value
+def encode_bitfield_helper(flags):
+
+    bits = BitField(["bit0", "bit1", "bit2", "bit3", "bit4", "bit5"])
+    for each in flags:
+        bits.set(each, True)
+
+    return bits.to_integer()
 
 
 def test_encode_bitfield():
 
-    assert encode_bitfield([False]) == 0
-    assert encode_bitfield([True]) == 1
-    assert encode_bitfield([True, False]) == 2
-    assert encode_bitfield([True, True]) == 3
-    assert encode_bitfield([True, False, False]) == 4
-    assert encode_bitfield([True, False, False, False]) == 8
-    assert encode_bitfield([True, False, False, False, False]) == 16
-    assert encode_bitfield([True, False, False, False, False, False]) == 32
-    assert encode_bitfield([True, False, False,
-                            False, False, False, False]) == 64
+    assert encode_bitfield_helper([]) == 0
+    assert encode_bitfield_helper(["bit0"]) == 1
+    assert encode_bitfield_helper(["bit1"]) == 2
+    assert encode_bitfield_helper(["bit0", "bit1"]) == 3
+    assert encode_bitfield_helper(["bit2"]) == 4
+    assert encode_bitfield_helper(["bit3"]) == 8
+    assert encode_bitfield_helper(["bit4"]) == 16
+    assert encode_bitfield_helper(["bit5"]) == 32
 
 
 def _encode_hf_helper(number, ref):

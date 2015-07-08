@@ -47,18 +47,11 @@ class ZeptoEncoder(object):
 
         return self._signeds[value]
 
-    def encode_bitfield(self, bits):
-        '''
-        Encode a bit field
-        '''
-        # pylint: disable=no-self-use
-
-        return encode_bitfield(bits)
-
     def encode_half_float(self, value):
         '''
         Encode a bit field
         '''
+        # pylint: disable=no-self-use
         return encode_half_float(value)
 
 
@@ -145,25 +138,6 @@ def decode_signed_int(byte_list):
         return value >> 1
     else:
         return ~(value >> 1)
-
-
-def encode_bitfield(bits):
-    '''
-    Bit field encoder implementation
-    '''
-
-    assert len(bits) >= 0
-    assert len(bits) <= 7
-
-    i = 1
-    result = 0
-    for current in reversed(bits):
-        if current:
-            result += i
-
-        i *= 2
-
-    return result
 
 
 def encode_half_float(value):
@@ -407,13 +381,6 @@ def field_sequence_to_str(field_sequence):
         result.append(current.name)
 
     return ','.join(result)
-
-
-def field_sequence_byte_size(field_sequence):
-    '''
-    Calculates the byte size of encoding a FIELD-SEQUENCE
-    '''
-    return len(field_sequence) + 1
 
 
 def get_encoding_min_max(encoding, max_bytes):
