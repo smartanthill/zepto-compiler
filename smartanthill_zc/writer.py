@@ -15,8 +15,8 @@
 
 import binascii
 
-from smartanthill_zc.encode import ZeptoEncoder, field_sequence_to_str,\
-    field_sequence_byte_size
+from smartanthill_zc.encode import (
+    ZeptoEncoder, field_sequence_to_str, Encoding)
 
 
 def write_text_op_codes(compiler, node):
@@ -28,6 +28,18 @@ def write_text_op_codes(compiler, node):
     node.write(w)
 
     compiler.check_stage('write_text')
+
+    return w.get_result()
+
+
+def write_binary(compiler, node):
+    '''
+    Writes target code to binary format
+    '''
+    w = BinaryWriter()
+    node.write(w)
+
+    compiler.check_stage('write_binary')
 
     return w.get_result()
 
@@ -98,7 +110,40 @@ class _TextWriter(object):
 
         self._current = '|' + opcode.name
 
-    def write_bytes(self, data):
+    def write_subcode(self, opcode):
+        '''
+        Adds 1 byte subcode for ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        '''
+        self._current += '|' + opcode.name
+
+    def write_oparg(self, arg):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        OP-POP-FLAG-AND-EXPR-OFFSET | OPTIONAL-IMMEDIATE-OP
+        '''
+        if arg.optional_immediate:
+            self._current += '|->'
+            self.write_half_float(arg.optional_immediate)
+        elif arg.expr_offset:
+            self.write_int_2(arg.expr_offset)
+            self._current += ','
+            if arg.pop_flag:
+                self._current += ',POP'
+        else:
+            self.write_int_2(1)
+            self._current += ',POP'
+
+    def write_opresult(self, res):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP_EX2 and ZEPTOVM_OP_EXPRBINOP_EX2
+        PUSH-FLAG-AND-PUSH-EXPR-OFFSET
+        '''
+        assert res.expr_offset
+        self.write_int_2(res.expr_offset)
+        if res.insert_flag:
+            self._current += ',INSERT'
+
+    def _write_bytes(self, data):
         '''
         Adds a binary field to current operation
         '''
@@ -150,116 +195,18 @@ class _TextWriter(object):
         '''
         Adds a half-float field
         '''
-        self._current += '|(+%d):%s:' % (delta, destination)
+        self._current += '|(%+d):%s:' % (delta, destination)
 
     def write_bitfield(self, bits):
         '''
-        Adds a bitfield from a list of booleans. MSB completed with 0
+        Adds a bitfield
         '''
-        flags = []
-        for current in bits.names:
-            if current in bits.values and bits.values[current]:
-                flags.append(current)
+        flags = bits.to_flag_list()
 
         if len(flags) == 0:
             self._current += '|0'
         else:
             self._current += '|' + ','.join(flags)
-
-    def write_opaque_data_2(self, data):
-        '''
-        Adds an opaque data binary field to current operation
-        First adds a field with the data size, and data itself after it
-        '''
-        if not data:
-            self.write_uint_2(0)
-            self.write_bytes([])
-        else:
-            self.write_uint_2(len(data))
-            self.write_bytes(data)
-
-    def write_text(self, text):
-        '''
-        Add a free text, only for easier testing
-        '''
-        self._finish_current()
-        self._result.append('/* %s */' % text)
-
-
-class SizeWriter(object):
-
-    '''
-    Writer implementation for calculation of operations byte size
-    Needed to calculate jumps delta
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        self._encoder = ZeptoEncoder()
-        self.index = 0
-
-    def write_opcode(self, opcode):
-        '''
-        Begins a new operation, all opcode are 1 byte
-        '''
-        # pylint: disable=unused-argument
-        self.index += 1
-
-    def _write_bytes(self, data):
-        '''
-        Adds a binary field to current operation
-        '''
-        self.index += len(data)
-
-    def write_int_2(self, value):
-        '''
-        Adds an Encoded-Signed-Int<max=2> field
-        '''
-        # pylint: disable=unused-argument
-        self.index += 2  # TODO
-
-    def write_uint_2(self, value):
-        '''
-        Adds an Encoded-Unsigned-Int<max=2> field
-        '''
-        # pylint: disable=unused-argument
-        self.index += 2  # TODO
-
-    def write_uint_4(self, value):
-        '''
-        Adds an Encoded-Unsigned-Int<max=4> field
-        '''
-        # pylint: disable=unused-argument
-        self.index += 4  # TODO
-
-    def write_half_float(self, value):
-        '''
-        Adds a half-float field, 2 bytes
-        '''
-        # pylint: disable=unused-argument
-        self.index += 2
-
-    def write_field_sequence(self, fs):
-        '''
-        Adds a field sequence, 1 byte by element plus one
-        '''
-        self.index += field_sequence_byte_size(fs)
-
-    def write_delta(self, delta, destination):
-        '''
-        Adds a jump delta (signed-int<max=2>)
-        '''
-        del destination
-        self.write_int_2(delta)
-
-    def write_bitfield(self, bits):
-        '''
-        Adds a bitfield from a list of booleans. MSB completed with 0
-        '''
-        # pylint: disable=unused-argument
-        self.index += 1
 
     def write_opaque_data_2(self, data):
         '''
@@ -276,6 +223,172 @@ class SizeWriter(object):
     def write_text(self, text):
         '''
         Add a free text, only for easier testing
+        '''
+        self._finish_current()
+        self._result.append('/* %s */' % text)
+
+
+class BinaryWriter(object):
+
+    '''
+    Writer implementation for writing text representation
+    Used for development and testing
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self._encoder = ZeptoEncoder()
+        self._result = bytearray()
+        self._current = None
+
+    def _finish_current(self):
+        '''
+        Finishes current opcode
+        '''
+        if self._current:
+            self._current += '|'
+            self._result.append(self._current)
+            self._current = None
+
+    def get_result(self):
+        '''
+        Returns a list of strings, each with one operation text
+        '''
+        # self._finish_current()
+
+        return self._result
+
+    def _write_bytes(self, data):
+        '''
+        Adds a binary field to current operation
+        '''
+        for each in data:
+            self._result.append(each)
+
+    def _write_byte(self, data):
+        '''
+        Adds a binary field to current operation
+        '''
+        self._result.append(data)
+
+    def get_size(self):
+        '''
+        Returns the size, used to calculate jumps sizes
+        '''
+        return len(self._result)
+
+    def write_opcode(self, opcode):
+        '''
+        Begins a new operation, writes the opcode
+        '''
+        # self._finish_current()
+
+        self._write_byte(opcode.opcode)
+
+    def write_subcode(self, subcode):
+        '''
+        Adds 1 byte subcode for ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        '''
+        self._write_byte(subcode.opcode)
+
+    def write_oparg(self, arg):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP and ZEPTOVM_OP_EXPRBINOP
+        OP-POP-FLAG-AND-EXPR-OFFSET | OPTIONAL-IMMEDIATE-OP
+        '''
+        if arg.optional_immediate:
+            self.write_int_2(0)
+            self.write_half_float(arg.optional_immediate)
+        elif arg.expr_offset:
+            val = arg.expr_offset * 2
+            if arg.pop_flag:
+                val += 1
+
+            self.write_int_2(val)
+        else:
+            self.write_int_2(3)
+
+    def write_opresult(self, res):
+        '''
+        Adds ZEPTOVM_OP_EXPRUNOP_EX2 and ZEPTOVM_OP_EXPRBINOP_EX2
+        PUSH-FLAG-AND-PUSH-EXPR-OFFSET
+        '''
+        assert res.expr_offset
+        val = res.expr_offset * 2
+        if res.insert_flag:
+            val += 1
+
+        self.write_int_2(val)
+
+    def write_int_2(self, value):
+        '''
+        Adds an Encoded-Signed-Int<max=2> field
+        '''
+        enc = self._encoder.encode_signed_int(2, value)
+        self._write_bytes(enc)
+
+    def write_uint_2(self, value):
+        '''
+        Adds an Encoded-Unsigned-Int<max=2> field
+        '''
+        enc = self._encoder.encode_unsigned_int(2, value)
+        self._write_bytes(enc)
+
+    def write_uint_4(self, value):
+        '''
+        Adds an Encoded-Unsigned-Int<max=4> field
+        '''
+        enc = self._encoder.encode_unsigned_int(4, value)
+        self._write_bytes(enc)
+
+    def write_half_float(self, value):
+        '''
+        Adds a half-float field
+        '''
+        enc = self._encoder.encode_half_float(value)
+        self._write_bytes(enc)
+
+    def write_field_sequence(self, fs):
+        '''
+        Adds a field-sequence field
+        '''
+        enc = bytearray()
+        for current in fs:
+            enc.append(current.code)
+
+        enc.append(Encoding.END_OF_SEQUENCE.code)
+        self._write_bytes(enc)
+
+    def write_delta(self, delta, destination):
+        '''
+        Adds jump delta
+        '''
+        # pylint: disable=unused-argument
+        self.write_int_2(delta)
+
+    def write_bitfield(self, bits):
+        '''
+        Adds a bitfield
+        '''
+        self.write_int_2(bits.to_integer())
+
+    def write_opaque_data_2(self, data):
+        '''
+        Adds an opaque data binary field to current operation
+        First adds a field with the data size, and data itself after it
+        '''
+        if not data:
+            self.write_uint_2(0)
+        else:
+            self.write_uint_2(len(data))
+            self._write_bytes(data)
+
+    def write_text(self, text):
+        '''
+        Add a free text, only for easier testing
+        Nothing to do in binary modes
         '''
         # pylint: disable=no-self-use
         # pylint: disable=unused-argument

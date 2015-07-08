@@ -13,26 +13,32 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import math
 import sys
 
-from smartanthill_zc import builtin, vm, writer
+from smartanthill_zc import builtin, vm, writer, encode
 from smartanthill_zc import compiler, parse_xml
 from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
 from smartanthill_zc.compiler import Compiler
+from smartanthill_zc.encode import create_half_float, half_float_value,\
+    half_float_next_down
 
 
 def main():
 
-    code = [
-        u'var a = TempSensor.Execute();',
-        u'var b = TempSensor.Execute();',
-        u'var c = TempSensor.Execute();',
-        u'var d = TempSensor.Execute();',
-        u'if (c.Temperature > 38) {'
-        u'  return [TempSensor.Execute(), b, TempSensor.Execute(), d];'
-        u'}'
-        u'return [a, TempSensor.Execute(), c, TempSensor.Execute()]']
+    code = [u'var temp = TempSensor.Execute();',
+            u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
+            u'  mcu_sleep(5*60);',
+            u'  temp = TempSensor.Execute();',
+            u'}',
+            u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
+            u'  var temp2 = TempSensor.Execute();',
+            u'  if(temp2.Temperature > 38.0)',
+            u'    return temp2;',
+            u'  mcu_sleep(5*60);',
+            u'}',
+            u'return TempSensor.Execute();']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
@@ -59,10 +65,11 @@ def main():
         u'  <description>Short description here</description>',
         u'  <command/>',
         u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;" min="0" max="255">',
+        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'     min="0" max="500">',
         u'      <meaning type="float">',
-        u'        <linear-conversion input-point0="0" output-point0="20.0"',
-        u'          input-point1="100" output-point1="40.0" />',
+        u'        <linear-conversion input-point0="100" output-point0="10.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
         u'      </meaning>',
         u'    </field>',
         u'  </reply>',
@@ -71,10 +78,11 @@ def main():
     ]
 
     xml = '\n'.join(xml)
+ #   xml2 = '\n'.join(xml2)
     code = '\n'.join(code)
     comp = Compiler()
 
-    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml])
     etdump = visitor.dump_tree(bodyparts)
 
     print '\n'.join(etdump)
@@ -95,7 +103,7 @@ def main():
 
     print '\n'.join(actual)
 
-    target = vm.convert_to_zepto_vm_tiny(comp, root)
+    target = vm.convert_to_zepto_vm_small(comp, root)
     txt = writer.write_text_op_codes(comp, target)
     print '\n'.join(txt)
 

@@ -13,7 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc import builtin, expression
+from smartanthill_zc import builtin
 from smartanthill_zc.encode import Encoding, get_encoding_min_max
 from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
                                   ResolutionHelper, TypeDeclNode)
@@ -77,7 +77,7 @@ class FieldTypeFactoryNode(Node):
         t = ''.join(att['type'].split())  # to remove whites
 
         field_name = self.get_unique_type_name()
-        field = compiler.init_node(FieldTypeDeclNode(field_name), et)
+        field = compiler.init_node(builtin.FieldTypeDeclNode(field_name), et)
 
         encoding = None
         max_bytes = 0
@@ -121,15 +121,16 @@ class FieldTypeFactoryNode(Node):
         field.min_value = min_value
         field.max_value = max_value
 
-        self.child_type_list.add_declaration(field)
+        f2l = builtin.create_field_to_literal_comparison(
+            compiler, et, field_name)
+        self.child_operator_list.add_declaration_list(f2l)
 
-        for current in ['<', '>', '<=', '>=']:
-            op = compiler.init_node(
-                FieldToLiteralComparisonOpDeclNode(current, '_zc_bool'), et)
-            op.set_parameter_list(
-                builtin.create_parameter_list(
-                    compiler, et, [field_name, '_zc_number_literal']))
-            self.child_operator_list.add_declaration(op)
+        for current in self.child_type_list.childs_declarations:
+            f2f = builtin.create_field_to_field_comparison(
+                compiler, et, field_name, current)
+            self.child_operator_list.add_declaration_list(f2f)
+
+        self.child_type_list.add_declaration(field)
 
         return field
 
@@ -157,6 +158,7 @@ class LinearConvertionFloat(object):
         '''
         self._a = 0
         self._b = 0
+        self._inv_a = 0
 
     def set_points(self, in0, out0, in1, out1):
         '''
@@ -167,96 +169,52 @@ class LinearConvertionFloat(object):
         out0 = float(out0)
         out1 = float(out1)
         self._a = (out1 - out0) / (in1 - in0)
+        self._inv_a = (in1 - in0) / (out1 - out0)
         self._b = out0 - self._a * in0
 
     def inverse(self, value):
         '''
         Returns inverse scaling of value
+        This method rounds result to exact integer
+        or half way (i.e. 1.0, 1.5, 2.0, 2.5, etc)
         '''
-        return (value - self._b) / self._a
+
+        inv = (value - self._b) * self._inv_a
+        inv2 = round(inv * 2) / 2  # magic trick to remove round error
+        return inv2
+
+    def create_cast(self):
+        '''
+        Creates a new expression cast
+        '''
+        # pylint: disable=no-self-use
+
+        return FieldCastExprNode(self._a, self._b)
 
 
-class FieldTypeDeclNode(TypeDeclNode):
+class FieldCastExprNode(ExpressionNode):
 
     '''
-    Types used for message fields
+    Node class representing an automatic conversion from a sensor output value
+    to a physical magnitude by linear scaling
     '''
 
-    def __init__(self, type_name):
+    def __init__(self, a, b):
         '''
         Constructor
         '''
-        super(FieldTypeDeclNode, self).__init__(type_name)
-        self.encoding = None
-        self.meaning = None
-        self.min_value = 0
-        self.max_value = 0
-        self._number_type = None
+        super(FieldCastExprNode, self).__init__()
+        self.child_expression = None
+        self.a = a
+        self.b = b
 
-    def resolve(self, compiler):
+    def set_expression(self, child):
         '''
-        resolve
+        argument_list setter
         '''
-        self._number_type = self.get_root_scope().lookup_type('_zc_number')
-        super(FieldTypeDeclNode, self).resolve(compiler)
-
-    def can_cast_to(self, target_type):
-        '''
-        This type can be casted to number, by inserting appropiate scaling
-        '''
-        if self == target_type:
-            return self.EXACT_MATCH
-        elif self._number_type == target_type:
-            return self.CAST_MATCH
-        else:
-            return self.NO_MATCH
-
-    def insert_cast_to(self, compiler, target_type, expr):
-        '''
-        Inserts a cast to the target (number) type
-        TODO use scaling and <meaning>
-        '''
-        assert self == expr.get_type()
-        assert self._number_type == target_type
-
-        c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
-        c.set_expression(expr)
-        c.set_type(target_type)
-
-        return c
-
-    def inverse_meaning(self, value):
-        '''
-        Inverse function of meaning
-        Used for mapping literal number for comparison with
-        value returned by a body-part
-        '''
-        # TODO check range
-        assert value
-        if self.meaning:
-            return self.meaning.inverse(value)
-        else:
-            return value
-
-    def next_up(self, value):
-        '''
-        Increments value by the minimum representable amount
-        '''
-        # TODO check range
-        if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
-            return value + 1
-        else:
-            assert False
-
-    def next_down(self, value):
-        '''
-        Decrements value by the minimum representable amount
-        '''
-        # TODO check range
-        if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
-            return value - 1
-        else:
-            assert False
+        assert isinstance(child, ExpressionNode)
+        child.set_parent(self)
+        self.child_expression = child
 
 
 class MemberDeclNode(Node, ResolutionHelper):
@@ -467,158 +425,3 @@ class BodyPartsManagerNode(Node):
         compiler.resolve_node(self.child_field_type_factory)
         compiler.resolve_node(self.child_body_part_list)
         self._resolved = True
-
-
-class FieldToLiteralComparisonOpDeclNode(builtin.OperatorDeclNode):
-
-    '''
-    Node class to represent an very special operator declaration
-    for comparison between reply field and number literal
-    This comparison is special because it can be optimized by mapping
-    reply field and literal to numbers in expression stack,
-    or converting number literal to reply field internal type as optimization,
-    without using stack expression.
-    Also VM level Tiny, only supports the later optimization,
-    because stack expression is not available.
-    '''
-
-    def __init__(self, operator, type_name):
-        '''
-        Constructor
-        '''
-        super(FieldToLiteralComparisonOpDeclNode, self).__init__(
-            operator, type_name)
-        self.swap_flag = False
-
-    def static_evaluate(self, compiler, expr, arg_list):
-        '''
-        Do replace generic OperatorExprNode by a much more specific
-        FieldToLiteralComparisonOpExprNode
-        '''
-
-        assert isinstance(expr, expression.OperatorExprNode)
-        assert len(arg_list.childs_arguments) == 2
-
-        member = arg_list.childs_arguments[0]
-        assert isinstance(member.get_type(), FieldTypeDeclNode)
-        assert isinstance(member, expression.MemberAccessExprNode)
-        assert isinstance(member.child_expression, expression.VariableExprNode)
-
-        orig_value = arg_list.childs_arguments[1].get_static_value()
-        assert orig_value
-
-        result = compiler.init_node(
-            FieldToLiteralComparisonOpExprNode(), expr.ctx)
-
-        result.set_replaced(expr)
-        result.txt_op = swap_comparison(expr.txt_operator, self.swap_flag)
-        result.ref_declaration = self
-        result.ref_member_expr = member
-
-        result.literal_value = orig_value
-
-        result.set_type(self.get_type())
-
-        return result
-
-
-_negate_comparison_map = {'==': '!=',
-                          '!=': '==',
-                          '<': '>=',
-                          '>': '<=',
-                          '<=': '>',
-                          '>=': '<'}
-
-
-def negate_comparison(txt_op, negate):
-    '''
-    If negate is False, returns the same txt_op,
-    If negate is True, return the negated comparison operator
-    '''
-
-    if negate:
-        return _negate_comparison_map[txt_op]
-    else:
-        return txt_op
-
-
-_swap_comparison_map = {'==': '==',
-                        '!=': '!=',
-                        '<': '>',
-                        '>': '<',
-                        '<=': '>=',
-                        '>=': '<='}
-
-
-def swap_comparison(txt_op, swap):
-    '''
-    If swap is False, returns the same txt_op,
-    If swap is True, return the comparison operator needed to swap lhs y rhs
-    '''
-
-    if swap:
-        return _swap_comparison_map[txt_op]
-    else:
-        return txt_op
-
-
-def simplify_comparison(txt_op, value, value_type):
-
-    if txt_op in ['==', '!=', '<', '>']:
-        return (txt_op, value)
-    elif txt_op == '<=':
-        return ('<', value_type.next_up(value))
-    elif txt_op == '>=':
-        return ('>', value_type.next_down(value))
-    else:
-        assert False
-
-
-class FieldToLiteralComparisonOpExprNode(ExpressionNode):
-
-    '''
-    Node class representing a very special operator comparison expression
-    between a reply field and a number literal.
-    This kind of expression is created from a regular OperatorExprNode
-    by FieldToLiteralComparisonOpDeclNode for all expression
-    This allows easier detection of this special comparison at a later time
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(FieldToLiteralComparisonOpExprNode, self).__init__()
-        self.child_replaced = None
-        self.txt_op = None
-        self.ref_declaration = None
-        self.ref_member_expr = None
-        self.literal_value = None
-
-    def set_replaced(self, child):
-        '''
-        replaced setter
-        '''
-        assert isinstance(child, ExpressionNode)
-        child.set_parent(self)
-        self.child_replaced = child
-
-    def get_variable_decl(self):
-        return self.ref_member_expr.child_expression.ref_decl
-
-    def get_field_sequence(self):
-        return self.ref_member_expr.get_member_field_sequence()
-
-    def get_subcode_and_threshold(self, negate):
-        '''
-        Converts the literal value to the reply field type,
-        Using reverse linear scaling
-        And simplify >= and <= to < and > by modifying literal value by epsilon
-        Also apply an optional negation flag, as helper for code generator
-        '''
-        target_type = self.ref_member_expr.get_type()
-        threshold = target_type.inverse_meaning(self.literal_value)
-
-        txt_op = negate_comparison(self.txt_op, negate)
-
-        return simplify_comparison(txt_op, threshold, target_type)

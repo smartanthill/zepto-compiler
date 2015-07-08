@@ -161,7 +161,7 @@ def test_js_binary_operator():
         "+-ProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-ReturnStmtNode",
-        "+-+-+-+-OperatorExprNode operator='&&'",
+        "+-+-+-+-LogicOpExprNode operator='&&'",
         "+-+-+-+-+-ArgumentListNode",
         "+-+-+-+-+-+-VariableExprNode name='some'",
         "+-+-+-+-+-+-VariableExprNode name='other'"
@@ -178,7 +178,7 @@ def test_js_unary_operator():
         "+-ProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-ReturnStmtNode",
-        "+-+-+-+-OperatorExprNode operator='!'",
+        "+-+-+-+-LogicOpExprNode operator='!'",
         "+-+-+-+-+-ArgumentListNode",
         "+-+-+-+-+-+-VariableExprNode name='some'",
     ]

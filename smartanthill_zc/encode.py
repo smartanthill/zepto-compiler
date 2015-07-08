@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import math
 
 
 class ZeptoEncoder(object):
@@ -46,13 +47,12 @@ class ZeptoEncoder(object):
 
         return self._signeds[value]
 
-    def encode_bitfield(self, bits):
+    def encode_half_float(self, value):
         '''
         Encode a bit field
         '''
         # pylint: disable=no-self-use
-
-        return encode_bitfield(bits)
+        return encode_half_float(value)
 
 
 def _encode_unsigned(value):
@@ -60,26 +60,14 @@ def _encode_unsigned(value):
     Encoded-*-Int internal implemntation function
     '''
 
+    assert value >= 0
     result = bytearray()
-    not_last = False
 
     while value >= 128:
-        current = value % 128
-        if not_last:
-            current += 128
-
-        not_last = True
-        result.append(current)
-
-        value /= 128
-        value -= 1
-
-    if not_last:
-        value += 128
+        result.append((value & 0x7f) | 0x80)
+        value >>= 7
 
     result.append(value)
-
-    result.reverse()
 
     return result
 
@@ -113,24 +101,9 @@ def encode_signed_int(max_bytes, value):
     assert value <= (2 ** ((8 * max_bytes) - 1)) - 1
 
     if value >= 0:
-
-        limit = 64
-        while value >= limit:
-            limit *= 128
-            limit += 64
-
-        return _encode_unsigned(value + limit)
+        return _encode_unsigned(value << 1)
     else:
-        limit = 64
-        gap = 0
-        while value < -limit:
-            limit *= 128
-            limit += 64
-
-            gap *= 128
-            gap += 128
-
-        return _encode_unsigned(value + limit + gap)
+        return _encode_unsigned(((~value) << 1) | 1)
 
 
 def decode_unsigned_int(byte_list):
@@ -138,20 +111,17 @@ def decode_unsigned_int(byte_list):
     Encoded-Unsigned-Int decoder implementation
     '''
 
+    assert isinstance(byte_list, bytearray)
+
     i = 0
     value = 0
-    while byte_list[i] >= 128:
-        assert byte_list[i] < 256
-
-        c = byte_list[i] - 128 + 1
-
-        value += c
-        value *= 128
+    shift = 0
+    while byte_list[i] & 0x80 != 0:
+        value |= (byte_list[i] & 0x7f) << shift
+        shift += 7
         i += 1
 
-    assert byte_list[i] >= 0
-    assert byte_list[i] < 128
-    value += byte_list[i]
+    value |= byte_list[i] << shift
 
     assert len(byte_list) == i + 1
 
@@ -164,39 +134,210 @@ def decode_signed_int(byte_list):
     '''
 
     value = decode_unsigned_int(byte_list)
-    base = 0
-    half = 64
-    while value >= (base * 128) + 128:
-        base *= 128
-        base += 128
-
-        half *= 128
-
-    if value - base < half:
-        # negative
-        return value - half - base - base / 2
+    if value & 1 == 0:
+        return value >> 1
     else:
-        # positive
-        return value - half - base + base / 2
+        return ~(value >> 1)
 
 
-def encode_bitfield(bits):
+def encode_half_float(value):
     '''
-    Bit field encoder implementation
+    Half float encoder implementation
+    '''
+    enc = create_half_float(value)
+    return enc.encode()
+
+
+class HalfFloatOverflowError(Exception):
+    pass
+
+
+class _HalfFloatBits(object):
+
+    '''
+    TODO improve this!!!
+    This class holds the internal representation of a half float
+    allow bit manipulation and encoding
     '''
 
-    assert len(bits) >= 0
-    assert len(bits) <= 7
+    def __init__(self, sign, exp, mantisa):
+        '''
+        Constructor
+        '''
+        if exp < 0 or exp >= 31:
+            raise HalfFloatOverflowError()
 
-    i = 1
-    result = 0
-    for current in reversed(bits):
-        if current:
-            result += i
+        self.sign = sign
+        self.exp = exp
+        self.mantisa = mantisa
 
-        i *= 2
+        if self.mantisa == 0 and self.exp == 0:
+            self.sign = 0
 
-    return result
+        self._check()
+
+    def _check(self):
+        '''
+        Check this number is a representable half float value
+        not infinite nor minus zero
+        '''
+        assert 0 <= self.exp <= 30
+        assert 0 <= self.mantisa <= 0x3ff
+        assert self.sign == 0 or self.sign == 1
+
+        if self.exp == 0 and self.mantisa == 0:
+            assert self.sign == 0
+
+    def _next(self):
+        '''
+        Helper to next absolute value
+        '''
+        if self.mantisa == 0x3ff:
+            if self.exp == 30:
+                raise HalfFloatOverflowError()
+            else:
+                self.mantisa = 0
+                self.exp += 1
+        else:
+            self.mantisa += 1
+
+    def _prev(self):
+        '''
+        Helper to previous absolute value
+        '''
+        if self.mantisa == 0:
+            if self.exp == 0:
+                assert False
+            else:
+                self.mantisa = 0x3ff
+                self.exp -= 1
+        else:
+            self.mantisa -= 1
+
+        if self.mantisa == 0 and self.exp == 0:
+            self.sign = 0
+
+    def next_up(self):
+        '''
+        Increments this half float by the minimum representable value
+        '''
+        if self.sign == 0:
+            self._next()
+        else:
+            self._prev()
+
+        self._check()
+
+    def next_down(self):
+        '''
+        Decrements this half float by the minimum representable value
+        '''
+
+        if self.mantisa == 0 and self.exp == 0:
+            self.sign = 1
+            self.mantisa = 1
+        elif self.sign == 0:
+            self._prev()
+        else:
+            self._next()
+
+        self._check()
+
+    def encode(self):
+        '''
+        Creates a bytes with the binary encoding of this half float value
+        '''
+
+        by = (self.sign << 15) | (self.exp << 10) | self.mantisa
+
+        assert 0 <= by <= 0xffff
+
+        byte0 = by >> 8
+        byte1 = self.mantisa & 0xff
+
+        return [byte0, byte1]
+
+    def get_value(self):
+        '''
+        Returns the size in bytes of this type
+        '''
+        if self.mantisa == 0 and self.exp == 0:
+            return 0.
+
+        m = self.mantisa
+        e = self.exp - 24
+        if self.exp != 0:  # normal
+            m += 1024
+            e -= 1
+
+        if self.sign == 1:
+            m *= -1
+
+        return math.ldexp(m, e)
+
+
+def half_float_value(value):
+    '''
+    Converts value to a half float and back to float
+    Will round its precision to half float, and will raise if overflow
+    '''
+    hf = create_half_float(value)
+    return hf.get_value()
+
+
+def half_float_next_up(value):
+    '''
+    Converts value to a half float and increments minimally
+    Will round its precision to half float, and will raise if overflow
+    '''
+    hf = create_half_float(value)
+    hf.next_up()
+    return hf.get_value()
+
+
+def half_float_next_down(value):
+    '''
+    Converts value to a half float and decrements minimally
+    Will round its precision to half float, and will raise if overflow
+    '''
+    hf = create_half_float(value)
+    hf.next_down()
+    return hf.get_value()
+
+
+def create_half_float(value):
+    '''
+    Half float encoder implementation
+    '''
+    assert isinstance(value, float)
+    assert not math.isnan(value)
+    assert not math.isinf(value)
+
+    m, e = math.frexp(value)
+    if m == 0 and e == 0:
+        return _HalfFloatBits(0, 0, 0)
+
+    signbit = 1 if m < 0. else 0
+
+    if e < -24 or e > 16:
+        raise HalfFloatOverflowError()
+    elif e >= -24 and e <= -14:  # subnormal
+        m2 = math.ldexp(m, e + 24)
+        m3 = math.fabs(m2)
+        m4 = round(m3)
+        m5 = math.trunc(m4)
+
+        return _HalfFloatBits(signbit, 0, m5)
+
+    else:  # normal
+
+        m2 = math.ldexp(m, 11)
+        m3 = math.fabs(m2)
+        m4 = round(m3)
+        m5 = math.trunc(m4)
+        m6 = m5 - 1024
+
+        return _HalfFloatBits(signbit, e + 14, m6)
 
 
 class _EncodingImpl(object):
@@ -242,13 +383,6 @@ def field_sequence_to_str(field_sequence):
     return ','.join(result)
 
 
-def field_sequence_byte_size(field_sequence):
-    '''
-    Calculates the byte size of encoding a FIELD-SEQUENCE
-    '''
-    return len(field_sequence) + 1
-
-
 def get_encoding_min_max(encoding, max_bytes):
     '''
     Returns a tuple with minimum and maximum values for a given encoding
@@ -260,6 +394,6 @@ def get_encoding_min_max(encoding, max_bytes):
             return (-32768, 32767)
     elif encoding == Encoding.UNSIGNED_INT:
         if max_bytes == 2:
-            return (0L, 65535)
+            return (0, 65535)
 
     assert False

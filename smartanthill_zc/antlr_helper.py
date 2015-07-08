@@ -14,8 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from antlr4.ParserRuleContext import ParserRuleContext
 import antlr4.error.ErrorListener
+from antlr4.ParserRuleContext import ParserRuleContext
 from antlr4.tree.Tree import TerminalNodeImpl
 
 

@@ -254,7 +254,7 @@ class IfElseStmtNode(StatementNode):
         compiler.resolve_node(self.child_if_branch)
         compiler.resolve_node(self.child_else_branch)
 
-        t = self.get_root_scope().lookup_type('_zc_bool')
+        t = self.get_root_scope().lookup_type('_zc_boolean')
 
         if not expression_type_match(compiler, t, self, 'child_expression'):
             compiler.report_error(

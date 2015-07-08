@@ -13,11 +13,12 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import pytest
+
+from smartanthill_zc import builtin
 from smartanthill_zc import compiler, parse_xml
 from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
-from smartanthill_zc import builtin
-import pytest
 
 
 def common_test_run(code):

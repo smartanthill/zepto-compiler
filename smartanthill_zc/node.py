@@ -399,6 +399,13 @@ class DeclarationListNode(Node):
         child.set_parent(self)
         self.childs_declarations.append(child)
 
+    def add_declaration_list(self, childs):
+        '''
+        add each declaration in list helper
+        '''
+        for each in childs:
+            self.add_declaration(each)
+
     def resolve(self, compiler):
         for decl in self.childs_declarations:
             compiler.resolve_node(decl)

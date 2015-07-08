@@ -16,13 +16,12 @@
 
 import antlr4
 
-from smartanthill_zc import expression, statement
-from smartanthill_zc import array_lit
+from smartanthill_zc import array_lit, expression, statement
+from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
+                                          get_token_text)
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
-                                          get_token_text)
 from smartanthill_zc.node import ArgumentListNode, ProgramNode, RootNode
 
 
@@ -369,12 +368,12 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
     def visitLogicalOrExpression(self, ctx):
-        return self.init_operator(expression.OperatorExprNode(), ctx,
+        return self.init_operator(expression.LogicOpExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#LogicalAndExpression.
     def visitLogicalAndExpression(self, ctx):
-        return self.init_operator(expression.OperatorExprNode(), ctx,
+        return self.init_operator(expression.LogicOpExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#IdentifierExpression.
@@ -422,12 +421,12 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#NotExpression.
     def visitNotExpression(self, ctx):
-        return self.init_operator(expression.OperatorExprNode(), ctx,
+        return self.init_operator(expression.LogicOpExprNode(), ctx,
                                   ctx.getChild(0), [ctx.singleExpression()])
 
     # Visit a parse tree produced by ECMAScriptParser#RelationalExpression.
     def visitRelationalExpression(self, ctx):
-        return self.init_operator(expression.OperatorExprNode(), ctx,
+        return self.init_operator(expression.ComparisonOpExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
@@ -447,17 +446,17 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#EqualityExpression.
     def visitEqualityExpression(self, ctx):
-        return self.init_operator(expression.OperatorExprNode(), ctx,
+        return self.init_operator(expression.ComparisonOpExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
     def visitAdditiveExpression(self, ctx):
-        return self.init_operator(expression.OperatorExprNode(), ctx,
+        return self.init_operator(expression.ArithmeticOpExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
     def visitMultiplicativeExpression(self, ctx):
-        return self.init_operator(expression.OperatorExprNode(), ctx,
+        return self.init_operator(expression.ArithmeticOpExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#literal.
