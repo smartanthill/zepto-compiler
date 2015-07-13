@@ -13,9 +13,52 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+from os.path import basename
+from xml.etree import ElementTree
+
 from smartanthill_zc.compiler import Compiler
 from smartanthill_zc.op_node import ExecOpNode
 from smartanthill_zc.writer import write_binary
+
+
+class ZeptoPlugin(object):
+
+    def __init__(self, manifest_path):
+        self.xml = ElementTree.parse(manifest_path).getroot()
+        self.source_dir = basename(manifest_path)
+
+    def get_id(self):
+        return self.xml.get("id")
+
+    def get_name(self):
+        return self.xml.get("name")
+
+    def get_description(self):
+        return self.xml.find("description").text
+
+    def get_peripheral(self):
+        pins = self.xml.find("./configuration/peripheral")
+        if pins is None:
+            return None
+        result = []
+        for element in pins:
+            data = {}
+            for key in ("type", "name", "title"):
+                data[key] = element.get(key, None)
+            result.append(data)
+        return result
+
+    def get_options(self):
+        options = self.xml.find("./configuration/options")
+        if options is None:
+            return None
+        result = []
+        for element in options:
+            data = {}
+            for key in ("type", "name", "title", "default"):
+                data[key] = element.get(key, None)
+            result.append(data)
+        return result
 
 
 def zepto_exec_cmd(bodypart_id, data):
