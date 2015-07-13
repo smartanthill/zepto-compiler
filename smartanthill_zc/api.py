@@ -61,6 +61,40 @@ class ZeptoPlugin(object):
         return result
 
 
+class ZeptoBodyPart(object):
+
+    def __init__(self, id_, name, plugin, peripheral=None, options=None):
+        assert isinstance(plugin, ZeptoPlugin)
+        self._id = id_
+        self._plugin = plugin
+        self._peripheral = peripheral
+        self._options = options
+
+    def get_id(self):
+        return self._id
+
+    def get_plugin_id(self):
+        return self._plugin.get_id()
+
+    def get_peripheral(self):
+        peripheral = self._plugin.get_peripheral()
+        if not peripheral:
+            return None
+        for item in peripheral:
+            if self._peripheral and item['name'] in self._peripheral:
+                item['value'] = self._peripheral[item['name']]
+        return peripheral
+
+    def get_options(self):
+        options = self._plugin.get_options()
+        if not options:
+            return None
+        for item in options:
+            if self._options and item['name'] in self._options:
+                item['value'] = self._options[item['name']]
+        return options
+
+
 def zepto_exec_cmd(bodypart_id, data):
     '''
     Public api function that creates a binary code for a ZEPTOVM_OP_EXEC
