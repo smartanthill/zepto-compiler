@@ -20,7 +20,7 @@ from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
 def common_test_run(code):
 
     xml = [
-        u'<smartanthill.plugin name="TemperatureSensor" id="1" version="1.0">',
+        u'<test.plugin name="TemperatureSensor" id="1" version="1.0">',
         u'  <description>Short description here</description>',
         u'  <command/>',
         u'  <reply>',
@@ -28,10 +28,25 @@ def common_test_run(code):
         u'     min="0" max="255" />',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</smartanthill.plugin>'
+        u'</test.plugin>'
+    ]
+
+    xml2 = [
+        u'<test.plugin name="Actuator" id="5" version="1.0">',
+        u'  <description>Short description here</description>',
+        u'  <command>',
+        u'    <field name="abc" type="encoded-signed-int[max=2]" />',
+        u'  </command>',
+        u'  <reply>',
+        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;"',
+        u'     min="0" max="255" />',
+        u'  </reply>',
+        u'  <peripheral>Right now compiler can ignore this</peripheral>',
+        u'</test.plugin>'
     ]
 
     xml = '\n'.join(xml)
+    xml2 = '\n'.join(xml2)
     code = '\n'.join(code)
 
     comp = compiler.Compiler()
@@ -43,7 +58,7 @@ def common_test_run(code):
 
 #     xml_tree = parse_xml.parse_xml_string(comp, xml)
 #     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml, xml2])
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)
@@ -95,6 +110,21 @@ def test_js_return_array():
            '/* size: 6 bytes */',
            '|EXEC|1|0|[]|',
            '|EXEC|1|0|[]|',
+           '/* exit|islast */']
+
+    assert common_test_run(code) == out
+
+
+def test_js_actuator():
+
+    code = [
+        u'return Actuator.Execute(10);']
+
+    out = ['/* target vm: One */',
+           '/* mcusleep: False */',
+           '/* reply: {INT} */',
+           '/* size: 4 bytes */',
+           '|EXEC|5|1|[0x14]|',
            '/* exit|islast */']
 
     assert common_test_run(code) == out

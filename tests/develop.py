@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import cProfile
 import math
 import sys
 
@@ -27,18 +28,7 @@ from smartanthill_zc.encode import create_half_float, half_float_value,\
 
 def main():
 
-    code = [u'var temp = TempSensor.Execute();',
-            u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
-            u'  mcu_sleep(5*60);',
-            u'  temp = TempSensor.Execute();',
-            u'}',
-            u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
-            u'  var temp2 = TempSensor.Execute();',
-            u'  if(temp2.Temperature > 38.0)',
-            u'    return temp2;',
-            u'  mcu_sleep(5*60);',
-            u'}',
-            u'return TempSensor.Execute();']
+    code = [u'return TempSensor.Execute();']
 
 #        u'return [TempSensor.Execute(), TempSensor.Execute()];']
     #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
@@ -61,7 +51,7 @@ def main():
     #             u'return TemperatureSensor.Execute();']
 
     xml = [
-        u'<smartanthill.plugin name="TempSensor" id="1" version="1.0">',
+        u'<test.plugin name="TempSensor" id="1" version="1.0">',
         u'  <description>Short description here</description>',
         u'  <command/>',
         u'  <reply>',
@@ -74,7 +64,7 @@ def main():
         u'    </field>',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</smartanthill.plugin>'
+        u'</test.plugin>'
     ]
 
     xml = '\n'.join(xml)
@@ -109,4 +99,5 @@ def main():
 
 # temporary entrance
 if __name__ == "__main__":
-    sys.exit(main())
+    cProfile.run("main()")
+    sys.exit()

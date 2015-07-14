@@ -637,7 +637,16 @@ class _ZeptoVmOneVisitor(NodeVisitor):
     def _BodyPartCallExprNode(self, node):
         exprop = self._compiler.init_node(op_node.ExecOpNode(), node.ctx)
         exprop.bodypart_id = node.ref_bodypart_decl.bodypart_id
-        exprop.data = node.get_data_value(self._compiler)
+
+        if len(node.child_argument_list.childs_arguments) == 0:
+            pass
+        elif len(node.child_argument_list.childs_arguments) == 1:
+            exprop.data_encoding = node.child_argument_list.childs_arguments[
+                0].get_type().get_encoding()
+            exprop.data_value = node.child_argument_list.childs_arguments[
+                0].get_static_value()
+        else:
+            assert False
 
         self._add_op(exprop)
 

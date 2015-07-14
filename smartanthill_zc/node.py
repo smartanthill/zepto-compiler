@@ -188,12 +188,6 @@ class ExpressionNode(Node):
         # pylint: disable=no-self-use
         return None
 
-    def insert_cast_to(self, compiler, target_type):
-        '''
-        Helper method to call 'insert_cast_to' using self as argument
-        '''
-        return self.get_type().insert_cast_to(compiler, target_type, self)
-
 
 def resolve_expression(compiler, parent, child_name):
     '''
@@ -280,6 +274,27 @@ class TypeDeclNode(Node):
 
         assert False
 
+    def can_cast_from(self, source_type):
+        '''
+        Base method for type casting
+        If self can be constructed from source_type returns True
+        Otherwise returns False
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+
+        return False
+
+    def insert_cast_from(self, compiler, source_type, expr):
+        '''
+        Inserts a cast from the source type
+        Base method will always fail
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+
+        assert False
+
     def is_message_type(self):
         '''
         Types that can go to the reply buffer, should return true here
@@ -313,7 +328,7 @@ def expression_type_match(compiler, lhs_type, parent, child_name):
     elif ini == TypeDeclNode.EXACT_MATCH:
         return True
     elif ini == TypeDeclNode.CAST_MATCH:
-        cast = expr.insert_cast_to(compiler, lhs_type)
+        cast = expr.get_type().insert_cast_to(compiler, lhs_type, expr)
         cast.set_parent(parent)
         setattr(parent, child_name, cast)
         return True
@@ -526,16 +541,22 @@ class ArgumentListNode(Node):
 
         result = TypeDeclNode.EXACT_MATCH
         for i in range(len(self.childs_arguments)):
-            t = params.get_type_at(i)
-#            r = t.can_initialize(self.childs_arguments[i].get_type())
-            r = self.childs_arguments[i].get_type().can_cast_to(t)
 
-            if r == TypeDeclNode.NO_MATCH:
-                return TypeDeclNode.NO_MATCH
-            elif r == TypeDeclNode.EXACT_MATCH:
+            source = self.childs_arguments[i].get_type()
+            target = params.get_type_at(i)
+
+            r = source.can_cast_to(target)
+
+            if r == TypeDeclNode.EXACT_MATCH:
                 pass
             elif r == TypeDeclNode.CAST_MATCH:
                 result = TypeDeclNode.CAST_MATCH
+            elif r == TypeDeclNode.NO_MATCH:
+
+                if target.can_cast_from(source):
+                    result = TypeDeclNode.CAST_MATCH
+                else:
+                    return TypeDeclNode.NO_MATCH
             else:
                 assert False
 
@@ -554,19 +575,29 @@ class ArgumentListNode(Node):
             compiler.raise_error()
 
         for i in range(len(self.childs_arguments)):
-            t = params.get_type_at(i)
+            target = params.get_type_at(i)
+            source = self.childs_arguments[i].get_type()
             # r = t.can_initialize(self.childs_arguments[i].get_type())
-            r = self.childs_arguments[i].get_type().can_cast_to(t)
+            r = source.can_cast_to(target)
 
             if r == TypeDeclNode.NO_MATCH:
-                compiler.report_error(
-                    self.ctx, "Argument type mismatch at position %s" & str(i))
-                compiler.raise_error()
+
+                if target.can_cast_from(source):
+
+                    e = target.insert_cast_from(
+                        compiler, source, self.childs_arguments[i])
+                    e.set_parent(self)
+                    self.childs_arguments[i] = e
+
+                else:
+                    compiler.report_error(
+                        self.ctx, "Argument type mismatch at position %s" % str(i))
+                    compiler.raise_error()
             elif r == TypeDeclNode.EXACT_MATCH:
                 pass
             elif r == TypeDeclNode.CAST_MATCH:
-                # e = t.insert_cast(compiler, self.childs_arguments[i])
-                e = self.childs_arguments[i].insert_cast_to(compiler, t)
+                e = source.insert_cast_to(
+                    compiler, target, self.childs_arguments[i])
                 e.set_parent(self)
                 self.childs_arguments[i] = e
             else:

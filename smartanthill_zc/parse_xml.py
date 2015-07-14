@@ -43,7 +43,7 @@ def parse_xml_body_part_list(compiler, data_list):
         for data in data_list:
             root = ElementTree.fromstring(data)
             # python 2.6
-            for current in root.getiterator('smartanthill.plugin'):
+            for current in root.getiterator('test.plugin'):
                 _make_bodypart(compiler, manager, current)
     except ParseError:  # TODO improve
         compiler.report_error(compiler.BUILTIN, "Error parsing xml")
@@ -126,10 +126,10 @@ def _get_tags(compiler, et, req_names, opt_names):
 
 def _make_bodypart(compiler, manager, et):
     '''
-    Creates a BodyPartDeclNode from an xml <smartanthill.plugin>
+    Creates a BodyPartDeclNode from an xml <test.plugin>
     '''
 
-    assert et.tag == 'smartanthill.plugin'
+    assert et.tag == 'test.plugin'
 
     part = compiler.init_node(bodypart.BodyPartDeclNode(), et)
     att = _get_attributes(compiler, et,
@@ -151,6 +151,23 @@ def _make_bodypart(compiler, manager, et):
 
     # build parameter list from <command>
     pl = compiler.init_node(builtin.ParameterListNode(), et)
+
+    for current in tags['command']:
+
+        if current.tag != 'field':
+            compiler.report_error(
+                current, "Unexpected child tag '%s'" % current.tag)
+            compiler.raise_error()
+
+        att = _get_attributes(compiler, current,
+                              ['name', 'type'], ['min', 'max'])
+
+        field = manager.child_command_field_factory.create_field_type(
+            compiler, et, att)
+
+        pl.add_parameter(
+            compiler.init_node(builtin.ParameterDeclNode(field.txt_name), et))
+
     part.set_parameter_list(pl)
 
     # build reply type <reply>
@@ -218,8 +235,5 @@ def _make_field(compiler, manager, et):
             meaning = factory.create_linear_conversion_float(
                 '0', '0.', '1', '1.')
             field.meaning = meaning
-
-
-# TODO handle <meaning>
 
     return member

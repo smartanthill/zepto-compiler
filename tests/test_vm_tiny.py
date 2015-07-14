@@ -20,7 +20,7 @@ from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
 def common_test_run(code):
 
     xml = [
-        u'<smartanthill.plugin name="TempSensor" id="1" version="1.0">',
+        u'<test.plugin name="TempSensor" id="1" version="1.0">',
         u'  <description>Short description here</description>',
         u'  <command/>',
         u'  <reply>',
@@ -33,7 +33,7 @@ def common_test_run(code):
         u'    </field>',
         u'  </reply>',
         u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</smartanthill.plugin>'
+        u'</test.plugin>'
     ]
 
     xml = '\n'.join(xml)

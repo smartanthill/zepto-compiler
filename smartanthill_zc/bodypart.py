@@ -13,7 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc import builtin
+from smartanthill_zc import builtin, expression
 from smartanthill_zc.encode import Encoding, get_encoding_min_max
 from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
                                   ResolutionHelper, TypeDeclNode)
@@ -302,6 +302,155 @@ class MessageTypeDeclNode(TypeDeclNode):
         self.field_sequence = tuple(fs)
 
 
+class CommandFieldTypeDeclNode(TypeDeclNode):
+
+    '''
+    Types used for commands fields
+    '''
+
+    def __init__(self, type_name):
+        '''
+        Constructor
+        '''
+        super(CommandFieldTypeDeclNode, self).__init__(type_name)
+        self.encoding = None
+        self.min_value = 0
+        self.max_value = 0
+        self.ref_number_literal_type = None
+
+    def resolve(self, compiler):
+        '''
+        resolve
+        '''
+        self.ref_number_literal_type = self.get_root_scope().lookup_type(
+            '_zc_number_literal')
+        super(CommandFieldTypeDeclNode, self).resolve(compiler)
+
+    def can_cast_from(self, source_type):
+        '''
+        If self can be constructed from source_type returns True
+        Otherwise returns False
+        '''
+        return source_type == self.ref_number_literal_type
+
+    def insert_cast_from(self, compiler, source_type, expr):
+        '''
+        Inserts a cast to the target (number) type
+        TODO add value and range check
+        '''
+        assert self.ref_number_literal_type == expr.get_type()
+        assert self.ref_number_literal_type == source_type
+
+        c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
+
+        c.set_expression(expr)
+        c.set_type(self)
+
+        return c
+
+    def get_encoding(self):
+        '''
+        Return all the info needed to encode a value under this type
+        '''
+        return self.encoding
+
+
+class CommandFieldFactoryNode(Node):
+
+    '''
+    Factory class to create CommandFieldTypeDeclNode
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(CommandFieldFactoryNode, self).__init__()
+        self.child_type_list = None
+        self.next_unique = 1
+        self._resolved = False
+
+    def set_type_list(self, child):
+        '''
+        type_list setter
+        '''
+        assert isinstance(child, DeclarationListNode)
+        child.set_parent(self)
+        self.child_type_list = child
+
+    def get_unique_type_name(self):
+        '''
+        Returns a unique type name, to be used with types created from
+        plug-ins manifests
+        '''
+        name = '_zc_command_field_type_' + unicode(self.next_unique)
+        self.next_unique += 1
+        return name
+
+    def resolve(self, compiler):
+        '''
+        resolve
+        '''
+        assert not self._resolved
+        compiler.resolve_node(self.child_type_list)
+        self._resolved = True
+
+    def create_field_type(self, compiler, et, att):
+        '''
+        Created a new FieldTypeDeclNode from data in att dictionary
+        '''
+        t = ''.join(att['type'].split())  # to remove whites
+
+        field_name = self.get_unique_type_name()
+        field = compiler.init_node(CommandFieldTypeDeclNode(field_name), et)
+
+        encoding = None
+        max_bytes = 0
+        if (t == 'encoded-signed-int[max=2]' or
+                t == 'encoded-signed-int<max=2>'):
+            encoding = Encoding.SIGNED_INT
+            max_bytes = 2
+        elif (t == 'encoded-unsigned-int[max=2]' or
+              t == 'encoded-unsigned-int<max=2>'):
+            encoding = Encoding.UNSIGNED_INT
+            max_bytes = 2
+        else:
+            compiler.report_error(et, "Unknown type '%s'" % t)
+            compiler.raise_error()
+
+        min_value, max_value = get_encoding_min_max(encoding, max_bytes)
+        try:
+            if 'min' in att:
+                min_value = long(att['min'])
+                if min_value < encoding.min_value:
+                    compiler.report_error(
+                        et, "Declared min (%s) is lower that type min (%s)"
+                        % (min_value, encoding.min_value))
+                    min_value = encoding.min_value
+
+        except:
+            compiler.report_error(et, "Bad min '%s'" % att['min'])
+
+        try:
+            if 'max' in att:
+                max_value = long(att['max'])
+                if max_value > encoding.max_value:
+                    compiler.report_error(
+                        et, "Declared max (%s) is grater than type max (%s)"
+                        % (max_value, encoding.max_value))
+                    max_value = encoding.max_value
+        except:
+            compiler.report_error(et, "Bad max '%s'" % att['max'])
+
+        field.encoding = encoding
+        field.min_value = min_value
+        field.max_value = max_value
+
+        self.child_type_list.add_declaration(field)
+
+        return field
+
+
 class BodyPartDeclNode(Node, ResolutionHelper):
 
     '''
@@ -355,20 +504,6 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         '''
         return self if name == "Execute" else None
 
-    def get_data_value(self, encoder, caller):
-        '''
-        Here we must encode the caller arguments as it was specified in
-        plug-in manifest for this body part
-        '''
-        # pylint: disable=no-self-use
-        result = []
-
-        for current in caller.child_argument_list.childs_arguments:
-            enc = encoder.encode_unsigned_int(2, current.get_static_value())
-            result.extend(enc)
-
-        return result
-
 
 def create_body_parts_manager(compiler, ctx):
     '''
@@ -382,6 +517,11 @@ def create_body_parts_manager(compiler, ctx):
     factory.set_operator_list(compiler.init_node(DeclarationListNode(), ctx))
 
     manager.set_field_type_factory(factory)
+
+    command = compiler.init_node(CommandFieldFactoryNode(), ctx)
+    command.set_type_list(compiler.init_node(DeclarationListNode(), ctx))
+
+    manager.set_command_field_factory(command)
 
     return manager
 
@@ -398,6 +538,7 @@ class BodyPartsManagerNode(Node):
         '''
         super(BodyPartsManagerNode, self).__init__()
         self.child_field_type_factory = None
+        self.child_command_field_factory = None
         self.child_body_part_list = None
         self._resolved = False
 
@@ -408,6 +549,14 @@ class BodyPartsManagerNode(Node):
         assert isinstance(child, FieldTypeFactoryNode)
         child.set_parent(self)
         self.child_field_type_factory = child
+
+    def set_command_field_factory(self, child):
+        '''
+        parameter_list setter
+        '''
+        assert isinstance(child, CommandFieldFactoryNode)
+        child.set_parent(self)
+        self.child_command_field_factory = child
 
     def set_body_part_list(self, child):
         '''
@@ -423,5 +572,6 @@ class BodyPartsManagerNode(Node):
         '''
         assert not self._resolved
         compiler.resolve_node(self.child_field_type_factory)
+        compiler.resolve_node(self.child_command_field_factory)
         compiler.resolve_node(self.child_body_part_list)
         self._resolved = True
