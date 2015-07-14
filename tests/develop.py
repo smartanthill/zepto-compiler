@@ -28,43 +28,53 @@ from smartanthill_zc.encode import create_half_float, half_float_value,\
 
 def main():
 
-    code = [u'return TempSensor.Execute();']
-
-#        u'return [TempSensor.Execute(), TempSensor.Execute()];']
-    #             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
-    #             u'    return temp;'
-    #
-    #             u'  mcu_sleep(5*60);'
-    #             u'}'
-    #             u'return TemperatureSensor.Execute();']
-    #     code = [u'var temp = TemperatureSensor.Execute();',
-    #             u'if(temp.Temperature <= 35.0 || temp.Temperature >= 42.0) {',
-    #             u'  mcu_sleep(5*60);',
-    #             u'  temp = TemperatureSensor.Execute();',
-    #             u'}',
-    #             u'if(temp.Temperature > 36.0 && temp.Temperature < 40.0) {',
-    #             u'  var temp2 = TemperatureSensor.Execute();',
-    #             u'  if(temp2.Temperature > 38.0)',
-    #             u'    return temp2;',
-    #             u'  mcu_sleep(5*60);',
-    #             u'}',
-    #             u'return TemperatureSensor.Execute();']
+    code = [
+        u'return Actuator1.Execute(10);']
 
     xml = [
-        u'<test.plugin name="TempSensor" id="1" version="1.0">',
-        u'  <description>Short description here</description>',
-        u'  <command/>',
-        u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
-        u'     min="0" max="500">',
-        u'      <meaning type="float">',
-        u'        <linear-conversion input-point0="100" output-point0="10.0"',
+        u'<smartanthill_zc.test>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'       min="0" max="500">',
+        u'        <meaning type="float">',
+        u'          <linear-conversion ',
+        u'            input-point0="100" output-point0="10.0"',
+        u'            input-point1="200" output-point1="20.0" />',
+        u'        </meaning>',
+        u'      </field>',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TempSensor1" id="1" />',
+        u'      <bodypart name="TempSensor2" id="2" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'       min="0" max="500">',
+        u'        <meaning type="float">',
+        u'          <linear-conversion input-point0="100" output-point0="15.0"',
         u'                       input-point1="200" output-point1="20.0" />',
-        u'      </meaning>',
-        u'    </field>',
-        u'  </reply>',
-        u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</test.plugin>'
+        u'        </meaning>',
+        u'      </field>',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TempSensor10" id="10" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command>',
+        u'      <field name="abc" type="encoded-signed-int[max=2]" />',
+        u'    </command>',
+        u'    <reply/>',
+        u'    <bodyparts>',
+        u'      <bodypart name="Actuator1" id="100" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'</smartanthill_zc.test>'
     ]
 
     xml = '\n'.join(xml)
@@ -72,7 +82,7 @@ def main():
     code = '\n'.join(code)
     comp = Compiler()
 
-    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml])
+    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
     etdump = visitor.dump_tree(bodyparts)
 
     print '\n'.join(etdump)

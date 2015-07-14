@@ -20,33 +20,52 @@ from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
 def common_test_run(code):
 
     xml = [
-        u'<test.plugin name="TemperatureSensor" id="1" version="1.0">',
-        u'  <description>Short description here</description>',
-        u'  <command/>',
-        u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;"',
-        u'     min="0" max="255" />',
-        u'  </reply>',
-        u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</test.plugin>'
-    ]
-
-    xml2 = [
-        u'<test.plugin name="Actuator" id="5" version="1.0">',
-        u'  <description>Short description here</description>',
-        u'  <command>',
-        u'    <field name="abc" type="encoded-signed-int[max=2]" />',
-        u'  </command>',
-        u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;"',
-        u'     min="0" max="255" />',
-        u'  </reply>',
-        u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</test.plugin>'
+        u'<smartanthill_zc.test>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'       min="0" max="500">',
+        u'        <meaning type="float">',
+        u'          <linear-conversion ',
+        u'            input-point0="100" output-point0="10.0"',
+        u'            input-point1="200" output-point1="20.0" />',
+        u'        </meaning>',
+        u'      </field>',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TempSensor1" id="1" />',
+        u'      <bodypart name="TempSensor2" id="2" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'       min="0" max="500">',
+        u'        <meaning type="float">',
+        u'          <linear-conversion input-point0="100" output-point0="15.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
+        u'        </meaning>',
+        u'      </field>',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TempSensor10" id="10" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command>',
+        u'      <field name="abc" type="encoded-signed-int[max=2]" />',
+        u'    </command>',
+        u'    <reply/>',
+        u'    <bodyparts>',
+        u'      <bodypart name="Actuator1" id="100" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'</smartanthill_zc.test>'
     ]
 
     xml = '\n'.join(xml)
-    xml2 = '\n'.join(xml2)
     code = '\n'.join(code)
 
     comp = compiler.Compiler()
@@ -58,7 +77,7 @@ def common_test_run(code):
 
 #     xml_tree = parse_xml.parse_xml_string(comp, xml)
 #     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml, xml2])
+    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)
@@ -71,7 +90,7 @@ def common_test_run(code):
 
 def test_js_pattern_1():
 
-    code = [u'return TemperatureSensor.Execute();']
+    code = [u'return TempSensor1.Execute();']
 
     out = ['/* target vm: One */',
            '/* mcusleep: False */',
@@ -86,7 +105,7 @@ def test_js_pattern_1():
 def test_js_pattern_2():
 
     code = [u'mcu_sleep(5*60);',
-            u'return TemperatureSensor.Execute();']
+            u'return TempSensor1.Execute();']
 
     out = ['/* target vm: One */',
            '/* mcusleep: True */',
@@ -102,14 +121,14 @@ def test_js_pattern_2():
 def test_js_return_array():
 
     code = [
-        u'return [TemperatureSensor.Execute(), TemperatureSensor.Execute()];']
+        u'return [TempSensor1.Execute(), TempSensor2.Execute()];']
 
     out = ['/* target vm: One */',
            '/* mcusleep: False */',
            '/* reply: {INT,INT} */',
            '/* size: 6 bytes */',
            '|EXEC|1|0|[]|',
-           '|EXEC|1|0|[]|',
+           '|EXEC|2|0|[]|',
            '/* exit|islast */']
 
     assert common_test_run(code) == out
@@ -118,13 +137,13 @@ def test_js_return_array():
 def test_js_actuator():
 
     code = [
-        u'return Actuator.Execute(10);']
+        u'return Actuator1.Execute(10);']
 
     out = ['/* target vm: One */',
            '/* mcusleep: False */',
-           '/* reply: {INT} */',
-           '/* size: 4 bytes */',
-           '|EXEC|5|1|[0x14]|',
+           '/* reply: {} */',
+           '/* size: 5 bytes */',
+           '|EXEC|100|1|[0x14]|',
            '/* exit|islast */']
 
     assert common_test_run(code) == out

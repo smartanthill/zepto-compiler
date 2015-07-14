@@ -17,6 +17,7 @@
 from xml.etree import ElementTree
 
 from smartanthill_zc import bodypart, builtin
+from smartanthill_zc.encode import get_encoding_min_max, Encoding
 
 try:
     from xml.etree.ElementTree import ParseError
@@ -24,32 +25,26 @@ except ImportError:
     from xml.parsers.expat import ExpatError as ParseError
 
 
-def parse_xml_body_parts(compiler, data):
+def parse_test_xml_body_parts(compiler, data):
     '''
-    Parse unicode string containing xml bodyparts declarations
+    Parse string containing test xml bodyparts declarations
     Returns a BodypartManagerNode with all the parsed bodyparts
+    Used only for creation of test bodyparts
     '''
-    return parse_xml_body_part_list(compiler, [data])
 
-
-def parse_xml_body_part_list(compiler, data_list):
-    '''
-    Parse unicode string containing xml bodyparts declarations
-    Returns a BodypartManagerNode with all the parsed bodyparts
-    '''
     manager = bodypart.create_body_parts_manager(compiler, compiler.BUILTIN)
 
     try:
-        for data in data_list:
-            root = ElementTree.fromstring(data)
-            # python 2.6
-            for current in root.getiterator('test.plugin'):
-                _make_bodypart(compiler, manager, current)
+        root = ElementTree.fromstring(data)
+        # python 2.6
+        for current in root.getiterator('smartanthill_zc.test'):
+            for plugin in current.getiterator('plugin'):
+                _make_plugin(compiler, manager, plugin)
     except ParseError:  # TODO improve
         compiler.report_error(compiler.BUILTIN, "Error parsing xml")
         compiler.raise_error()
 
-    compiler.check_stage('xml_bodyparts')
+    compiler.check_stage('test_xml_bodyparts')
 
     return manager
 
@@ -107,7 +102,7 @@ def _get_tags(compiler, et, req_names, opt_names):
 
         if current.tag not in req_names and current.tag not in opt_names:
             compiler.report_error(
-                current, "Unexpected child tag '%s'" % current.tag)
+                et, "Unexpected child tag '%s'" % current.tag)
         else:
             result[current.tag] = current
 
@@ -124,78 +119,82 @@ def _get_tags(compiler, et, req_names, opt_names):
     return result
 
 
-def _make_bodypart(compiler, manager, et):
+def _make_plugin(compiler, manager, et):
     '''
     Creates a BodyPartDeclNode from an xml <test.plugin>
     '''
 
-    assert et.tag == 'test.plugin'
+    assert et.tag == 'plugin'
 
-    part = compiler.init_node(bodypart.BodyPartDeclNode(), et)
-    att = _get_attributes(compiler, et,
-                          ['name', 'id', 'version'], [])
-
-    if att['version'] != '1.0':
-        compiler.report_error(et, "Unidentified version number '%s'" %
-                              att['version'])
-
-    part.txt_name = att['name']
-    try:
-        part.bodypart_id = long(att['id'])
-    except:
-        compiler.report_error(et, "Bad id '%s'" % att['id'])
+    plugin = compiler.init_node(bodypart.PluginDeclNode(), et)
 
     tags = _get_tags(compiler, et,
-                     ['command', 'reply'],
-                     ['description', 'peripheral'])
+                     ['command', 'reply', 'bodyparts'], [])
+
+    for current in tags['bodyparts']:
+        assert current.tag == 'bodypart'
+        bp = _make_bodypart(compiler, current)
+        bp.ref_plugin = plugin
+        manager.child_body_part_list.add_declaration(bp)
 
     # build parameter list from <command>
     pl = compiler.init_node(builtin.ParameterListNode(), et)
 
     for current in tags['command']:
 
-        if current.tag != 'field':
-            compiler.report_error(
-                current, "Unexpected child tag '%s'" % current.tag)
-            compiler.raise_error()
+        assert current.tag == 'field'
 
         att = _get_attributes(compiler, current,
                               ['name', 'type'], ['min', 'max'])
 
-        field = manager.child_command_field_factory.create_field_type(
-            compiler, et, att)
+        field = _make_command_field_type(compiler, manager, et, att)
+
+        manager.child_type_list.add_declaration(field)
 
         pl.add_parameter(
             compiler.init_node(builtin.ParameterDeclNode(field.txt_name), et))
 
-    part.set_parameter_list(pl)
+    plugin.set_parameter_list(pl)
 
     # build reply type <reply>
     if len(tags['reply']) == 0:
-        compiler.report_error(tags['reply'], "Empty 'reply' not allowed")
-        compiler.raise_error()
+        plugin.txt_type_name = manager.child_empty_reply_type.txt_name
+    else:
+        reply_name = manager.get_unique_type_name('_zc_reply_')
+        plugin.txt_type_name = reply_name
 
-    reply_name = '_zc_reply_type_' + att['name']
-    reply = compiler.init_node(
-        bodypart.MessageTypeDeclNode(reply_name), tags['reply'])
+        reply = compiler.init_node(
+            bodypart.MessageTypeDeclNode(reply_name), tags['reply'])
 
-    for current in tags['reply']:
+        for current in tags['reply']:
 
-        if current.tag != 'field':
-            compiler.report_error(
-                current, "Unexpected child tag '%s'" % current.tag)
-            compiler.raise_error()
+            if current.tag != 'field':
+                compiler.report_error(
+                    current, "Unexpected child tag '%s'" % current.tag)
+                compiler.raise_error()
 
-        field = _make_field(compiler, manager, current)
+            field = _make_reply_field(compiler, manager, current)
 
-        reply.add_element(field)
+            reply.add_element(field)
 
-    part.set_reply_type(reply)
+        manager.child_type_list.add_declaration(reply)
 
-    manager.child_body_part_list.add_declaration(part)
+    manager.child_plugin_list.add_declaration(plugin)
 
 
-def _make_field(compiler, manager, et):
+def _make_bodypart(compiler, et):
+
+    att = _get_attributes(compiler, et, ['name', 'id'], [])
+
+    bp = compiler.init_node(bodypart.BodyPartDeclNode(), et)
+
+    bp.txt_name = att['name']
+    bp.bodypart_id = long(att['id'])
+
+    return bp
+
+
+def _make_reply_field(compiler, manager, et):
     '''
     Creates a MemberDeclNode from an xml <field>
     '''
@@ -204,7 +203,10 @@ def _make_field(compiler, manager, et):
                           ['name', 'type'], ['min', 'max'])
 
     factory = manager.child_field_type_factory
-    field = factory.create_field_type(compiler, et, att)
+    field = _make_field_type(compiler, manager, et, att)
+
+    factory.add_field_type(compiler, field, et)
+#    manager.child_type_list.add_declaration(field)
 
     member = compiler.init_node(bodypart.MemberDeclNode(att['name']), et)
     member.ref_field_type = field
@@ -226,14 +228,123 @@ def _make_field(compiler, manager, et):
                                    ['input-point0', 'output-point0',
                                     'input-point1', 'output-point1'], [])
 
-            meaning = factory.create_linear_conversion_float(
+            meaning = bodypart.LinearConvertionFloat()
+            meaning.set_points(
                 conv['input-point0'], conv['output-point0'],
                 conv['input-point1'], conv['output-point1'])
             field.meaning = meaning
         else:
             # create convertion 1 to 1
-            meaning = factory.create_linear_conversion_float(
-                '0', '0.', '1', '1.')
+            meaning = bodypart.LinearConvertionFloat()
+            meaning.set_points('0', '0.', '1', '1.')
             field.meaning = meaning
 
     return member
+
+
+def _make_field_type(compiler, manager, et, att):
+    '''
+    Created a new FieldTypeDeclNode from data in att dictionary
+    '''
+    t = ''.join(att['type'].split())  # to remove whites
+
+    field_name = manager.get_unique_type_name('_zc_reply_field_')
+    field = compiler.init_node(builtin.FieldTypeDeclNode(field_name), et)
+
+    encoding = None
+    max_bytes = 0
+    if (t == 'encoded-signed-int[max=2]' or
+            t == 'encoded-signed-int<max=2>'):
+        encoding = Encoding.SIGNED_INT
+        max_bytes = 2
+    elif (t == 'encoded-unsigned-int[max=2]' or
+          t == 'encoded-unsigned-int<max=2>'):
+        encoding = Encoding.UNSIGNED_INT
+        max_bytes = 2
+    else:
+        assert False
+
+    min_value, max_value = get_encoding_min_max(encoding, max_bytes)
+    try:
+        if 'min' in att:
+            min_value = long(att['min'])
+            if min_value < encoding.min_value:
+                compiler.report_error(
+                    et, "Declared min (%s) is lower that type min (%s)"
+                    % (min_value, encoding.min_value))
+                min_value = encoding.min_value
+
+    except:
+        compiler.report_error(et, "Bad min '%s'" % att['min'])
+
+    try:
+        if 'max' in att:
+            max_value = long(att['max'])
+            if max_value > encoding.max_value:
+                compiler.report_error(
+                    et, "Declared max (%s) is grater than type min (%s)"
+                    % (max_value, encoding.max_value))
+                max_value = encoding.max_value
+    except:
+        compiler.report_error(et, "Bad max '%s'" % att['max'])
+
+    field.encoding = encoding
+    field.min_value = min_value
+    field.max_value = max_value
+
+    return field
+
+
+def _make_command_field_type(compiler, manager, et, att):
+    '''
+    Created a new FieldTypeDeclNode from data in att dictionary
+    '''
+    t = ''.join(att['type'].split())  # to remove whites
+
+    field_name = manager.get_unique_type_name('_zc_command_field_')
+    field = compiler.init_node(
+        bodypart.CommandFieldTypeDeclNode(field_name), et)
+
+    encoding = None
+    max_bytes = 0
+    if (t == 'encoded-signed-int[max=2]' or
+            t == 'encoded-signed-int<max=2>'):
+        encoding = Encoding.SIGNED_INT
+        max_bytes = 2
+    elif (t == 'encoded-unsigned-int[max=2]' or
+          t == 'encoded-unsigned-int<max=2>'):
+        encoding = Encoding.UNSIGNED_INT
+        max_bytes = 2
+    else:
+        compiler.report_error(et, "Unknown type '%s'" % t)
+        compiler.raise_error()
+
+    min_value, max_value = get_encoding_min_max(encoding, max_bytes)
+    try:
+        if 'min' in att:
+            min_value = long(att['min'])
+            if min_value < encoding.min_value:
+                compiler.report_error(
+                    et, "Declared min (%s) is lower that type min (%s)"
+                    % (min_value, encoding.min_value))
+                min_value = encoding.min_value
+
+    except:
+        compiler.report_error(et, "Bad min '%s'" % att['min'])
+
+    try:
+        if 'max' in att:
+            max_value = long(att['max'])
+            if max_value > encoding.max_value:
+                compiler.report_error(
+                    et, "Declared max (%s) is grater than type max (%s)"
+                    % (max_value, encoding.max_value))
+                max_value = encoding.max_value
+    except:
+        compiler.report_error(et, "Bad max '%s'" % att['max'])
+
+    field.encoding = encoding
+    field.min_value = min_value
+    field.max_value = max_value
+
+    return field

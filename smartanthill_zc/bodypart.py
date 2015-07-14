@@ -14,7 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import builtin, expression
-from smartanthill_zc.encode import Encoding, get_encoding_min_max
 from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
                                   ResolutionHelper, TypeDeclNode)
 
@@ -33,7 +32,6 @@ class FieldTypeFactoryNode(Node):
         super(FieldTypeFactoryNode, self).__init__()
         self.child_type_list = None
         self.child_operator_list = None
-        self.next_unique = 1
         self._resolved = False
 
     def set_type_list(self, child):
@@ -52,15 +50,6 @@ class FieldTypeFactoryNode(Node):
         child.set_parent(self)
         self.child_operator_list = child
 
-    def get_unique_type_name(self):
-        '''
-        Returns a unique type name, to be used with types created from
-        plug-ins manifests
-        '''
-        name = '_zc_field_type_' + unicode(self.next_unique)
-        self.next_unique += 1
-        return name
-
     def resolve(self, compiler):
         '''
         resolve
@@ -70,69 +59,20 @@ class FieldTypeFactoryNode(Node):
         compiler.resolve_node(self.child_operator_list)
         self._resolved = True
 
-    def create_field_type(self, compiler, et, att):
+    def add_field_type(self, compiler, field_type, ctx):
         '''
-        Created a new FieldTypeDeclNode from data in att dictionary
+        Adds a new FieldTypeDeclNode, and creates related Operators
         '''
-        t = ''.join(att['type'].split())  # to remove whites
-
-        field_name = self.get_unique_type_name()
-        field = compiler.init_node(builtin.FieldTypeDeclNode(field_name), et)
-
-        encoding = None
-        max_bytes = 0
-        if (t == 'encoded-signed-int[max=2]' or
-                t == 'encoded-signed-int<max=2>'):
-            encoding = Encoding.SIGNED_INT
-            max_bytes = 2
-        elif (t == 'encoded-unsigned-int[max=2]' or
-              t == 'encoded-unsigned-int<max=2>'):
-            encoding = Encoding.UNSIGNED_INT
-            max_bytes = 2
-        else:
-            compiler.report_error(et, "Unknown type '%s'" % t)
-            compiler.raise_error()
-
-        min_value, max_value = get_encoding_min_max(encoding, max_bytes)
-        try:
-            if 'min' in att:
-                min_value = long(att['min'])
-                if min_value < encoding.min_value:
-                    compiler.report_error(
-                        et, "Declared min (%s) is lower that type min (%s)"
-                        % (min_value, encoding.min_value))
-                    min_value = encoding.min_value
-
-        except:
-            compiler.report_error(et, "Bad min '%s'" % att['min'])
-
-        try:
-            if 'max' in att:
-                max_value = long(att['max'])
-                if max_value > encoding.max_value:
-                    compiler.report_error(
-                        et, "Declared max (%s) is grater than type min (%s)"
-                        % (max_value, encoding.max_value))
-                    max_value = encoding.max_value
-        except:
-            compiler.report_error(et, "Bad max '%s'" % att['max'])
-
-        field.encoding = encoding
-        field.min_value = min_value
-        field.max_value = max_value
-
         f2l = builtin.create_field_to_literal_comparison(
-            compiler, et, field_name)
+            compiler, ctx, field_type.txt_name)
         self.child_operator_list.add_declaration_list(f2l)
 
         for current in self.child_type_list.childs_declarations:
             f2f = builtin.create_field_to_field_comparison(
-                compiler, et, field_name, current)
+                compiler, ctx, field_type.txt_name, current)
             self.child_operator_list.add_declaration_list(f2f)
 
-        self.child_type_list.add_declaration(field)
-
-        return field
+        self.child_type_list.add_declaration(field_type)
 
     def create_linear_conversion_float(self, in0, out0, in1, out1):
         '''
@@ -355,117 +295,19 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
         return self.encoding
 
 
-class CommandFieldFactoryNode(Node):
+class PluginDeclNode(Node, ResolutionHelper):
 
     '''
-    Factory class to create CommandFieldTypeDeclNode
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(CommandFieldFactoryNode, self).__init__()
-        self.child_type_list = None
-        self.next_unique = 1
-        self._resolved = False
-
-    def set_type_list(self, child):
-        '''
-        type_list setter
-        '''
-        assert isinstance(child, DeclarationListNode)
-        child.set_parent(self)
-        self.child_type_list = child
-
-    def get_unique_type_name(self):
-        '''
-        Returns a unique type name, to be used with types created from
-        plug-ins manifests
-        '''
-        name = '_zc_command_field_type_' + unicode(self.next_unique)
-        self.next_unique += 1
-        return name
-
-    def resolve(self, compiler):
-        '''
-        resolve
-        '''
-        assert not self._resolved
-        compiler.resolve_node(self.child_type_list)
-        self._resolved = True
-
-    def create_field_type(self, compiler, et, att):
-        '''
-        Created a new FieldTypeDeclNode from data in att dictionary
-        '''
-        t = ''.join(att['type'].split())  # to remove whites
-
-        field_name = self.get_unique_type_name()
-        field = compiler.init_node(CommandFieldTypeDeclNode(field_name), et)
-
-        encoding = None
-        max_bytes = 0
-        if (t == 'encoded-signed-int[max=2]' or
-                t == 'encoded-signed-int<max=2>'):
-            encoding = Encoding.SIGNED_INT
-            max_bytes = 2
-        elif (t == 'encoded-unsigned-int[max=2]' or
-              t == 'encoded-unsigned-int<max=2>'):
-            encoding = Encoding.UNSIGNED_INT
-            max_bytes = 2
-        else:
-            compiler.report_error(et, "Unknown type '%s'" % t)
-            compiler.raise_error()
-
-        min_value, max_value = get_encoding_min_max(encoding, max_bytes)
-        try:
-            if 'min' in att:
-                min_value = long(att['min'])
-                if min_value < encoding.min_value:
-                    compiler.report_error(
-                        et, "Declared min (%s) is lower that type min (%s)"
-                        % (min_value, encoding.min_value))
-                    min_value = encoding.min_value
-
-        except:
-            compiler.report_error(et, "Bad min '%s'" % att['min'])
-
-        try:
-            if 'max' in att:
-                max_value = long(att['max'])
-                if max_value > encoding.max_value:
-                    compiler.report_error(
-                        et, "Declared max (%s) is grater than type max (%s)"
-                        % (max_value, encoding.max_value))
-                    max_value = encoding.max_value
-        except:
-            compiler.report_error(et, "Bad max '%s'" % att['max'])
-
-        field.encoding = encoding
-        field.min_value = min_value
-        field.max_value = max_value
-
-        self.child_type_list.add_declaration(field)
-
-        return field
-
-
-class BodyPartDeclNode(Node, ResolutionHelper):
-
-    '''
-    Declaration of a body-part
+    Declaration of a plugin, shared by several bodyparts
     '''
 
     def __init__(self):
         '''
         Constructor
         '''
-        super(BodyPartDeclNode, self).__init__()
+        super(PluginDeclNode, self).__init__()
         self.child_parameter_list = None
-        self.child_reply_type = None
-        self.txt_name = None
-        self.bodypart_id = 0L
+        self.txt_type_name = None
 
     def set_parameter_list(self, child):
         '''
@@ -475,26 +317,13 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         child.set_parent(self)
         self.child_parameter_list = child
 
-    def set_reply_type(self, child):
-        '''
-        reply_type setter
-        '''
-        assert isinstance(child, MessageTypeDeclNode)
-        child.set_parent(self)
-        self.child_reply_type = child
-
     def do_resolve_declaration(self, compiler):
         '''
         Template method from ResolutionHelper
         '''
 
         compiler.resolve_node(self.child_parameter_list)
-        compiler.resolve_node(self.child_reply_type)
-
-        scope = self.get_root_scope()
-        scope.add_plugin(compiler, self.txt_name, self)
-
-        return self.child_reply_type
+        return self.get_root_scope().lookup_type(self.txt_type_name)
 
     def lookup_method(self, name):
         '''
@@ -505,11 +334,41 @@ class BodyPartDeclNode(Node, ResolutionHelper):
         return self if name == "Execute" else None
 
 
+class BodyPartDeclNode(Node):
+
+    '''
+    Declaration of a body-part
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(BodyPartDeclNode, self).__init__()
+        self.ref_plugin = None
+        self.txt_name = None
+        self.bodypart_id = 0L
+
+    def resolve(self, compiler):
+        '''
+        resolve
+        '''
+        assert not self._resolved
+        assert self.ref_plugin
+
+        compiler.resolve_node(self.ref_plugin)
+        self.get_root_scope().add_bodypart(compiler, self.txt_name, self)
+
+        self._resolved = True
+
+
 def create_body_parts_manager(compiler, ctx):
     '''
     Creates and initializes a BodyPartsManagerNode instance
     '''
     manager = compiler.init_node(BodyPartsManagerNode(), ctx)
+    manager.set_type_list(compiler.init_node(DeclarationListNode(), ctx))
+    manager.set_plugin_list(compiler.init_node(DeclarationListNode(), ctx))
     manager.set_body_part_list(compiler.init_node(DeclarationListNode(), ctx))
 
     factory = compiler.init_node(FieldTypeFactoryNode(), ctx)
@@ -518,10 +377,10 @@ def create_body_parts_manager(compiler, ctx):
 
     manager.set_field_type_factory(factory)
 
-    command = compiler.init_node(CommandFieldFactoryNode(), ctx)
-    command.set_type_list(compiler.init_node(DeclarationListNode(), ctx))
+    empty_reply = compiler.init_node(
+        MessageTypeDeclNode('zc_empty_reply'), ctx)
 
-    manager.set_command_field_factory(command)
+    manager.set_empty_reply_type(empty_reply)
 
     return manager
 
@@ -538,8 +397,11 @@ class BodyPartsManagerNode(Node):
         '''
         super(BodyPartsManagerNode, self).__init__()
         self.child_field_type_factory = None
-        self.child_command_field_factory = None
+        self.child_type_list = None
+        self.child_empty_reply_type = None
+        self.child_plugin_list = None
         self.child_body_part_list = None
+        self.next_unique = 1
         self._resolved = False
 
     def set_field_type_factory(self, child):
@@ -550,17 +412,33 @@ class BodyPartsManagerNode(Node):
         child.set_parent(self)
         self.child_field_type_factory = child
 
-    def set_command_field_factory(self, child):
+    def set_type_list(self, child):
         '''
         parameter_list setter
         '''
-        assert isinstance(child, CommandFieldFactoryNode)
+        assert isinstance(child, DeclarationListNode)
         child.set_parent(self)
-        self.child_command_field_factory = child
+        self.child_type_list = child
+
+    def set_empty_reply_type(self, child):
+        '''
+        parameter_list setter
+        '''
+        assert isinstance(child, MessageTypeDeclNode)
+        child.set_parent(self)
+        self.child_empty_reply_type = child
+
+    def set_plugin_list(self, child):
+        '''
+        plugin_list setter
+        '''
+        assert isinstance(child, DeclarationListNode)
+        child.set_parent(self)
+        self.child_plugin_list = child
 
     def set_body_part_list(self, child):
         '''
-        parameter_list setter
+        body_part_list setter
         '''
         assert isinstance(child, DeclarationListNode)
         child.set_parent(self)
@@ -571,7 +449,20 @@ class BodyPartsManagerNode(Node):
         resolve
         '''
         assert not self._resolved
+
         compiler.resolve_node(self.child_field_type_factory)
-        compiler.resolve_node(self.child_command_field_factory)
+        compiler.resolve_node(self.child_type_list)
+        compiler.resolve_node(self.child_empty_reply_type)
+        compiler.resolve_node(self.child_plugin_list)
         compiler.resolve_node(self.child_body_part_list)
+
         self._resolved = True
+
+    def get_unique_type_name(self, base_name):
+        '''
+        Returns a unique type name, to be used with types created from
+        plug-ins manifests
+        '''
+        name = base_name + unicode(self.next_unique)
+        self.next_unique += 1
+        return name

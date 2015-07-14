@@ -24,19 +24,23 @@ from smartanthill_zc import visitor
 def common_test_run(code):
 
     xml = [
-        u'<test.plugin name="TemperatureSensor" id="1" version="1.0">',
-        u'  <description>Short description here</description>',
-        u'  <command/>',
-        u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int&lt;max=2&gt;" min="0" max="255">',
-        u'      <meaning type="float">',
-        u'        <linear-conversion input-point0="0" output-point0="20.0"',
-        u'          input-point1="100" output-point1="40.0" />',
-        u'      </meaning>',
-        u'    </field>',
-        u'  </reply>',
-        u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</test.plugin>'
+        u'<smartanthill_zc.test>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'       min="0" max="500">',
+        u'        <meaning type="float">',
+        u'          <linear-conversion input-point0="100" output-point0="10.0"',
+        u'                       input-point1="200" output-point1="20.0" />',
+        u'        </meaning>',
+        u'      </field>',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TemperatureSensor" id="1" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'</smartanthill_zc.test>'
     ]
 
     xml = '\n'.join(xml)
@@ -50,7 +54,7 @@ def common_test_run(code):
 
 #     xml_tree = parse_xml.parse_xml_string(comp, xml)
 #     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    bodyparts = parse_xml.parse_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)

@@ -124,27 +124,27 @@ class RootScope(object):
         Constructor
         '''
         self._owner = owner
-        self._plugins = {}
+        self._bodyparts = {}
         self._types = {}
         self._functions = {}
         self._operators = {}
 
-    def add_plugin(self, compiler, name, node):
+    def add_bodypart(self, compiler, name, node):
         '''
         Adds a plug-in
         '''
 
-        if name in self._plugins:
+        if name in self._bodyparts:
             compiler.report_error(
                 node.ctx, "Duplicate use of plug-in name '%s'", name)
 
-        self._plugins[name] = node
+        self._bodyparts[name] = node
 
-    def lookup_plugin(self, name):
+    def lookup_bodypart(self, name):
         '''
         Looks up a plug-in
         '''
-        return self._plugins[name] if name in self._plugins else None
+        return self._bodyparts[name] if name in self._bodyparts else None
 
     def add_type(self, compiler, name, node):
         '''

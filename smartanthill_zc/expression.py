@@ -75,14 +75,14 @@ class BodyPartCallExprNode(ExpressionNode):
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
 
-        plugin = self.get_root_scope().lookup_plugin(self.txt_bodypart)
+        bp = self.get_root_scope().lookup_bodypart(self.txt_bodypart)
 
-        if not plugin:
+        if not bp:
             compiler.report_error(self.ctx, "Unresolved plug-in name '%s'",
                                   self.txt_bodypart)
             compiler.raise_error()
 
-        method = plugin.lookup_method(self.txt_method)
+        method = bp.ref_plugin.lookup_method(self.txt_method)
         if not method:
             compiler.report_error(self.ctx,
                                   "Method '%s' not found at plug-in '%s'" %
@@ -93,7 +93,7 @@ class BodyPartCallExprNode(ExpressionNode):
         self.child_argument_list.make_match(compiler,
                                             method.child_parameter_list)
 
-        self.ref_bodypart_decl = plugin
+        self.ref_bodypart_decl = bp
         self.ref_method_decl = method
 
         self.set_type(self.ref_method_decl.get_type())

@@ -20,40 +20,52 @@ from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
 def common_test_run(code):
 
     xml = [
-        u'<test.plugin name="TempSensor" id="1" version="1.0">',
-        u'  <description>Short description here</description>',
-        u'  <command/>',
-        u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
-        u'     min="0" max="500">',
-        u'      <meaning type="float">',
-        u'        <linear-conversion input-point0="100" output-point0="10.0"',
+        u'<smartanthill_zc.test>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'       min="0" max="500">',
+        u'        <meaning type="float">',
+        u'          <linear-conversion ',
+        u'            input-point0="100" output-point0="10.0"',
+        u'            input-point1="200" output-point1="20.0" />',
+        u'        </meaning>',
+        u'      </field>',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TempSensor1" id="1" />',
+        u'      <bodypart name="TempSensor2" id="2" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'       min="0" max="500">',
+        u'        <meaning type="float">',
+        u'          <linear-conversion input-point0="100" output-point0="15.0"',
         u'                       input-point1="200" output-point1="20.0" />',
-        u'      </meaning>',
-        u'    </field>',
-        u'  </reply>',
-        u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</test.plugin>'
-    ]
-    xml2 = [
-        u'<test.plugin name="TempSensor2" id="2" version="1.0">',
-        u'  <description>Short description here</description>',
-        u'  <command/>',
-        u'  <reply>',
-        u'    <field name="Temperature" type="encoded-signed-int[max=2]"',
-        u'     min="0" max="500">',
-        u'      <meaning type="float">',
-        u'        <linear-conversion input-point0="100" output-point0="15.0"',
-        u'                       input-point1="200" output-point1="20.0" />',
-        u'      </meaning>',
-        u'    </field>',
-        u'  </reply>',
-        u'  <peripheral>Right now compiler can ignore this</peripheral>',
-        u'</test.plugin>'
+        u'        </meaning>',
+        u'      </field>',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TempSensor10" id="10" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command>',
+        u'      <field name="abc" type="encoded-signed-int[max=2]" />',
+        u'    </command>',
+        u'    <reply/>',
+        u'    <bodyparts>',
+        u'      <bodypart name="Actuator1" id="100" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'</smartanthill_zc.test>'
     ]
 
     xml = '\n'.join(xml)
-    xml2 = '\n'.join(xml2)
     code = '\n'.join(code)
 
     comp = compiler.Compiler()
@@ -65,7 +77,7 @@ def common_test_run(code):
 
 #     xml_tree = parse_xml.parse_xml_string(comp, xml)
 #     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    bodyparts = parse_xml.parse_xml_body_part_list(comp, [xml, xml2])
+    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)
@@ -79,12 +91,12 @@ def common_test_run(code):
 def test_js_small_3():
 
     code = [u'for( var i = 0; i < 5; i++) {',
-            u'  var temp = TempSensor.Execute();',
+            u'  var temp = TempSensor1.Execute();',
             u'  if(temp.Temperature < 36.0 || temp.Temperature > 38.9)',
             u'    return temp;',
             u'  mcu_sleep(5*60);',
             u'}',
-            u'return TempSensor.Execute();']
+            u'return TempSensor1.Execute();']
 
     out = [
         '/* target vm: Small */',
@@ -115,12 +127,12 @@ def test_js_small_3():
 def test_js_small_expr():
 
     code = [u'for( var i = 0; i < 5; i++) {',
-            u'  var temp = TempSensor.Execute();',
+            u'  var temp = TempSensor1.Execute();',
             u'  var a = temp.Temperature;',
             u'  var b = 36.7;',
             u'  mcu_sleep(5*60);',
             u'}',
-            u'return TempSensor.Execute();']
+            u'return TempSensor1.Execute();']
 
     out = [
         '/* target vm: Small */',
@@ -148,10 +160,10 @@ def test_js_small_expr():
 
 def test_js_small_comp1():
 
-    code = [u'var temp = TempSensor.Execute();',
+    code = [u'var temp = TempSensor1.Execute();',
             u'if(temp.Temperature + 1 < 36.6) {',
             u'  mcu_sleep(5*60);',
-            u'  return TempSensor.Execute();',
+            u'  return TempSensor1.Execute();',
             u'}',
             u'return temp;']
 
@@ -179,11 +191,11 @@ def test_js_small_comp1():
 
 def test_js_small_comp2():
 
-    code = [u'var temp1 = TempSensor.Execute();',
-            u'var temp2 = TempSensor2.Execute();',
+    code = [u'var temp1 = TempSensor1.Execute();',
+            u'var temp2 = TempSensor10.Execute();',
             u'if(temp1.Temperature < temp2.Temperature) {',
             u'  mcu_sleep(5*60);',
-            u'  return TempSensor.Execute();',
+            u'  return TempSensor1.Execute();',
             u'}',
             u'return temp1;']
 
@@ -193,7 +205,7 @@ def test_js_small_comp2():
         '/* reply: {INT} */',
         '/* size: 53 bytes */',
         '|EXEC|1|0|[]|',
-        '|EXEC|2|0|[]|',
+        '|EXEC|10|0|[]|',
         '/* if( temp1.Temperature<temp2.Temperature ) */',
         '|PUSHEXPR_REPLYFIELD|0|{INT}|',
         '|EXPRBINOP_EX|*|1,POP|->|0.1|',
@@ -216,12 +228,12 @@ def test_js_small_comp2():
 
 def test_js_small_comp3():
 
-    code = [u'var temp = TempSensor.Execute();',
+    code = [u'var temp = TempSensor1.Execute();',
             u'var temp1 = temp.Temperature + 1;',
-            u'var temp2 = TempSensor2.Execute();',
+            u'var temp2 = TempSensor10.Execute();',
             u'if(temp1 < temp2.Temperature) {',
             u'  mcu_sleep(5*60);',
-            u'  return TempSensor.Execute();',
+            u'  return TempSensor1.Execute();',
             u'}',
             u'return temp;']
 
@@ -234,7 +246,7 @@ def test_js_small_comp3():
         '|PUSHEXPR_REPLYFIELD|0|{INT}|',
         '|EXPRBINOP_EX|*|1,POP|->|0.1|',
         '|EXPRBINOP_EX|+|1,POP|->|1|',
-        '|EXEC|2|0|[]|',
+        '|EXEC|10|0|[]|',
         '/* if( temp1<temp2.Temperature ) */',
         '|PUSHEXPR_REPLYFIELD|1|{INT}|',
         '|EXPRBINOP_EX|*|1,POP|->|0.05|',

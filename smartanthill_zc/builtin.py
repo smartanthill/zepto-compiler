@@ -672,7 +672,7 @@ class FieldTypeDeclNode(TypeDeclNode):
             assert False
 
 
-def create_field_to_literal_comparison(compiler, et, field_name):
+def create_field_to_literal_comparison(compiler, ctx, field_name):
     '''
     Creates 12 comparison operators for a field and a literal
     '''
@@ -682,18 +682,18 @@ def create_field_to_literal_comparison(compiler, et, field_name):
 
         # field to literal
         op = compiler.init_node(
-            FieldToLiteralCompDeclNode(current, '_zc_boolean'), et)
+            FieldToLiteralCompDeclNode(current, '_zc_boolean'), ctx)
         op.set_parameter_list(
             create_parameter_list(
-                compiler, et, [field_name, '_zc_number_literal']))
+                compiler, ctx, [field_name, '_zc_number_literal']))
         result.append(op)
 
         # and literal to field
         op2 = compiler.init_node(
-            FieldToLiteralCompDeclNode(current, '_zc_boolean'), et)
+            FieldToLiteralCompDeclNode(current, '_zc_boolean'), ctx)
         op2.set_parameter_list(
             create_parameter_list(
-                compiler, et, ['_zc_number_literal', field_name]))
+                compiler, ctx, ['_zc_number_literal', field_name]))
         op2.swap_flag = True
         result.append(op2)
 

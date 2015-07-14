@@ -48,6 +48,8 @@ def format_location(ctx):
     elif isinstance(ctx, ET.ElementTree):
         if ctx.start.line == ctx.stop.line:
             return 'line %s, ' % str(ctx.start.line)
+    else:
+        return '<unknown>'
 
 
 class Compiler(object):

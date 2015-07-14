@@ -591,7 +591,8 @@ class ArgumentListNode(Node):
 
                 else:
                     compiler.report_error(
-                        self.ctx, "Argument type mismatch at position %s" % str(i))
+                        self.ctx,
+                        "Argument type mismatch at position %s" % str(i))
                     compiler.raise_error()
             elif r == TypeDeclNode.EXACT_MATCH:
                 pass
