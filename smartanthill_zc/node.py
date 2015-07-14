@@ -255,14 +255,14 @@ class TypeDeclNode(Node):
 
     def can_cast_to(self, target_type):
         '''
-        If self is same type as target_type returns EXACT_MATCH
-        If self can be casted to target_type returns CAST_MATCH
-        Otherwise returns NO_MATCH
+        Base method for type casting
+        If self can be casted to target_type returns True
+        Otherwise returns False
         '''
-        if self == target_type:
-            return self.EXACT_MATCH
-        else:
-            return self.NO_MATCH
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+
+        return False
 
     def insert_cast_to(self, compiler, target_type, expr):
         '''
@@ -321,19 +321,17 @@ def expression_type_match(compiler, lhs_type, parent, child_name):
     If can match but needs cast, inserts cast and returns true
     '''
     expr = getattr(parent, child_name)
+    expr_type = expr.get_type()
 
-    ini = expr.get_type().can_cast_to(lhs_type)
-    if ini == TypeDeclNode.NO_MATCH:
-        return False
-    elif ini == TypeDeclNode.EXACT_MATCH:
+    if expr_type == lhs_type:
         return True
-    elif ini == TypeDeclNode.CAST_MATCH:
-        cast = expr.get_type().insert_cast_to(compiler, lhs_type, expr)
+    elif expr_type.can_cast_to(lhs_type):
+        cast = expr_type.insert_cast_to(compiler, lhs_type, expr)
         cast.set_parent(parent)
         setattr(parent, child_name, cast)
         return True
     else:
-        assert False
+        return False
 
 
 class RootNode(Node):
@@ -545,20 +543,14 @@ class ArgumentListNode(Node):
             source = self.childs_arguments[i].get_type()
             target = params.get_type_at(i)
 
-            r = source.can_cast_to(target)
-
-            if r == TypeDeclNode.EXACT_MATCH:
+            if source == target:
                 pass
-            elif r == TypeDeclNode.CAST_MATCH:
+            elif source.can_cast_to(target):
                 result = TypeDeclNode.CAST_MATCH
-            elif r == TypeDeclNode.NO_MATCH:
-
-                if target.can_cast_from(source):
-                    result = TypeDeclNode.CAST_MATCH
-                else:
-                    return TypeDeclNode.NO_MATCH
+            elif target.can_cast_from(source):
+                result = TypeDeclNode.CAST_MATCH
             else:
-                assert False
+                return TypeDeclNode.NO_MATCH
 
         return result
 
@@ -577,29 +569,19 @@ class ArgumentListNode(Node):
         for i in range(len(self.childs_arguments)):
             target = params.get_type_at(i)
             source = self.childs_arguments[i].get_type()
-            # r = t.can_initialize(self.childs_arguments[i].get_type())
-            r = source.can_cast_to(target)
 
-            if r == TypeDeclNode.NO_MATCH:
-
-                if target.can_cast_from(source):
-
-                    e = target.insert_cast_from(
-                        compiler, source, self.childs_arguments[i])
-                    e.set_parent(self)
-                    self.childs_arguments[i] = e
-
-                else:
-                    compiler.report_error(
-                        self.ctx,
-                        "Argument type mismatch at position %s" % str(i))
-                    compiler.raise_error()
-            elif r == TypeDeclNode.EXACT_MATCH:
+            if source == target:
                 pass
-            elif r == TypeDeclNode.CAST_MATCH:
+            elif source.can_cast_to(target):
                 e = source.insert_cast_to(
                     compiler, target, self.childs_arguments[i])
                 e.set_parent(self)
                 self.childs_arguments[i] = e
+            elif target.can_cast_from(source):
+                e = target.insert_cast_from(
+                    compiler, source, self.childs_arguments[i])
+                e.set_parent(self)
+                self.childs_arguments[i] = e
             else:
+                # shouldn't reach here
                 assert False

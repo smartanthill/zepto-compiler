@@ -183,12 +183,6 @@ class VoidTypeDeclNode(TypeDeclNode):
         '''
         super(VoidTypeDeclNode, self).__init__(type_name)
 
-    def can_cast_to(self, target_type):
-        '''
-        void type can not be casted to anything, not even to void
-        '''
-        return self.NO_MATCH
-
 
 class LiteralTypeDeclNode(TypeDeclNode):
 
@@ -207,12 +201,7 @@ class LiteralTypeDeclNode(TypeDeclNode):
         '''
         Literal can be casted to its base type
         '''
-        if self == target_type:
-            return self.EXACT_MATCH
-        elif self._base_type == target_type:
-            return self.CAST_MATCH
-        else:
-            return self.NO_MATCH
+        return self._base_type == target_type
 
     def insert_cast_to(self, compiler, target_type, expr):
         '''
@@ -597,12 +586,7 @@ class FieldTypeDeclNode(TypeDeclNode):
         '''
         This type can be casted to number, by inserting appropiate scaling
         '''
-        if self == target_type:
-            return self.EXACT_MATCH
-        elif self._number_type == target_type:
-            return self.CAST_MATCH
-        else:
-            return self.NO_MATCH
+        return self._number_type == target_type
 
     def insert_cast_to(self, compiler, target_type, expr):
         '''
@@ -1149,14 +1133,14 @@ class FieldToFieldCompDeclNode(OperatorDeclNode):
 
         a0 = expr.child_argument_list.childs_arguments[0]
         t0 = a0.get_type()
-        assert t0.can_cast_to(self._number_type) == TypeDeclNode.CAST_MATCH
+        assert t0.can_cast_to(self._number_type)
 
         c0 = t0.insert_cast_to(compiler, self._number_type, a0)
         result.set_lhs(c0)
 
         a1 = expr.child_argument_list.childs_arguments[1]
         t1 = a1.get_type()
-        assert t1.can_cast_to(self._number_type) == TypeDeclNode.CAST_MATCH
+        assert t1.can_cast_to(self._number_type)
 
         c1 = t1.insert_cast_to(compiler, self._number_type, a1)
         result.set_rhs(c1)
