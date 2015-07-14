@@ -57,6 +57,13 @@ class ZeptoPlugin(object):
             data = {}
             for key in ("type", "name", "title", "default"):
                 data[key] = element.get(key, None)
+
+            if data['default'] is not None:
+                if "int" in data['type']:
+                    data['default'] = int(data['default'])
+                elif "float" in data['type']:
+                    data['default'] = float(data['default'])
+
             result.append(data)
         return result
 
