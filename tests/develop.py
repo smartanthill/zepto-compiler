@@ -28,8 +28,12 @@ from smartanthill_zc.encode import create_half_float, half_float_value,\
 
 def main():
 
-    code = [
-        u'return Actuator1.Execute(10);']
+    code = [u'var temp = TempSensor1.Execute();',
+            u'if(temp.Temperature + 1 < 36.6) {',
+            u'  mcu_sleep(5*60);',
+            u'  return TempSensor1.Execute();',
+            u'}',
+            u'return temp;']
 
     xml = [
         u'<smartanthill_zc.test>',
@@ -37,13 +41,11 @@ def main():
         u'    <command/>',
         u'    <reply>',
         u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
-        u'       min="0" max="500">',
-        u'        <meaning type="float">',
-        u'          <linear-conversion ',
-        u'            input-point0="100" output-point0="10.0"',
-        u'            input-point1="200" output-point1="20.0" />',
-        u'        </meaning>',
-        u'      </field>',
+        u'        min="0" max="500"',
+        u'        meaning="float"',
+        u'        conversion="linear-conversion"',
+        u'        input-point0="100" output-point0="10.0"',
+        u'        input-point1="200" output-point1="20.0" />',
         u'    </reply>',
         u'    <bodyparts>',
         u'      <bodypart name="TempSensor1" id="1" />',
@@ -54,12 +56,11 @@ def main():
         u'    <command/>',
         u'    <reply>',
         u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
-        u'       min="0" max="500">',
-        u'        <meaning type="float">',
-        u'          <linear-conversion input-point0="100" output-point0="15.0"',
-        u'                       input-point1="200" output-point1="20.0" />',
-        u'        </meaning>',
-        u'      </field>',
+        u'        min="0" max="500"',
+        u'        meaning="float"',
+        u'        conversion="linear-conversion"',
+        u'        input-point0="100" output-point0="15.0"',
+        u'        input-point1="200" output-point1="20.0" />',
         u'    </reply>',
         u'    <bodyparts>',
         u'      <bodypart name="TempSensor10" id="10" />',
@@ -83,25 +84,22 @@ def main():
     comp = Compiler()
 
     bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
-    etdump = visitor.dump_tree(bodyparts)
 
-    print '\n'.join(etdump)
+#    etdump = visitor.dump_tree(bodyparts)
+#    print '\n'.join(etdump)
 
     js_tree = parse_js.parse_js_string(comp, code)
     root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
 
     builtin.create_builtins(comp, root)
 
-#    xml_tree = parse_xml.parse_xml_string(comp, xml)
-#    bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)
     compiler.process_syntax_tree(comp, root)
 
-    actual = visitor.dump_tree(root)
-
-    print '\n'.join(actual)
+#    actual = visitor.dump_tree(root)
+#    print '\n'.join(actual)
 
     target = vm.convert_to_zepto_vm_small(comp, root)
     txt = writer.write_text_op_codes(comp, target)

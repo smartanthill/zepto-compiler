@@ -29,15 +29,38 @@ def common_test_run(code):
         u'    <command/>',
         u'    <reply>',
         u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
-        u'       min="0" max="500">',
-        u'        <meaning type="float">',
-        u'          <linear-conversion input-point0="100" output-point0="10.0"',
-        u'                       input-point1="200" output-point1="20.0" />',
-        u'        </meaning>',
-        u'      </field>',
+        u'        min="0" max="500"',
+        u'        meaning="float"',
+        u'        conversion="linear-conversion"',
+        u'        input-point0="100" output-point0="10.0"',
+        u'        input-point1="200" output-point1="20.0" />',
         u'    </reply>',
         u'    <bodyparts>',
-        u'      <bodypart name="TemperatureSensor" id="1" />',
+        u'      <bodypart name="TempSensor1" id="1" />',
+        u'      <bodypart name="TempSensor2" id="2" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command/>',
+        u'    <reply>',
+        u'      <field name="Temperature" type="encoded-signed-int[max=2]"',
+        u'        min="0" max="500"',
+        u'        meaning="float"',
+        u'        conversion="linear-conversion"',
+        u'        input-point0="100" output-point0="15.0"',
+        u'        input-point1="200" output-point1="20.0" />',
+        u'    </reply>',
+        u'    <bodyparts>',
+        u'      <bodypart name="TempSensor10" id="10" />',
+        u'    </bodyparts>',
+        u'  </plugin>',
+        u'  <plugin>',
+        u'    <command>',
+        u'      <field name="abc" type="encoded-signed-int[max=2]" />',
+        u'    </command>',
+        u'    <reply/>',
+        u'    <bodyparts>',
+        u'      <bodypart name="Actuator1" id="100" />',
         u'    </bodyparts>',
         u'  </plugin>',
         u'</smartanthill_zc.test>'
@@ -69,13 +92,13 @@ def common_test_run(code):
 def test_js_resolve():
 
     code = [u'for (var i = 0; i < 5; i++) {'
-            u'  var temp = TemperatureSensor.Execute();'
+            u'  var temp = TempSensor1.Execute();'
             u'  if (temp.Temperature < 36.0 || temp.Temperature > 38.9)'
             u'    return temp;'
 
             u'  mcu_sleep(5*60);'
             u'}'
-            u'return TemperatureSensor.Execute();']
+            u'return TempSensor1.Execute();']
 
     common_test_run(code)
 
@@ -94,7 +117,7 @@ def test_js_return_raise():
 def test_js_if_raise():
     with pytest.raises(compiler.CompilerError):
 
-        code = [u'var temp = TemperatureSensor.Execute();'
+        code = [u'var temp = TempSensor1.Execute();'
                 u'if (temp) {'
                 u'  ;'
                 u'}'
@@ -105,8 +128,8 @@ def test_js_if_raise():
 
 def test_js_var_assignment():
 
-    code = [u'var temp = TemperatureSensor.Execute();'
-            u'temp = TemperatureSensor.Execute();']
+    code = [u'var temp = TempSensor1.Execute();'
+            u'temp = TempSensor1.Execute();']
 
     common_test_run(code)
 
@@ -115,7 +138,7 @@ def test_js_var_assignment_raise():
     with pytest.raises(compiler.CompilerError):
 
         code = [u'var temp = 0;'
-                u'temp = TemperatureSensor.Execute();']
+                u'temp = TempSensor1.Execute();']
 
         common_test_run(code)
 

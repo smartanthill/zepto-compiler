@@ -336,7 +336,7 @@ class ExecOpNode(OpcodeNode):
         writer.write_int_2(self.bodypart_id)
 
         if not self.data:
-            if self.data_encoding == None:
+            if self.data_encoding is None:
                 pass
             elif self.data_encoding == Encoding.SIGNED_INT:
                 self.data = encode_signed_int(8, self.data_value)
@@ -623,7 +623,7 @@ class ReplyBufferRearrangeOpNode(OpcodeNode):
             writer.write_opcode(Op.MOVEREPLYTOFRONT)
             writer.write_int_2(current)
 
-        if self.pop_number != None:
+        if self.pop_number is not None:
             writer.write_opcode(Op.POPREPLIES)
             writer.write_uint_2(self.pop_number)
 

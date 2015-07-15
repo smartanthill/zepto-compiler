@@ -85,9 +85,9 @@ class LinearConvertionFloat(object):
         '''
         Constructor
         '''
-        self._a = 0
+        self._a = 1
         self._b = 0
-        self._inv_a = 0
+        self._inv_a = 1
 
     def set_points(self, in0, out0, in1, out1):
         '''

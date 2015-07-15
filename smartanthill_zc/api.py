@@ -46,7 +46,29 @@ class ZeptoPlugin(object):
         )
 
     def get_response_fields(self):
-        raise NotImplementedError
+
+        elements = self.xml.find("./response")
+        if elements is None:
+            return []
+        items = []
+        for element in elements:
+            data = {}
+            for attr in ("name", "type", "min", "max"):
+                data[attr] = element.get(attr, None)
+
+            meaning = element.find('./meaning')
+            if meaning is not None:
+                data['meaning'] = meaning.get('type')
+
+                conversion = meaning.find('./linear-conversion')
+                if conversion is not None:
+                    data["conversion"] = "linear-conversion"
+                    for key in("input-point0", "output-point0",
+                               "input-point1", "output-point1"):
+                        data[key] = conversion.get(key, None)
+
+            items.append(data)
+        return items
 
     def get_peripheral(self):
         return self._get_items_by_path(
