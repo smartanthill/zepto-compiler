@@ -13,7 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from os.path import basename
+from os.path import dirname
 from xml.etree import ElementTree
 
 from smartanthill_zc.compiler import Compiler
@@ -25,7 +25,10 @@ class ZeptoPlugin(object):
 
     def __init__(self, manifest_path):
         self.xml = ElementTree.parse(manifest_path).getroot()
-        self.source_dir = basename(manifest_path)
+        self._source_dir = dirname(manifest_path)
+
+    def get_source_dir(self):
+        return self._source_dir
 
     def get_id(self):
         return self.xml.get("id")
@@ -36,55 +39,63 @@ class ZeptoPlugin(object):
     def get_description(self):
         return self.xml.find("description").text
 
+    def get_request_fields(self):
+        return self._get_items_by_path(
+            "./request",
+            ("type", "name")
+        )
+
+    def get_response_fields(self):
+        raise NotImplementedError
+
     def get_peripheral(self):
-        pins = self.xml.find("./configuration/peripheral")
-        if pins is None:
-            return None
-        result = []
-        for element in pins:
-            data = {}
-            for key in ("type", "name", "title"):
-                data[key] = element.get(key, None)
-            result.append(data)
-        return result
+        return self._get_items_by_path(
+            "./configuration/peripheral",
+            ("type", "name", "title")
+        )
 
     def get_options(self):
-        options = self.xml.find("./configuration/options")
-        if options is None:
+        options = self._get_items_by_path(
+            "./configuration/options",
+            ("type", "name", "title", "default")
+        )
+
+        for index, item in enumerate(options or []):
+            if item['default'] is not None:
+                if "int" in item['type']:
+                    options[index]['default'] = int(item['default'])
+                elif "float" in item['type']:
+                    options[index]['default'] = float(item['default'])
+        return options
+
+    def _get_items_by_path(self, path, attrs):
+        elements = self.xml.find(path)
+        if elements is None:
             return None
-        result = []
-        for element in options:
+        items = []
+        for element in elements:
             data = {}
-            for key in ("type", "name", "title", "default"):
-                data[key] = element.get(key, None)
-
-            if data['default'] is not None:
-                if "int" in data['type']:
-                    data['default'] = int(data['default'])
-                elif "float" in data['type']:
-                    data['default'] = float(data['default'])
-
-            result.append(data)
-        return result
+            for attr in attrs:
+                data[attr] = element.get(attr, None)
+            items.append(data)
+        return items
 
 
 class ZeptoBodyPart(object):
 
-    def __init__(self, id_, name, plugin, peripheral=None, options=None):
+    def __init__(self, plugin, id_, name, peripheral=None, options=None):
         assert isinstance(plugin, ZeptoPlugin)
+        self.plugin = plugin
+
         self._id = id_
-        self._plugin = plugin
         self._peripheral = peripheral
         self._options = options
 
     def get_id(self):
         return self._id
 
-    def get_plugin_id(self):
-        return self._plugin.get_id()
-
     def get_peripheral(self):
-        peripheral = self._plugin.get_peripheral()
+        peripheral = self.plugin.get_peripheral()
         if not peripheral:
             return None
         for item in peripheral:
@@ -93,7 +104,7 @@ class ZeptoBodyPart(object):
         return peripheral
 
     def get_options(self):
-        options = self._plugin.get_options()
+        options = self.plugin.get_options()
         if not options:
             return None
         for item in options:
