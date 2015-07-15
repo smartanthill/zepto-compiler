@@ -88,11 +88,15 @@ class ZeptoBodyPart(object):
         self.plugin = plugin
 
         self._id = id_
+        self._name = name
         self._peripheral = peripheral
         self._options = options
 
     def get_id(self):
         return self._id
+
+    def get_name(self):
+        return self._name
 
     def get_peripheral(self):
         peripheral = self.plugin.get_peripheral()
