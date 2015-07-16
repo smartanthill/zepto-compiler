@@ -71,7 +71,7 @@ class ZeptoPlugin(object):
     def _get_items_by_path(self, path, attrs):
         elements = self.xml.find(path)
         if elements is None:
-            return None
+            return []
         items = []
         for element in elements:
             data = {}
@@ -101,7 +101,7 @@ class ZeptoBodyPart(object):
     def get_peripheral(self):
         peripheral = self.plugin.get_peripheral()
         if not peripheral:
-            return None
+            return []
         for item in peripheral:
             if self._peripheral and item['name'] in self._peripheral:
                 item['value'] = self._peripheral[item['name']]
@@ -110,7 +110,7 @@ class ZeptoBodyPart(object):
     def get_options(self):
         options = self.plugin.get_options()
         if not options:
-            return None
+            return []
         for item in options:
             if self._options and item['name'] in self._options:
                 item['value'] = self._options[item['name']]
