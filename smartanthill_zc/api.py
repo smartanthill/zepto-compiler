@@ -174,6 +174,10 @@ class ZeptoProgram(object):
 
         return code
 
+    def process_response(self, response):
+
+        raise NotImplementedError
+
 
 def zepto_exec_cmd(bodypart_id, data):
     '''
