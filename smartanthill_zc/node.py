@@ -345,9 +345,10 @@ class RootNode(Node):
         Constructor
         '''
         super(RootNode, self).__init__()
-        self.child_builtin = None
+        self.child_builtins = None
         self.child_bodyparts = None
-        self.child_program = None
+        self.child_parameters = None
+        self.child_source_program = None
         self._scope = RootScope(self)
 
     def get_root_scope(self):
@@ -356,37 +357,46 @@ class RootNode(Node):
          '''
         return self._scope
 
-    def set_builtin(self, child):
+    def set_builtins(self, child):
         '''
-        statement adder
+        built-ins setter
         '''
         assert isinstance(child, DeclarationListNode)
         child.set_parent(self)
-        self.child_builtin = child
+        self.child_builtins = child
 
     def set_bodyparts(self, child):
         '''
-        statement adder
+        body-parts setter
         '''
         assert isinstance(child, Node)
         child.set_parent(self)
         self.child_bodyparts = child
 
-    def set_program(self, child):
+    def set_parameters(self, child):
         '''
-        statement_list setter
+        parameters setter
         '''
-        assert isinstance(child, ProgramNode)
+        assert isinstance(child, DeclarationListNode)
         child.set_parent(self)
-        self.child_program = child
+        self.child_parameters = child
+
+    def set_source_program(self, child):
+        '''
+        program setter
+        '''
+        assert isinstance(child, SourceProgramNode)
+        child.set_parent(self)
+        self.child_source_program = child
 
     def resolve(self, compiler):
         # First built-ins
-        compiler.resolve_node(self.child_builtin)
-        # Next body-parts
+        compiler.resolve_node(self.child_builtins)
+        # Next body-parts and parameters
         compiler.resolve_node(self.child_bodyparts)
+        compiler.resolve_node(self.child_parameters)
         # Last user code
-        compiler.resolve_node(self.child_program)
+        compiler.resolve_node(self.child_source_program)
 
 
 class DeclarationListNode(Node):
@@ -424,7 +434,7 @@ class DeclarationListNode(Node):
             compiler.resolve_node(decl)
 
 
-class ProgramNode(Node):
+class SourceProgramNode(Node):
 
     '''
     Node class container of a program, similar to a function but
@@ -435,7 +445,7 @@ class ProgramNode(Node):
         '''
         Constructor
         '''
-        super(ProgramNode, self).__init__()
+        super(SourceProgramNode, self).__init__()
         self.child_statement_list = None
         self._return_scope = ReturnStmtScope(self)
 

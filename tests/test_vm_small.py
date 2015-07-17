@@ -14,7 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
-    parse_xml
+    parse_xml, node
+from smartanthill_zc.compiler import Ctx
 
 
 def common_test_run(code):
@@ -66,15 +67,16 @@ def common_test_run(code):
     code = '\n'.join(code)
 
     comp = compiler.Compiler()
+    root = comp.init_node(node.RootNode(), Ctx.ROOT)
+
     js_tree = parse_js.parse_js_string(comp, code)
+    source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    root.set_source_program(source)
 
-    root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    builtins = builtin.create_builtins(comp, Ctx.BUILTIN)
+    root.set_builtins(builtins)
 
-    builtin.create_builtins(comp, root)
-
-#     xml_tree = parse_xml.parse_xml_string(comp, xml)
-#     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml, Ctx.BODYPART)
     root.set_bodyparts(bodyparts)
 
     visitor.check_all_nodes_reachables(comp, root)

@@ -18,6 +18,7 @@ from smartanthill_zc import array_lit, expression, op_node
 from smartanthill_zc.antlr_helper import (get_reference_lines,
                                           get_reference_text)
 from smartanthill_zc.builtin import negate_logic
+from smartanthill_zc.compiler import Ctx
 from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node
 from smartanthill_zc.writer import BinaryWriter
@@ -29,7 +30,7 @@ def convert_to_zepto_vm_one(compiler, root):
     at a Zepto VM Level One
     '''
     v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.ONE))
-    visit_node(v, root.child_program)
+    visit_node(v, root.child_source_program)
 
     target = v.finish()
     target.calculate_byte_size(BinaryWriter())
@@ -43,7 +44,7 @@ def convert_to_zepto_vm_tiny(compiler, root):
     at a Zepto VM Level Tiny
     '''
     v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.TINY))
-    visit_node(v, root.child_program)
+    visit_node(v, root.child_source_program)
 
     target = v.finish()
     target.calculate_byte_size(BinaryWriter())
@@ -57,7 +58,7 @@ def convert_to_zepto_vm_small(compiler, root):
     at a Zepto VM Level Small
     '''
     v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.SMALL))
-    visit_node(v, root.child_program)
+    visit_node(v, root.child_source_program)
 
     target = v.finish()
     target.calculate_byte_size(BinaryWriter())
@@ -439,9 +440,9 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._vm = vm
 
         self._target = compiler.init_node(
-            op_node.TargetProgramNode(), compiler.BUILTIN)
+            op_node.TargetProgramNode(), Ctx.TARGET)
         self._op_list = compiler.init_node(
-            op_node.OpListNode(), compiler.BUILTIN)
+            op_node.OpListNode(), Ctx.TARGET)
 
         self._target.set_op_list(self._op_list)
         self._target.vm_level = self._vm.level
@@ -556,7 +557,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
         return body
 
-    def visit_ProgramNode(self, node):
+    def visit_SourceProgramNode(self, node):
 
         fs = node.get_return_scope().get_return_type().field_sequence
         self._target.reply_fs = fs

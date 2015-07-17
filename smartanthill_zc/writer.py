@@ -150,7 +150,8 @@ class _TextWriter(object):
         if len(data) == 0:
             self._current += '|[]'
         else:
-            self._current += '|[0x%s]' % binascii.hexlify(data)
+            # python 2.6 needs str(data)
+            self._current += '|[0x%s]' % binascii.hexlify(str(data))
 
     def write_long(self, value):
         '''

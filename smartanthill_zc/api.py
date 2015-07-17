@@ -16,9 +16,9 @@
 from os.path import dirname
 from xml.etree import ElementTree
 
-from smartanthill_zc.compiler import Compiler
-from smartanthill_zc.op_node import ExecOpNode
-from smartanthill_zc.writer import write_binary
+from smartanthill_zc import parse_xml, node, parse_js, builtin, visitor,\
+    vm, statement, writer, op_node
+from smartanthill_zc.compiler import Compiler, Ctx, process_syntax_tree
 
 
 class ZeptoPlugin(object):
@@ -139,16 +139,52 @@ class ZeptoBodyPart(object):
         return options
 
 
+class ZeptoProgram(object):
+
+    def __init__(self, js_source, bodyparts):
+
+        self._js_source = js_source
+        self._bodyparts = bodyparts
+
+    def compile(self, parameters):
+
+        compiler = Compiler()
+        root = compiler.init_node(node.RootNode(), Ctx.ROOT)
+
+        builtins = builtin.create_builtins(compiler, Ctx.BUILTIN)
+        root.set_builtins(builtins)
+
+        bodyparts = parse_xml.create_bodyparts(
+            compiler, self._bodyparts, Ctx.BODYPART)
+        root.set_bodyparts(bodyparts)
+
+        params = statement.create_parameters(compiler, parameters, Ctx.PARAM)
+        root.set_parameters(params)
+
+        js_tree = parse_js.parse_js_string(compiler, self._js_source)
+        source = parse_js.js_parse_tree_to_syntax_tree(compiler, js_tree)
+        root.set_source_program(source)
+
+        visitor.check_all_nodes_reachables(compiler, root)
+        process_syntax_tree(compiler, root)
+
+        target = vm.convert_to_zepto_vm_small(compiler, root)
+
+        code = writer.write_binary(compiler, target)
+
+        return code
+
+
 def zepto_exec_cmd(bodypart_id, data):
     '''
     Public api function that creates a binary code for a ZEPTOVM_OP_EXEC
     '''
 
     compiler = Compiler()
-    op = compiler.init_node(ExecOpNode(), Compiler.NONE)
+    op = compiler.init_node(op_node.ExecOpNode(), Ctx.TARGET)
     op.bodypart_id = bodypart_id
     op.data = data
 
-    code = write_binary(compiler, op)
+    code = writer.write_binary(compiler, op)
 
     return code

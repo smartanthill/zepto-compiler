@@ -13,15 +13,32 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc import compiler, api, parse_xml
+from smartanthill_zc import api
 
 
-def test_xml_api_1():
+def test_api_zepto_exec_cmd():
 
-    comp = compiler.Compiler()
+    code = api.zepto_exec_cmd(0, [1, 2, 3])
+    assert code == bytearray([0x02, 0x00, 0x03, 0x01, 0x02, 0x03])
+
+
+def test_api_1():
+
     plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
 
-    sensor1 = api.ZeptoBodyPart(plugin, 1, 'Sensor1')
-    sensor2 = api.ZeptoBodyPart(plugin, 2, 'Sensor2')
+    sensor2 = api.ZeptoBodyPart(plugin, 1, 'Other')
+    sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
 
-    bodyparts = parse_xml.create_bodyparts(comp, [sensor1, sensor2])
+    zp = api.ZeptoProgram(
+        "return BodyPartName.Execute(PARAM1)", [sensor1, sensor2])
+    dynamic_data = {
+        "PARAM1": 10
+    }
+
+    opcode = zp.compile(dynamic_data)
+
+    # 0x02 opcode for ZEPTOVM_OP_EXEC
+    # 0x06 signed encode for bodypart-id '3'
+    # 0x01 data lenght
+    # 0x14 signed encode for data value '10'
+    assert opcode == bytearray([0x02, 0x06, 0x01, 0x14])

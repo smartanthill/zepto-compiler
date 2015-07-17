@@ -17,11 +17,11 @@ import cProfile
 import math
 import sys
 
-from smartanthill_zc import builtin, vm, writer, encode
+from smartanthill_zc import builtin, vm, writer, encode, node
 from smartanthill_zc import compiler, parse_xml
 from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
-from smartanthill_zc.compiler import Compiler
+from smartanthill_zc.compiler import Compiler, Ctx
 from smartanthill_zc.encode import create_half_float, half_float_value,\
     half_float_next_down
 
@@ -83,15 +83,19 @@ def main():
     code = '\n'.join(code)
     comp = Compiler()
 
-    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml, Ctx.BODYPART)
 
 #    etdump = visitor.dump_tree(bodyparts)
 #    print '\n'.join(etdump)
 
-    js_tree = parse_js.parse_js_string(comp, code)
-    root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    root = comp.init_node(node.RootNode(), Ctx.ROOT)
 
-    builtin.create_builtins(comp, root)
+    js_tree = parse_js.parse_js_string(comp, code)
+    source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    root.set_source_program(source)
+
+    builtins = builtin.create_builtins(comp, Ctx.BUILTIN)
+    root.set_builtins(builtins)
 
     root.set_bodyparts(bodyparts)
 

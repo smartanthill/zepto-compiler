@@ -22,12 +22,10 @@ from smartanthill_zc.node import (ArgumentListNode, DeclarationListNode,
                                   TypeDeclNode)
 
 
-def create_builtins(compiler, root):
+def create_builtins(compiler, ctx):
     '''
     Creates all built in nodes and adds them to the root
     '''
-
-    ctx = compiler.BUILTIN
 
     decls = compiler.init_node(DeclarationListNode(), ctx)
     decls.add_declaration(
@@ -113,8 +111,9 @@ def create_builtins(compiler, root):
     _create_operators(
         compiler, ctx, decls, ['!'], '_zc_boolean', ['_zc_boolean'])
 
-    root.set_builtin(decls)
-    compiler.check_stage('built-in')
+    compiler.check_stage('built_in')
+
+    return decls
 
 
 class BasicTypeDeclNode(TypeDeclNode):

@@ -16,13 +16,12 @@
 
 import antlr4
 
-from smartanthill_zc import array_lit, expression, statement
-from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
-                                          get_token_text)
+from smartanthill_zc import array_lit, expression, statement, node
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
-from smartanthill_zc.node import ArgumentListNode, ProgramNode, RootNode
+from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
+                                          get_token_text)
 
 
 def parse_js_string(compiler, data):
@@ -59,14 +58,11 @@ def js_parse_tree_to_syntax_tree(compiler, js_tree):
     '''
 
     visitor = _JsSyntaxVisitor(compiler)
-    prog = visitor.visit(js_tree)
+    source = visitor.visit(js_tree)
 
-    root = compiler.init_node(RootNode(), compiler.BUILTIN)
-
-    root.set_program(prog)
     compiler.check_stage('js_syntax')
 
-    return root
+    return source
 
 
 class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
@@ -112,7 +108,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
             self._compiler.report_error(
                 node_ctx, "Operator '%s' not supported", text)
 
-        arg_list = self._compiler.init_node(ArgumentListNode(), node_ctx)
+        arg_list = self._compiler.init_node(node.ArgumentListNode(), node_ctx)
 
         for e in expr_list_ctx:
             expr = self.visit(e)
@@ -124,7 +120,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#program.
     def visitProgram(self, ctx):
-        prog = self._compiler.init_node(ProgramNode(), ctx)
+        prog = self._compiler.init_node(node.SourceProgramNode(), ctx)
         stmt_list = self._compiler.init_node(
             statement.StatementListStmtNode(), ctx)
 
@@ -322,7 +318,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#arguments.
     def visitArguments(self, ctx):
-        args = self._compiler.init_node(ArgumentListNode(), ctx)
+        args = self._compiler.init_node(node.ArgumentListNode(), ctx)
 
         al = ctx.argumentList()
         if al:

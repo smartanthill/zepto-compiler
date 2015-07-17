@@ -25,51 +25,50 @@ except ImportError:
     from xml.parsers.expat import ExpatError as ParseError
 
 
-def create_bodyparts(compiler, bodyparts):
+def create_bodyparts(compiler, bodyparts, ctx):
     '''
     Returns a BodyPartsManagerNode populated with all created plugins
     and bodyparts
     '''
 
-    manager = bodypart.create_body_parts_manager(compiler, compiler.BUILTIN)
+    manager = bodypart.create_body_parts_manager(compiler, ctx)
 
     plugins = {}
     for current in bodyparts:
         z_plugin = current.plugin
         if z_plugin not in plugins:
-            plugins[z_plugin] = _make_plugin(compiler, manager,
-                                             compiler.BUILTIN,
+            plugins[z_plugin] = _make_plugin(compiler, manager, ctx,
                                              z_plugin.get_request_fields(),
                                              z_plugin.get_response_fields())
 
-        _make_bodypart(compiler, manager, compiler.BUILTIN,
+        _make_bodypart(compiler, manager, ctx,
                        current.get_name(), current.get_id(), plugins[z_plugin])
 
-    compiler.check_stage('bodyparts')
+    compiler.check_stage('bodypart')
 
     return manager
 
 
-def parse_test_xml_body_parts(compiler, data):
+def parse_test_xml_body_parts(compiler, data, ctx):
     '''
     Parse string containing test xml bodyparts declarations
     Returns a BodypartManagerNode with all the parsed bodyparts
     Used only for creation of test bodyparts
     '''
 
-    manager = bodypart.create_body_parts_manager(compiler, compiler.BUILTIN)
+    manager = bodypart.create_body_parts_manager(compiler, ctx)
 
     try:
         root = ElementTree.fromstring(data)
         # python 2.6
         for current in root.getiterator('smartanthill_zc.test'):
             for plugin in current.getiterator('plugin'):
-                _make_test_plugin(compiler, manager, plugin)
+                _make_test_plugin(compiler, manager, plugin, ctx)
     except ParseError:  # TODO improve
-        compiler.report_error(compiler.BUILTIN, "Error parsing xml")
+        compiler.report_error(ctx, "Error parsing xml")
         compiler.raise_error()
 
-    compiler.check_stage('test_xml_bodyparts')
+    compiler.check_stage('test_bodypart')
 
     return manager
 
@@ -144,7 +143,7 @@ def _get_tags(compiler, et, req_names, opt_names):
     return result
 
 
-def _make_test_plugin(compiler, manager, et):
+def _make_test_plugin(compiler, manager, et, ctx):
     '''
     Creates a BodyPartDeclNode from an xml <test.plugin>
     '''
@@ -162,7 +161,7 @@ def _make_test_plugin(compiler, manager, et):
     for current in tags['reply']:
         reply_fields.append(current.attrib)
 
-    plugin = _make_plugin(compiler, manager, et, command_fields, reply_fields)
+    plugin = _make_plugin(compiler, manager, ctx, command_fields, reply_fields)
 
     for current in tags['bodyparts']:
         assert current.tag == 'bodypart'

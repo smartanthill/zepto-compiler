@@ -14,7 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
-    parse_xml
+    parse_xml, statement, node
+from smartanthill_zc.compiler import Compiler, Ctx
 
 
 def common_test_run(code):
@@ -62,20 +63,26 @@ def common_test_run(code):
         u'</smartanthill_zc.test>'
     ]
 
+    param_dict = {'PARAM1': 11}
+
     xml = '\n'.join(xml)
     code = '\n'.join(code)
 
-    comp = compiler.Compiler()
+    comp = Compiler()
+    root = comp.init_node(node.RootNode(), Ctx.ROOT)
+
     js_tree = parse_js.parse_js_string(comp, code)
+    source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    root.set_source_program(source)
 
-    root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    builtins = builtin.create_builtins(comp, Ctx.BUILTIN)
+    root.set_builtins(builtins)
 
-    builtin.create_builtins(comp, root)
-
-#     xml_tree = parse_xml.parse_xml_string(comp, xml)
-#     bodyparts = parse_xml.xml_parse_tree_process(comp, xml_tree)
-    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml)
+    bodyparts = parse_xml.parse_test_xml_body_parts(comp, xml, Ctx.BODYPART)
     root.set_bodyparts(bodyparts)
+
+    params = statement.create_parameters(comp, param_dict, Ctx.PARAM)
+    root.set_parameters(params)
 
     visitor.check_all_nodes_reachables(comp, root)
     compiler.process_syntax_tree(comp, root)
@@ -141,6 +148,21 @@ def test_js_actuator():
            '/* reply: {} */',
            '/* size: 5 bytes */',
            '|EXEC|100|1|[0x14]|',
+           '/* exit|islast */']
+
+    assert common_test_run(code) == out
+
+
+def test_js_parameter():
+
+    code = [
+        u'return Actuator1.Execute(PARAM1);']
+
+    out = ['/* target vm: One */',
+           '/* mcusleep: False */',
+           '/* reply: {} */',
+           '/* size: 5 bytes */',
+           '|EXEC|100|1|[0x16]|',
            '/* exit|islast */']
 
     assert common_test_run(code) == out

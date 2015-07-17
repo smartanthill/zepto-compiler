@@ -162,9 +162,16 @@ class NumberLiteralExprNode(ExpressionNode):
         super(NumberLiteralExprNode, self).__init__()
         self.txt_literal = None
 
+    def set_literal(self, literal):
+        '''
+        literal setter
+        TODO add literal format check
+        '''
+        self.txt_literal = literal
+
     def resolve_expr(self, compiler):
 
-        del compiler
+        # pylint: disable=unused-argument
 
         scope = self.get_root_scope()
 
@@ -289,14 +296,23 @@ class VariableExprNode(ExpressionNode):
 
         decl = lookup.lookup_variable(self.get_stmt_scope(), self.txt_name)
         if not decl:
-            compiler.report_error(
-                self.ctx, "Unresolved variable '%s'", self.txt_name)
-            compiler.raise_error()
+            decl = self.get_root_scope().lookup_parameter(self.txt_name)
+            if not decl:
+                compiler.report_error(
+                    self.ctx, "Unresolved variable '%s'", self.txt_name)
+                compiler.raise_error()
 
         self.ref_decl = decl
 
         self.set_type(self.ref_decl.get_type())
         return None
+
+    def get_static_value(self):
+        assert self.ref_decl
+        if self.ref_decl.child_initializer is not None:
+            return self.ref_decl.child_initializer.get_static_value()
+        else:
+            return None
 
 
 class AssignmentExprNode(ExpressionNode):

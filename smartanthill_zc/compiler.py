@@ -31,6 +31,20 @@ class BuiltinCtx(object):
         self.text = text
 
 
+class Ctx(object):
+
+    '''
+    Static built in contexts
+    '''
+
+    BUILTIN = BuiltinCtx('<builtin>')
+    PARAM = BuiltinCtx('<parameter>')
+    BODYPART = BuiltinCtx('<bodypart>')
+    TARGET = BuiltinCtx('<target>')
+    ROOT = BuiltinCtx('<root>')
+    NONE = BuiltinCtx('<none>')
+
+
 def format_location(ctx):
     '''
     Returns formated string with location in source code of given ctx
@@ -58,9 +72,6 @@ class Compiler(object):
     Holds common information about a compilation and
     provides some helper methods
     '''
-
-    BUILTIN = BuiltinCtx('<builtin>')
-    NONE = BuiltinCtx('<none>')
 
     def __init__(self):
         '''

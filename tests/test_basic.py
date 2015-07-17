@@ -15,15 +15,20 @@
 
 import pytest
 
-from smartanthill_zc import compiler
+from smartanthill_zc import node, errors
 from smartanthill_zc import parse_js
 from smartanthill_zc import visitor
+from smartanthill_zc.compiler import Ctx, Compiler
 
 
 def common_test_run(code):
-    comp = compiler.Compiler()
+    comp = Compiler()
+    root = comp.init_node(node.RootNode(), Ctx.ROOT)
+
     js_tree = parse_js.parse_js_string(comp, code)
-    root = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
+    root.set_source_program(source)
+
     visitor.check_all_nodes_reachables(comp, root)
 
     actual = visitor.dump_tree(root)
@@ -35,7 +40,7 @@ def test_js_simple_return():
 
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-ReturnStmtNode",
         "+-+-+-+-BodyPartCallExprNode bodypart='Some' method='Thing'",
@@ -49,7 +54,7 @@ def test_js_simple_return():
 def test_js_if_else():
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-IfElseStmtNode",
         "+-+-+-+-StatementListStmtNode",
@@ -72,7 +77,7 @@ def test_js_if_without_else():
 def test_js_nop():
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-NopStmtNode",
         "+-+-+-NopStmtNode",
@@ -86,7 +91,7 @@ def test_js_nop():
 def test_js_mcu_sleep():
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-McuSleepStmtNode",
         "+-+-+-+-ArgumentListNode",
@@ -100,7 +105,7 @@ def test_js_mcu_sleep():
 def test_js_var_init():
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-VariableDeclarationStmtNode name='i'",
         "+-+-+-+-NumberLiteralExprNode literal='60'"
@@ -115,13 +120,13 @@ def test_js_var_without_init():
 
 
 def test_js_var_multi_raise():
-    with pytest.raises(compiler.CompilerError):
+    with pytest.raises(errors.CompilerError):
 
         common_test_run(u'var i, j;')
 
 
 def test_js_expr_multi_raise():
-    with pytest.raises(compiler.CompilerError):
+    with pytest.raises(errors.CompilerError):
 
         common_test_run(u'if(i, j);')
 
@@ -129,7 +134,7 @@ def test_js_expr_multi_raise():
 def test_js_trivial_loop():
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-SimpleForStmtNode name='i'",
         "+-+-+-+-NumberLiteralExprNode literal='0'",
@@ -143,13 +148,13 @@ def test_js_trivial_loop():
 
 
 def test_js_trivial_loop_raise1():
-    with pytest.raises(compiler.CompilerError):
+    with pytest.raises(errors.CompilerError):
 
         common_test_run(u'for(var i = 0; x < 5; i++) ;')
 
 
 def test_js_trivial_loop_raise2():
-    with pytest.raises(compiler.CompilerError):
+    with pytest.raises(errors.CompilerError):
 
         common_test_run(u'for(var i = 0; i < 5; x++) ;')
 
@@ -158,7 +163,7 @@ def test_js_binary_operator():
 
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-ReturnStmtNode",
         "+-+-+-+-LogicOpExprNode operator='&&'",
@@ -175,7 +180,7 @@ def test_js_unary_operator():
 
     expected = [
         "RootNode",
-        "+-ProgramNode",
+        "+-SourceProgramNode",
         "+-+-StatementListStmtNode",
         "+-+-+-ReturnStmtNode",
         "+-+-+-+-LogicOpExprNode operator='!'",
@@ -188,7 +193,7 @@ def test_js_unary_operator():
 
 
 def test_js_unsuported_operator_raise():
-    with pytest.raises(compiler.CompilerError):
+    with pytest.raises(errors.CompilerError):
 
         common_test_run(u'return some === other;')
 
@@ -214,6 +219,6 @@ def test_js_operator_equal():
 
 
 def test_js_empty_array_raises():
-    with pytest.raises(compiler.CompilerError):
+    with pytest.raises(errors.CompilerError):
 
         common_test_run(u'return [];')

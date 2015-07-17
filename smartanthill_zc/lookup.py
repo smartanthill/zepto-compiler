@@ -128,6 +128,7 @@ class RootScope(object):
         self._types = {}
         self._functions = {}
         self._operators = {}
+        self._parameters = {}
 
     def add_bodypart(self, compiler, name, node):
         '''
@@ -196,3 +197,22 @@ class RootScope(object):
         Looks up a function
         '''
         return self._functions[name] if name in self._functions else None
+
+    def add_parameter(self, compiler, name, node):
+        '''
+        Adds a parameter to this scope
+        '''
+        if name in self._parameters:
+            compiler.report_error(
+                node.ctx, "Redeclaration of '%s'", name)
+            compiler.report_error(
+                self._parameters[name].ctx, "Previous was here")
+
+        self._parameters[name] = node
+
+    def lookup_parameter(self, name):
+        '''
+        Looks up a parameter in this scope
+        Returns None if not found
+        '''
+        return self._parameters[name] if name in self._parameters else None
