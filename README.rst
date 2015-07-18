@@ -1,6 +1,10 @@
 SmartAnthill Zepto Compiler
 ===========================
 
+.. image:: https://travis-ci.org/smartanthill/smartanthill-zepto-compiler.svg?branch=develop
+    :target: https://travis-ci.org/smartanthill/smartanthill-zepto-compiler
+    :alt: Build Status
+
 Zepto VM is a minimalistic virtual machine used by SmartAnthill Devices. It implements SACCP (SmartAnthill Command&Control Protocol) on the side of the SmartAnthill Device (and SACCP corresponds to Layer 7 of OSI/ISO network model). By design, Zepto VM is intended to run on devices with extremely limited resources (as little as 512 bytes of RAM).
 
 * `Zepto VM <http://docs.smartanthill.org/en/latest/design-documents/protocols/zepto-vm.html>`_
