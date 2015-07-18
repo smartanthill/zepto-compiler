@@ -146,7 +146,7 @@ class ZeptoProgram(object):
         self._js_source = js_source
         self._bodyparts = bodyparts
 
-    def compile(self, parameters):
+    def compile(self, parameters=None):
 
         compiler = Compiler()
         root = compiler.init_node(node.RootNode(), Ctx.ROOT)
@@ -158,8 +158,10 @@ class ZeptoProgram(object):
             compiler, self._bodyparts, Ctx.BODYPART)
         root.set_bodyparts(bodyparts)
 
-        params = statement.create_parameters(compiler, parameters, Ctx.PARAM)
-        root.set_parameters(params)
+        if parameters:
+            params = statement.create_parameters(
+                compiler, parameters, Ctx.PARAM)
+            root.set_parameters(params)
 
         js_tree = parse_js.parse_js_string(compiler, self._js_source)
         source = parse_js.js_parse_tree_to_syntax_tree(compiler, js_tree)
