@@ -142,7 +142,7 @@ class ZeptoBodyPart(object):
 class ZeptoProgram(object):
 
     def __init__(self, js_source, bodyparts):
-
+        assert all([isinstance(bp, ZeptoBodyPart) for bp in bodyparts])
         self._js_source = js_source
         self._bodyparts = bodyparts
 
