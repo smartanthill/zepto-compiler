@@ -28,7 +28,7 @@ setup(
     url=__url__,
     license=__license__,
     install_requires=[
-        "antlr4-python2-runtime"
+        "antlr4-python2-runtime<=4.5.1"
     ],
     packages=find_packages(),
     classifiers=[
