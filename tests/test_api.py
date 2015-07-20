@@ -13,7 +13,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc import api
+import pytest
+
+from smartanthill_zc import api, errors
 
 
 def test_api_zepto_exec_cmd():
@@ -42,3 +44,50 @@ def test_api_1():
     # 0x01 data lenght
     # 0x14 signed encode for data value '10'
     assert opcode == bytearray([0x02, 0x06, 0x01, 0x14])
+
+
+def test_no_param():
+
+    plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
+
+    sensor2 = api.ZeptoBodyPart(plugin, 1, 'Other')
+    sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+    zp = api.ZeptoProgram(
+        "return BodyPartName.Execute(10)", [sensor1, sensor2])
+
+    opcode = zp.compile()
+
+    # 0x02 opcode for ZEPTOVM_OP_EXEC
+    # 0x06 signed encode for bodypart-id '3'
+    # 0x01 data lenght
+    # 0x14 signed encode for data value '10'
+    assert opcode == bytearray([0x02, 0x06, 0x01, 0x14])
+
+
+def test_no_param_error():
+    with pytest.raises(errors.CompilerError):
+
+        plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
+
+        sensor2 = api.ZeptoBodyPart(plugin, 1, 'Other')
+        sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+        zp = api.ZeptoProgram(
+            "return BodyPartName.Execute(PARAM)", [sensor1, sensor2])
+
+        zp.compile()
+
+
+def test_no_arg_error():
+    with pytest.raises(errors.CompilerError):
+
+        plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
+
+        sensor2 = api.ZeptoBodyPart(plugin, 1, 'Other')
+        sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+        zp = api.ZeptoProgram(
+            "return BodyPartName.Execute()", [sensor1, sensor2])
+
+        zp.compile()

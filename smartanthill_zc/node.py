@@ -572,8 +572,8 @@ class ArgumentListNode(Node):
 
         if len(self.childs_arguments) != params.get_size():
             compiler.report_error(
-                self.ctx, "Wrong number of arguments, given %s but need %s" %
-                str(params.get_size()), str(len(self.childs_arguments)))
+                self.ctx, "Wrong number of arguments, given %s but need %s" % (
+                    str(params.get_size()), str(len(self.childs_arguments))))
             compiler.raise_error()
 
         for i in range(len(self.childs_arguments)):
