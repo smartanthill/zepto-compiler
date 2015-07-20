@@ -41,7 +41,7 @@ def test_api_1():
 
     # 0x02 opcode for ZEPTOVM_OP_EXEC
     # 0x06 signed encode for bodypart-id '3'
-    # 0x01 data lenght
+    # 0x01 data length
     # 0x14 signed encode for data value '10'
     assert opcode == bytearray([0x02, 0x06, 0x01, 0x14])
 
@@ -60,7 +60,7 @@ def test_no_param():
 
     # 0x02 opcode for ZEPTOVM_OP_EXEC
     # 0x06 signed encode for bodypart-id '3'
-    # 0x01 data lenght
+    # 0x01 data length
     # 0x14 signed encode for data value '10'
     assert opcode == bytearray([0x02, 0x06, 0x01, 0x14])
 
@@ -91,3 +91,21 @@ def test_no_arg_error():
             "return BodyPartName.Execute()", [sensor1, sensor2])
 
         zp.compile()
+
+
+def test_api_2():
+
+    plugin = api.ZeptoPlugin('tests/test_plugin_2.xml')
+
+    sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+    zp = api.ZeptoProgram(
+        "return BodyPartName.Execute()", [sensor1])
+
+    opcode = zp.compile()
+
+    # 0x02 opcode for ZEPTOVM_OP_EXEC
+    # 0x06 signed encode for bodypart-id '3'
+    # 0x00 data length
+    # 0x14 signed encode for data value '10'
+    assert opcode == bytearray([0x02, 0x06, 0x00])

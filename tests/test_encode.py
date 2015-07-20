@@ -18,10 +18,12 @@ import sys
 
 import pytest
 
+from smartanthill_zc.compiler import Compiler, Ctx
 from smartanthill_zc.encode import encode_unsigned_int, encode_signed_int, \
     decode_unsigned_int, decode_signed_int, create_half_float,\
-    half_float_next_down, half_float_next_up, half_float_value
+    half_float_next_down, half_float_next_up, half_float_value, Encoding
 from smartanthill_zc.op_node import BitField
+from smartanthill_zc.parse_xml import get_enconding_min_max
 
 
 def encode_unsigned_helper(max_bytes, value, byte_values):
@@ -256,6 +258,43 @@ def test_encode_half_float():
     _encode_hf_helper(1., '0 01111 0000000000')
     _encode_hf_helper(half_float_next_up(1.), '0 01111 0000000001')
     _encode_hf_helper(half_float_next_down(1.), '0 01110 1111111111')
+
+
+def test_encode_min_max_1():
+
+    comp = Compiler()
+    enc, min_v, max_v = get_enconding_min_max(comp, Ctx.NONE,
+                                              {'type': 'encoded-int[max=1]'})
+
+    assert enc == Encoding.SIGNED_INT
+    assert min_v == -128
+    assert max_v == 127
+
+
+def test_encode_min_max_2():
+
+    comp = Compiler()
+    enc, min_v, max_v = get_enconding_min_max(comp, Ctx.NONE,
+                                              {'type': 'encoded-int[max=1]',
+                                               'min': '1',
+                                               'max': '1'})
+
+    assert enc == Encoding.SIGNED_INT
+    assert min_v == 1
+    assert max_v == 1
+
+
+def test_encode_min_max_3():
+
+    comp = Compiler()
+    enc, min_v, max_v = get_enconding_min_max(comp, Ctx.NONE,
+                                              {'type': 'encoded-uint[max=1]',
+                                               'min': '1',
+                                               'max': '1'})
+
+    assert enc == Encoding.UNSIGNED_INT
+    assert min_v == 1
+    assert max_v == 1
 
 
 def main():

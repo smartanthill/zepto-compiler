@@ -381,19 +381,3 @@ def field_sequence_to_str(field_sequence):
         result.append(current.name)
 
     return ','.join(result)
-
-
-def get_encoding_min_max(encoding, max_bytes):
-    '''
-    Returns a tuple with minimum and maximum values for a given encoding
-    with number of bytes
-    '''
-
-    if encoding == Encoding.SIGNED_INT:
-        if max_bytes == 2:
-            return (-32768, 32767)
-    elif encoding == Encoding.UNSIGNED_INT:
-        if max_bytes == 2:
-            return (0, 65535)
-
-    assert False

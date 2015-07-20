@@ -14,10 +14,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+import re
 from xml.etree import ElementTree
 
 from smartanthill_zc import bodypart, builtin
-from smartanthill_zc.encode import get_encoding_min_max, Encoding
+from smartanthill_zc.encode import Encoding
+
 
 try:
     from xml.etree.ElementTree import ParseError
@@ -249,7 +251,7 @@ def _make_reply_field_type(compiler, manager, ctx, att):
     field_name = manager.get_unique_type_name('_zc_reply_field_')
     field = compiler.init_node(builtin.FieldTypeDeclNode(field_name), ctx)
 
-    encoding, min_v, max_v = _get_enconding_min_max(compiler, ctx, att)
+    encoding, min_v, max_v = get_enconding_min_max(compiler, ctx, att)
 
     field.encoding = encoding
     field.min_value = min_v
@@ -284,33 +286,46 @@ def _make_meaning(compiler, ctx, att):
     return None
 
 
-def _get_enconding_min_max(compiler, ctx, att):
+def get_enconding_min_max(compiler, ctx, att):
     '''
     Process common encoding with min and max values
     '''
-    t = ''.join(att['type'].split())  # to remove whites
+
+    match = re.match(r'encoded\-(int|uint)\[max\=(\d)\]', att['type'])
+    if match is None:
+        compiler.report_error(ctx, "Unsuported type '%s'" % att['type'])
+        compiler.raise_error()
+
+    max_bytes = int(match.group(2))
+    if max_bytes < 1 or max_bytes > 8:
+        compiler.report_error(ctx, "Unsuported type max bytes %d" % max_bytes)
+        compiler.raise_error()
 
     encoding = None
-    max_bytes = 0
+    type_min = 0
+    type_max = 0
 
-    if t == 'encoded-signed-int[max=2]' or t == 'encoded-int[max=2]':
+    if match.group(1) == 'int':
         encoding = Encoding.SIGNED_INT
-        max_bytes = 2
-    elif t == 'encoded-unsigned-int[max=2]':
+        type_min = -2 ** (max_bytes * 8 - 1)
+        type_max = 2 ** (max_bytes * 8 - 1) - 1
+
+    elif match.group(1) == 'uint':
         encoding = Encoding.UNSIGNED_INT
-        max_bytes = 2
+        type_min = 0
+        type_max = 2 ** (max_bytes * 8) - 1
+
     else:
         assert False
 
-    min_value, max_value = get_encoding_min_max(encoding, max_bytes)
+    min_value = type_min
+    max_value = type_max
     try:
         if 'min' in att:
             min_value = long(att['min'])
-            if min_value < encoding.min_value:
-                compiler.report_error(
-                    ctx, "Declared min (%s) is lower that type min (%s)"
-                    % (min_value, encoding.min_value))
-                min_value = encoding.min_value
+            if min_value < type_min or min_value > type_max:
+                compiler.report_error(ctx, "Bad min %d" % min_value)
+                min_value = type_min
 
     except:
         compiler.report_error(ctx, "Bad min '%s'" % att['min'])
@@ -318,13 +333,17 @@ def _get_enconding_min_max(compiler, ctx, att):
     try:
         if 'max' in att:
             max_value = long(att['max'])
-            if max_value > encoding.max_value:
-                compiler.report_error(
-                    ctx, "Declared max (%s) is grater than type min (%s)"
-                    % (max_value, encoding.max_value))
-                max_value = encoding.max_value
+            if max_value > type_max or max_value < type_min:
+                compiler.report_error(ctx, "Bad max %d" % max_value)
+                max_value = type_max
     except:
         compiler.report_error(ctx, "Bad max '%s'" % att['max'])
+
+    if min_value > max_value:
+        compiler.report_error(ctx, "Bad min %d max %d" % (min_value,
+                                                          max_value))
+        max_value = type_max
+        min_value = type_min
 
     return (encoding, min_value, max_value)
 
@@ -355,7 +374,7 @@ def _make_command_field_type(compiler, manager, ctx, att):
     field = compiler.init_node(
         bodypart.CommandFieldTypeDeclNode(field_name), ctx)
 
-    encoding, min_v, max_v = _get_enconding_min_max(compiler, ctx, att)
+    encoding, min_v, max_v = get_enconding_min_max(compiler, ctx, att)
 
     field.encoding = encoding
     field.min_value = min_v
