@@ -14,6 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import builtin, expression
+from smartanthill_zc.encode import encode_unsigned_int, Encoding,\
+    encode_signed_int
 from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
                                   ResolutionHelper, TypeDeclNode)
 
@@ -73,6 +75,37 @@ class FieldTypeFactoryNode(Node):
             self.child_operator_list.add_declaration_list(f2f)
 
         self.child_type_list.add_declaration(field_type)
+
+
+class EncodingHelper(object):
+
+    '''
+    Integer encoding helper
+    '''
+
+    def __init__(self, encoding, min_value, max_value):
+        '''
+        Constructor
+        '''
+        assert min_value <= max_value
+        self.encoding = encoding
+        self._min_value = min_value
+        self._max_value = max_value
+
+    def encode_value(self, compiler, ctx, value):
+
+        if value < self._min_value or value > self._max_value:
+            compiler.report_error(ctx, 'Value %s outside valid range [%s, %s]',
+                                  value, self._min_value, self._max_value)
+            value = self._min_value
+
+        if self.encoding == Encoding.UNSIGNED_INT:
+            return encode_unsigned_int(value)
+
+        elif self.encoding == Encoding.SIGNED_INT:
+            return encode_signed_int(value)
+        else:
+            assert False
 
 
 class LinearConvertionFloat(object):
@@ -243,8 +276,6 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
         '''
         super(CommandFieldTypeDeclNode, self).__init__(type_name)
         self.encoding = None
-        self.min_value = 0
-        self.max_value = 0
         self.ref_number_literal_type = None
 
     def resolve(self, compiler):

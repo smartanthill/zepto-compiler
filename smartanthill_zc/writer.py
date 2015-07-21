@@ -15,8 +15,8 @@
 
 import binascii
 
-from smartanthill_zc.encode import (
-    ZeptoEncoder, field_sequence_to_str, Encoding)
+from smartanthill_zc import encode
+from smartanthill_zc.encode import (field_sequence_to_str, Encoding)
 
 
 def write_text_op_codes(compiler, node):
@@ -24,7 +24,7 @@ def write_text_op_codes(compiler, node):
     Writes target code to text format
     Used for development and testing
     '''
-    w = _TextWriter()
+    w = _TextWriter(compiler)
     node.write(w)
 
     compiler.check_stage('write_text')
@@ -36,7 +36,7 @@ def write_binary(compiler, node):
     '''
     Writes target code to binary format
     '''
-    w = BinaryWriter()
+    w = BinaryWriter(compiler)
     node.write(w)
 
     compiler.check_stage('write_binary')
@@ -44,30 +44,24 @@ def write_binary(compiler, node):
     return w.get_result()
 
 
-def check_int_range(max_bytes, value):
+def _check_int_range(max_bytes, value):
 
-    assert max_bytes >= 1
-    assert max_bytes <= 8
+    value = long(value)
 
-    lvalue = long(value)
+    min_v, max_v = encode.get_signed_min_max(max_bytes)
 
-    assert lvalue >= -(2 ** ((8 * max_bytes) - 1))
-    assert lvalue <= (2 ** ((8 * max_bytes) - 1)) - 1
-
-    return lvalue
+    assert value >= min_v
+    assert value <= max_v
 
 
-def check_uint_range(max_bytes, value):
+def _check_uint_range(max_bytes, value):
 
-    assert max_bytes >= 1
-    assert max_bytes <= 8
+    value = long(value)
 
-    lvalue = long(value)
+    min_v, max_v = encode.get_unsigned_min_max(max_bytes)
 
-    assert lvalue >= 0
-    assert lvalue < 2 ** (8 * max_bytes)
-
-    return lvalue
+    assert value >= min_v
+    assert value <= max_v
 
 
 class _TextWriter(object):
@@ -77,13 +71,16 @@ class _TextWriter(object):
     Used for development and testing
     '''
 
-    def __init__(self):
+    def __init__(self, compiler):
         '''
         Constructor
         '''
-        self._encoder = ZeptoEncoder()
         self._result = []
         self._current = None
+        self._compiler = compiler
+
+    def get_compiler(self):
+        return self._compiler
 
     def _finish_current(self):
         '''
@@ -157,28 +154,28 @@ class _TextWriter(object):
         '''
         Adds a binary field to current operation
         '''
-        self._current += '|%d' % value
+        self._current += '|%d' % long(value)
 
     def write_int_2(self, value):
         '''
         Adds an Encoded-Signed-Int<max=2> field
         '''
-        lvalue = check_int_range(2, value)
-        self.write_long(lvalue)
+        _check_int_range(2, value)
+        self.write_long(value)
 
     def write_uint_2(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=2> field
         '''
-        lvalue = check_uint_range(2, value)
-        self.write_long(lvalue)
+        _check_uint_range(2, value)
+        self.write_long(value)
 
     def write_uint_4(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=4> field
         '''
-        lvalue = check_uint_range(4, value)
-        self.write_long(lvalue)
+        _check_uint_range(4, value)
+        self.write_long(value)
 
     def write_half_float(self, value):
         '''
@@ -232,26 +229,35 @@ class _TextWriter(object):
 class BinaryWriter(object):
 
     '''
-    Writer implementation for writing text representation
-    Used for development and testing
+    Writer implementation for writing binary representation
     '''
 
-    def __init__(self):
+    def __init__(self, compiler):
         '''
         Constructor
         '''
-        self._encoder = ZeptoEncoder()
         self._result = bytearray()
-        self._current = None
+        self._compiler = compiler
 
-    def _finish_current(self):
+    def get_compiler(self):
         '''
-        Finishes current opcode
+        Returns the compiler instance
         '''
-        if self._current:
-            self._current += '|'
-            self._result.append(self._current)
-            self._current = None
+        return self._compiler
+
+    def create_sub_writer(self):
+        '''
+        Creates a sub writer
+        '''
+        return BinaryWriter(self._compiler)
+
+    def write_sub_writer(self, sub_writer):
+        '''
+        Writes all data in subwriter into this writer
+        '''
+        assert isinstance(sub_writer, BinaryWriter)
+
+        self._write_bytes(sub_writer.get_result())
 
     def get_result(self):
         '''
@@ -327,28 +333,31 @@ class BinaryWriter(object):
         '''
         Adds an Encoded-Signed-Int<max=2> field
         '''
-        enc = self._encoder.encode_signed_int(2, value)
+        _check_int_range(2, value)
+        enc = encode.encode_signed_int(value)
         self._write_bytes(enc)
 
     def write_uint_2(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=2> field
         '''
-        enc = self._encoder.encode_unsigned_int(2, value)
+        _check_uint_range(2, value)
+        enc = encode.encode_unsigned_int(value)
         self._write_bytes(enc)
 
     def write_uint_4(self, value):
         '''
         Adds an Encoded-Unsigned-Int<max=4> field
         '''
-        enc = self._encoder.encode_unsigned_int(4, value)
+        _check_uint_range(4, value)
+        enc = encode.encode_unsigned_int(value)
         self._write_bytes(enc)
 
     def write_half_float(self, value):
         '''
         Adds a half-float field
         '''
-        enc = self._encoder.encode_half_float(value)
+        enc = encode.encode_half_float(value)
         self._write_bytes(enc)
 
     def write_field_sequence(self, fs):
@@ -357,7 +366,7 @@ class BinaryWriter(object):
         '''
         enc = bytearray()
         for current in fs:
-            enc.append(current.code)
+            enc.append(current.encoding.code)
 
         enc.append(Encoding.END_OF_SEQUENCE.code)
         self._write_bytes(enc)

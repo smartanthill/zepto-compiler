@@ -15,46 +15,6 @@
 import math
 
 
-class ZeptoEncoder(object):
-
-    '''
-    Encoder class, used for easier replacement of encoding strategy if needed
-    Also has a cache of already encoded values
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        self._unsigneds = {}
-        self._signeds = {}
-
-    def encode_unsigned_int(self, max_bytes, value):
-        '''
-        Encode an Encoded-Unsigned-Int
-        '''
-        if value not in self._unsigneds:
-            self._unsigneds[value] = encode_unsigned_int(max_bytes, value)
-
-        return self._unsigneds[value]
-
-    def encode_signed_int(self, max_bytes, value):
-        '''
-        Encode an Encoded-Signed-Int
-        '''
-        if value not in self._signeds:
-            self._signeds[value] = encode_signed_int(max_bytes, value)
-
-        return self._signeds[value]
-
-    def encode_half_float(self, value):
-        '''
-        Encode a bit field
-        '''
-        # pylint: disable=no-self-use
-        return encode_half_float(value)
-
-
 def _encode_unsigned(value):
     '''
     Encoded-*-Int internal implemntation function
@@ -72,33 +32,40 @@ def _encode_unsigned(value):
     return result
 
 
-def encode_unsigned_int(max_bytes, value):
+def get_unsigned_min_max(size):
+    '''
+    Encoded-Unsigned-Int max and min values    '''
+
+    assert size >= 1
+    assert size <= 8
+    return (0, 2 ** (8 * size))
+
+
+def encode_unsigned_int(value):
     '''
     Encoded-Unsigned-Int arithmetic implementation
     '''
-    assert max_bytes >= 1
-    assert max_bytes <= 8
 
-    value = int(value)
-
-    assert value >= 0
-    assert value < 2 ** (8 * max_bytes)
+    value = long(value)
 
     return _encode_unsigned(value)
 
 
-def encode_signed_int(max_bytes, value):
+def get_signed_min_max(size):
+    '''
+    Encoded-Unsigned-Int max and min values    '''
+
+    assert size >= 1
+    assert size <= 8
+    return (-(2 ** ((8 * size) - 1)), (2 ** ((8 * size) - 1)) - 1)
+
+
+def encode_signed_int(value):
     '''
     Encoded-Signed-Int arithmetic implementation
     '''
 
-    assert max_bytes >= 1
-    assert max_bytes <= 8
-
-    value = int(value)
-
-    assert value >= -(2 ** ((8 * max_bytes) - 1))
-    assert value <= (2 ** ((8 * max_bytes) - 1)) - 1
+    value = long(value)
 
     if value >= 0:
         return _encode_unsigned(value << 1)
@@ -378,6 +345,6 @@ def field_sequence_to_str(field_sequence):
     '''
     result = []
     for current in field_sequence:
-        result.append(current.name)
+        result.append(current.encoding.name)
 
     return ','.join(result)

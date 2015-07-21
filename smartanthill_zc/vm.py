@@ -29,13 +29,7 @@ def convert_to_zepto_vm_one(compiler, root):
     Process source program and creates a target code tree suitable to run
     at a Zepto VM Level One
     '''
-    v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.ONE))
-    visit_node(v, root.child_source_program)
-
-    target = v.finish()
-    target.calculate_byte_size(BinaryWriter())
-    compiler.check_stage('zepto_vm_one')
-    return target
+    return _convert_to_zepto_vm(compiler, root, Level.ONE)
 
 
 def convert_to_zepto_vm_tiny(compiler, root):
@@ -43,13 +37,7 @@ def convert_to_zepto_vm_tiny(compiler, root):
     Process source program and creates a target code tree suitable to run
     at a Zepto VM Level Tiny
     '''
-    v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.TINY))
-    visit_node(v, root.child_source_program)
-
-    target = v.finish()
-    target.calculate_byte_size(BinaryWriter())
-    compiler.check_stage('zepto_vm_tiny')
-    return target
+    return _convert_to_zepto_vm(compiler, root, Level.TINY)
 
 
 def convert_to_zepto_vm_small(compiler, root):
@@ -57,12 +45,16 @@ def convert_to_zepto_vm_small(compiler, root):
     Process source program and creates a target code tree suitable to run
     at a Zepto VM Level Small
     '''
-    v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(Level.SMALL))
+    return _convert_to_zepto_vm(compiler, root, Level.SMALL)
+
+
+def _convert_to_zepto_vm(compiler, root, level):
+    v = _ZeptoVmOneVisitor(compiler, _ZeptoVm(level))
     visit_node(v, root.child_source_program)
 
     target = v.finish()
-    target.calculate_byte_size(BinaryWriter())
-    compiler.check_stage('zepto_vm_small')
+    target.calculate_byte_size(BinaryWriter(compiler))
+    compiler.check_stage('zepto_vm')
     return target
 
 
@@ -642,7 +634,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         if len(node.child_argument_list.childs_arguments) == 0:
             pass
         elif len(node.child_argument_list.childs_arguments) == 1:
-            exprop.data_encoding = node.child_argument_list.childs_arguments[
+            exprop.encode_helper = node.child_argument_list.childs_arguments[
                 0].get_type().get_encoding()
             exprop.data_value = node.child_argument_list.childs_arguments[
                 0].get_static_value()

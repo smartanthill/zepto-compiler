@@ -23,139 +23,121 @@ from smartanthill_zc.encode import encode_unsigned_int, encode_signed_int, \
     decode_unsigned_int, decode_signed_int, create_half_float,\
     half_float_next_down, half_float_next_up, half_float_value, Encoding
 from smartanthill_zc.op_node import BitField
-from smartanthill_zc.parse_xml import get_enconding_min_max
+from smartanthill_zc.parse_xml import get_enconding_helper
 
 
-def encode_unsigned_helper(max_bytes, value, byte_values):
-    enc1 = encode_unsigned_int(max_bytes, value)
+def encode_unsigned_helper(value, byte_values):
+    enc1 = encode_unsigned_int(value)
     enc2 = bytearray(byte_values)
     assert enc1 == enc2
 
 
 def test_encode_unsigned_int():
 
-    encode_unsigned_helper(1, 0, [0])
-    encode_unsigned_helper(1, 127, [127])
+    encode_unsigned_helper(0, [0])
+    encode_unsigned_helper(127, [127])
 
-    encode_unsigned_helper(2, 128, [128, 1])
-    encode_unsigned_helper(2, 129, [129, 1])
-    encode_unsigned_helper(2, 255, [255, 1])
-    encode_unsigned_helper(2, 256, [128, 2])
-    encode_unsigned_helper(2, 16383, [255, 127])
-    encode_unsigned_helper(3, 16511, [255, 128, 1])
+    encode_unsigned_helper(128, [128, 1])
+    encode_unsigned_helper(129, [129, 1])
+    encode_unsigned_helper(255, [255, 1])
+    encode_unsigned_helper(256, [128, 2])
+    encode_unsigned_helper(16383, [255, 127])
+    encode_unsigned_helper(16511, [255, 128, 1])
 
-    encode_unsigned_helper(3, 16512, [128, 129, 1])
+    encode_unsigned_helper(16512, [128, 129, 1])
 
-    encode_unsigned_helper(3, 2097151, [255, 255, 127])
-    encode_unsigned_helper(4, 2113663, [255, 128, 129, 1])
+    encode_unsigned_helper(2097151, [255, 255, 127])
+    encode_unsigned_helper(2113663, [255, 128, 129, 1])
 
-    encode_unsigned_helper(4, 2113664, [128, 129, 129, 1])
-    encode_unsigned_helper(5, 270549119, [255, 128, 129, 129, 1])
+    encode_unsigned_helper(2113664, [128, 129, 129, 1])
+    encode_unsigned_helper(270549119, [255, 128, 129, 129, 1])
 
 
 def test_encode_unsigned_int_raise_0():
     with pytest.raises(AssertionError):
 
-        encode_unsigned_int(4, -1)
+        encode_unsigned_int(-1)
 
 
-def test_encode_unsigned_int_raise_1():
-    with pytest.raises(AssertionError):
-
-        encode_unsigned_int(1, 256)
-
-
-def encode_signed_helper(max_bytes, value, unsigned_value):
-    enc1 = encode_signed_int(max_bytes, value)
-    enc2 = encode_unsigned_int(max_bytes, unsigned_value)
+def encode_signed_helper(value, unsigned_value):
+    enc1 = encode_signed_int(value)
+    enc2 = encode_unsigned_int(unsigned_value)
     assert enc1 == enc2
 
 
 def test_encode_signed_int():
 
-    encode_signed_helper(1, -64, 127)
-    encode_signed_helper(1, 0, 0)
-    encode_signed_helper(1, 63, 126)
+    encode_signed_helper(-64, 127)
+    encode_signed_helper(0, 0)
+    encode_signed_helper(63, 126)
 
     # 2 bytes
-    encode_signed_helper(2, -8256, 16511)  # -8256 + 8256 + 128
-    encode_signed_helper(2, -65, 129)  # -65 + 8256 + 128
+    encode_signed_helper(-8256, 16511)  # -8256 + 8256 + 128
+    encode_signed_helper(-65, 129)  # -65 + 8256 + 128
 
-    encode_signed_helper(2, 64, 128)  # 64 + 8256
-    encode_signed_helper(2, 8255, 16510)  # 8255 + 8256
+    encode_signed_helper(64, 128)  # 64 + 8256
+    encode_signed_helper(8255, 16510)  # 8255 + 8256
 
-    encode_signed_helper(3, -1056832, 2113663)
-    encode_signed_helper(3, -8257, 16513)
+    encode_signed_helper(-1056832, 2113663)
+    encode_signed_helper(-8257, 16513)
 
-    encode_signed_helper(3, 8256, 16512)
-    encode_signed_helper(3, 1056831, 2113662)
+    encode_signed_helper(8256, 16512)
+    encode_signed_helper(1056831, 2113662)
 
-    encode_signed_helper(4, -135274560, 270549119)
-    encode_signed_helper(4, -1056833, 2113665)
+    encode_signed_helper(-135274560, 270549119)
+    encode_signed_helper(-1056833, 2113665)
 
-    encode_signed_helper(4, 1056832, 2113664)
-    encode_signed_helper(4, 135274559, 270549118)
-
-
-def test_encode_signed_int_raise_0():
-    with pytest.raises(AssertionError):
-
-        encode_signed_int(1, -129)
+    encode_signed_helper(1056832, 2113664)
+    encode_signed_helper(135274559, 270549118)
 
 
-def test_encode_signed_int_raise_1():
-    with pytest.raises(AssertionError):
-
-        encode_signed_int(1, 128)
-
-
-def encode_decode_unsigned_helper(max_bytes, value):
-    enc = encode_unsigned_int(max_bytes, value)
+def encode_decode_unsigned_helper(value):
+    enc = encode_unsigned_int(value)
     res = decode_unsigned_int(enc)
     assert value == res
 
 
 def test_decode_unsigned_int():
 
-    encode_decode_unsigned_helper(1, 0)
-    encode_decode_unsigned_helper(1, 127)
+    encode_decode_unsigned_helper(0)
+    encode_decode_unsigned_helper(127)
 
-    encode_decode_unsigned_helper(2, 128)
-    encode_decode_unsigned_helper(2, 16511)
+    encode_decode_unsigned_helper(128)
+    encode_decode_unsigned_helper(16511)
 
-    encode_decode_unsigned_helper(3, 16512)
-    encode_decode_unsigned_helper(3, 2113663)
+    encode_decode_unsigned_helper(16512)
+    encode_decode_unsigned_helper(2113663)
 
-    encode_decode_unsigned_helper(4, 2113664)
+    encode_decode_unsigned_helper(2113664)
 
 
-def encode_decode_signed_helper(max_bytes, value):
-    enc = encode_signed_int(max_bytes, value)
+def encode_decode_signed_helper(value):
+    enc = encode_signed_int(value)
     res = decode_signed_int(enc)
     assert value == res
 
 
 def test_decode_signed_int():
 
-    encode_decode_signed_helper(1, -64)
-    encode_decode_signed_helper(1, 0)
-    encode_decode_signed_helper(1, 63)
+    encode_decode_signed_helper(-64)
+    encode_decode_signed_helper(0)
+    encode_decode_signed_helper(63)
 
-    encode_decode_signed_helper(2, -65)
-    encode_decode_signed_helper(2, -8256)
+    encode_decode_signed_helper(-65)
+    encode_decode_signed_helper(-8256)
 
-    encode_decode_signed_helper(2, 64)
-    encode_decode_signed_helper(2, 8255)
+    encode_decode_signed_helper(64)
+    encode_decode_signed_helper(8255)
 
-    encode_decode_signed_helper(3, -8257)
-    encode_decode_signed_helper(3, -1056832)
+    encode_decode_signed_helper(-8257)
+    encode_decode_signed_helper(-1056832)
 
-    encode_decode_signed_helper(3, 8256)
-    encode_decode_signed_helper(3, 1056831)
+    encode_decode_signed_helper(8256)
+    encode_decode_signed_helper(1056831)
 
-    encode_decode_signed_helper(4, -1056833)
+    encode_decode_signed_helper(-1056833)
 
-    encode_decode_signed_helper(4, 1056832)
+    encode_decode_signed_helper(1056832)
 
 
 def test_random_unsigned_int():
@@ -165,7 +147,7 @@ def test_random_unsigned_int():
     for i in range(1, 9):
         for j in range(10):
             v = random.randint(low, high - 1)
-            encode_decode_unsigned_helper(i, v)
+            encode_decode_unsigned_helper(v)
 
 #        print 'unsigned [%s, %s] Ok!' % (low, high)
         low = high
@@ -179,7 +161,7 @@ def test_random_signed_int():
         low = -high
         for j in range(10):
             v = random.randint(low, high - 1)
-            encode_decode_signed_helper(i, v)
+            encode_decode_signed_helper(v)
 
 #        print 'signed [%s, %s] Ok!' % (low, high)
         high *= 256
@@ -263,38 +245,38 @@ def test_encode_half_float():
 def test_encode_min_max_1():
 
     comp = Compiler()
-    enc, min_v, max_v = get_enconding_min_max(comp, Ctx.NONE,
-                                              {'type': 'encoded-int[max=1]'})
+    helper = get_enconding_helper(comp, Ctx.NONE,
+                                  {'type': 'encoded-int[max=1]'})
 
-    assert enc == Encoding.SIGNED_INT
-    assert min_v == -128
-    assert max_v == 127
+    assert helper.encoding == Encoding.SIGNED_INT
+    assert helper._min_value == -128
+    assert helper._max_value == 127
 
 
 def test_encode_min_max_2():
 
     comp = Compiler()
-    enc, min_v, max_v = get_enconding_min_max(comp, Ctx.NONE,
-                                              {'type': 'encoded-int[max=1]',
-                                               'min': '1',
-                                               'max': '1'})
+    helper = get_enconding_helper(comp, Ctx.NONE,
+                                  {'type': 'encoded-int[max=1]',
+                                   'min': '1',
+                                   'max': '1'})
 
-    assert enc == Encoding.SIGNED_INT
-    assert min_v == 1
-    assert max_v == 1
+    assert helper.encoding == Encoding.SIGNED_INT
+    assert helper._min_value == 1
+    assert helper._max_value == 1
 
 
 def test_encode_min_max_3():
 
     comp = Compiler()
-    enc, min_v, max_v = get_enconding_min_max(comp, Ctx.NONE,
-                                              {'type': 'encoded-uint[max=1]',
-                                               'min': '1',
-                                               'max': '1'})
+    helper = get_enconding_helper(comp, Ctx.NONE,
+                                  {'type': 'encoded-uint[max=1]',
+                                   'min': '1',
+                                   'max': '1'})
 
-    assert enc == Encoding.UNSIGNED_INT
-    assert min_v == 1
-    assert max_v == 1
+    assert helper.encoding == Encoding.UNSIGNED_INT
+    assert helper._min_value == 1
+    assert helper._max_value == 1
 
 
 def main():

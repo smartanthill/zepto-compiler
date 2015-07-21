@@ -13,8 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from smartanthill_zc.encode import field_sequence_to_str, Encoding,\
-    encode_signed_int, encode_unsigned_int
+from smartanthill_zc.encode import field_sequence_to_str
 from smartanthill_zc.node import Node
 
 
@@ -324,7 +323,7 @@ class ExecOpNode(OpcodeNode):
         '''
         super(ExecOpNode, self).__init__()
         self.bodypart_id = 0
-        self.data_encoding = None
+        self.encode_helper = None
         self.data_value = None
         self.data = None
 
@@ -336,12 +335,11 @@ class ExecOpNode(OpcodeNode):
         writer.write_int_2(self.bodypart_id)
 
         if not self.data:
-            if self.data_encoding is None:
+            if self.encode_helper is None:
                 pass
-            elif self.data_encoding == Encoding.SIGNED_INT:
-                self.data = encode_signed_int(8, self.data_value)
-            elif self.data_encoding == Encoding.UNSIGNED_INT:
-                self.data = encode_unsigned_int(8, self.data_value)
+            else:
+                self.data = self.encode_helper.encode_value(
+                    writer.get_compiler(), self.ctx, self.data_value)
 
         writer.write_opaque_data_2(self.data)
 

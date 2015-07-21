@@ -18,6 +18,7 @@ import re
 from xml.etree import ElementTree
 
 from smartanthill_zc import bodypart, builtin
+from smartanthill_zc.bodypart import EncodingHelper
 from smartanthill_zc.encode import Encoding
 
 
@@ -251,11 +252,7 @@ def _make_reply_field_type(compiler, manager, ctx, att):
     field_name = manager.get_unique_type_name('_zc_reply_field_')
     field = compiler.init_node(builtin.FieldTypeDeclNode(field_name), ctx)
 
-    encoding, min_v, max_v = get_enconding_min_max(compiler, ctx, att)
-
-    field.encoding = encoding
-    field.min_value = min_v
-    field.max_value = max_v
+    field.encoding = get_enconding_helper(compiler, ctx, att)
     field.meaning = _make_meaning(compiler, ctx, att)
 
     return field
@@ -286,7 +283,7 @@ def _make_meaning(compiler, ctx, att):
     return None
 
 
-def get_enconding_min_max(compiler, ctx, att):
+def get_enconding_helper(compiler, ctx, att):
     '''
     Process common encoding with min and max values
     '''
@@ -345,7 +342,7 @@ def get_enconding_min_max(compiler, ctx, att):
         max_value = type_max
         min_value = type_min
 
-    return (encoding, min_value, max_value)
+    return EncodingHelper(encoding, min_value, max_value)
 
 
 def _make_command_parameters(compiler, manager, ctx, fields):
@@ -374,10 +371,6 @@ def _make_command_field_type(compiler, manager, ctx, att):
     field = compiler.init_node(
         bodypart.CommandFieldTypeDeclNode(field_name), ctx)
 
-    encoding, min_v, max_v = get_enconding_min_max(compiler, ctx, att)
-
-    field.encoding = encoding
-    field.min_value = min_v
-    field.max_value = max_v
+    field.encoding = get_enconding_helper(compiler, ctx, att)
 
     return field

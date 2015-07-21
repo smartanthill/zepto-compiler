@@ -570,8 +570,6 @@ class FieldTypeDeclNode(TypeDeclNode):
         super(FieldTypeDeclNode, self).__init__(type_name)
         self.encoding = None
         self.meaning = None
-        self.min_value = 0
-        self.max_value = 0
         self._number_type = None
 
     def resolve(self, compiler):
@@ -639,7 +637,8 @@ class FieldTypeDeclNode(TypeDeclNode):
         Increments value by the minimum representable amount
         '''
         # TODO check range
-        if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
+        if self.encoding.encoding in [Encoding.SIGNED_INT,
+                                      Encoding.UNSIGNED_INT]:
             return math.floor(value + 1)
         else:
             assert False
@@ -649,7 +648,8 @@ class FieldTypeDeclNode(TypeDeclNode):
         Decrements value by the minimum representable amount
         '''
         # TODO check range
-        if self.encoding in [Encoding.SIGNED_INT, Encoding.UNSIGNED_INT]:
+        if self.encoding.encoding in [Encoding.SIGNED_INT,
+                                      Encoding.UNSIGNED_INT]:
             return math.ceil(value - 1)
         else:
             assert False
