@@ -61,6 +61,16 @@ class ArrayMessageTypeDeclNode(TypeDeclNode):
         '''
         return True
 
+    def process_reverse_response(self, reversed_data):
+        '''
+        Process response data
+        '''
+        result = []
+        for each in self.refs_element_types:
+            result.append(each.process_reverse_response(reversed_data))
+
+        return result
+
 
 class ArrayLiteralExprNode(ExpressionNode):
 

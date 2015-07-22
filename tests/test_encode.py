@@ -93,6 +93,7 @@ def test_encode_signed_int():
 
 def encode_decode_unsigned_helper(value):
     enc = encode_unsigned_int(value)
+    enc.reverse()
     res = decode_unsigned_int(enc)
     assert value == res
 
@@ -113,6 +114,7 @@ def test_decode_unsigned_int():
 
 def encode_decode_signed_helper(value):
     enc = encode_signed_int(value)
+    enc.reverse()
     res = decode_signed_int(enc)
     assert value == res
 
@@ -281,7 +283,9 @@ def test_encode_min_max_3():
 
 def main():
 
-    print decode_unsigned_int(bytearray([255, 127]))
+    enc = bytearray([255, 127])
+    enc.reverse()
+    print decode_unsigned_int(enc)
 
     return
 

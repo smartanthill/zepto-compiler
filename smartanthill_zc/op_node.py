@@ -281,7 +281,7 @@ class TargetProgramNode(Node):
         self.child_op_list = None
         self.vm_level = None
         self.mcusleep_invoked = False
-        self.reply_fs = None
+        self.reply_type = None
         self.byte_size = 0
 # entry=NOT_ISFIRST,exit=IS_FIRST
 
@@ -299,7 +299,9 @@ class TargetProgramNode(Node):
         '''
         writer.write_text('target vm: %s' % self.vm_level.name)
         writer.write_text('mcusleep: %s' % self.mcusleep_invoked)
-        writer.write_text('reply: {%s}' % field_sequence_to_str(self.reply_fs))
+        writer.write_text(
+            'reply: {%s}' % field_sequence_to_str(
+                self.reply_type.field_sequence))
         writer.write_text('size: %d bytes' % self.byte_size)
         self.child_op_list.write(writer)
 

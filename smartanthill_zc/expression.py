@@ -43,7 +43,12 @@ class FunctionCallExprNode(ExpressionNode):
 
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
-        self.set_type(self._declaration.get_type())
+
+        compiler.report_error(
+            self.ctx, "Unresolved function call '%s'", self.txt_name)
+
+        t = self.get_root_scope().lookup_type('_zc_void')
+        self.set_type(t)
         return None
 
 

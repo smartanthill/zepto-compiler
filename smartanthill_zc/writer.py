@@ -80,7 +80,26 @@ class _TextWriter(object):
         self._compiler = compiler
 
     def get_compiler(self):
+        '''
+        Returns the compiler instance
+        '''
         return self._compiler
+
+    def create_sub_writer(self):
+        '''
+        Creates a new sub writer instance
+        '''
+        return _TextWriter(self._compiler)
+
+    def write_sub_writer(self, sub_writer):
+        '''
+        Writes the content of another writer instance
+        '''
+
+        self._finish_current()
+
+        for each in sub_writer.get_result():
+            self._current.append(each)
 
     def _finish_current(self):
         '''
@@ -253,7 +272,7 @@ class BinaryWriter(object):
 
     def write_sub_writer(self, sub_writer):
         '''
-        Writes all data in subwriter into this writer
+        Writes the content of another writer instance
         '''
         assert isinstance(sub_writer, BinaryWriter)
 

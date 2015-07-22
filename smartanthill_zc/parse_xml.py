@@ -17,8 +17,7 @@
 import re
 from xml.etree import ElementTree
 
-from smartanthill_zc import bodypart, builtin
-from smartanthill_zc.bodypart import EncodingHelper
+from smartanthill_zc import bodypart, node
 from smartanthill_zc.encode import Encoding
 
 
@@ -250,7 +249,7 @@ def _make_reply_field_type(compiler, manager, ctx, att):
     '''
 
     field_name = manager.get_unique_type_name('_zc_reply_field_')
-    field = compiler.init_node(builtin.FieldTypeDeclNode(field_name), ctx)
+    field = compiler.init_node(bodypart.FieldTypeDeclNode(field_name), ctx)
 
     field.encoding = get_enconding_helper(compiler, ctx, att)
     field.meaning = _make_meaning(compiler, ctx, att)
@@ -342,14 +341,14 @@ def get_enconding_helper(compiler, ctx, att):
         max_value = type_max
         min_value = type_min
 
-    return EncodingHelper(encoding, min_value, max_value)
+    return bodypart.EncodingHelper(encoding, min_value, max_value)
 
 
 def _make_command_parameters(compiler, manager, ctx, fields):
     '''
     Created a new FieldTypeDeclNode from data in att dictionary
     '''
-    pl = compiler.init_node(builtin.ParameterListNode(), ctx)
+    pl = compiler.init_node(node.ParameterListNode(), ctx)
 
     for current in fields:
         field = _make_command_field_type(compiler, manager, ctx, current)
@@ -357,7 +356,7 @@ def _make_command_parameters(compiler, manager, ctx, fields):
         manager.child_type_list.add_declaration(field)
 
         pl.add_parameter(
-            compiler.init_node(builtin.ParameterDeclNode(field.txt_name), ctx))
+            compiler.init_node(node.ParameterDeclNode(field.txt_name), ctx))
 
     return pl
 

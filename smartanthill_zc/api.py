@@ -145,6 +145,7 @@ class ZeptoProgram(object):
         assert all([isinstance(bp, ZeptoBodyPart) for bp in bodyparts])
         self._js_source = js_source
         self._bodyparts = bodyparts
+        self._response_type = None
 
     def compile(self, parameters=None):
 
@@ -172,13 +173,19 @@ class ZeptoProgram(object):
 
         target = vm.convert_to_zepto_vm_small(compiler, root)
 
+        self._response_type = target.reply_type
+
         code = writer.write_binary(compiler, target)
 
         return code
 
-    def process_response(self, response):
+    def process_response(self, data):
 
-        raise NotImplementedError
+        assert self._response_type
+        assert self._response_type.is_message_type()
+
+        data.reverse()
+        return self._response_type.process_reverse_response(data)
 
 
 def zepto_exec_cmd(bodypart_id, data):

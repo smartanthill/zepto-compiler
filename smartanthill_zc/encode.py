@@ -73,34 +73,30 @@ def encode_signed_int(value):
         return _encode_unsigned(((~value) << 1) | 1)
 
 
-def decode_unsigned_int(byte_list):
+def decode_unsigned_int(reversed_data):
     '''
     Encoded-Unsigned-Int decoder implementation
     '''
 
-    assert isinstance(byte_list, bytearray)
+    assert isinstance(reversed_data, bytearray)
 
-    i = 0
     value = 0
     shift = 0
-    while byte_list[i] & 0x80 != 0:
-        value |= (byte_list[i] & 0x7f) << shift
+    while reversed_data[-1] & 0x80 != 0:
+        value |= (reversed_data.pop() & 0x7f) << shift
         shift += 7
-        i += 1
 
-    value |= byte_list[i] << shift
-
-    assert len(byte_list) == i + 1
+    value |= reversed_data.pop() << shift
 
     return value
 
 
-def decode_signed_int(byte_list):
+def decode_signed_int(reversed_data):
     '''
     Encoded-Signed-Int decoder implementation
     '''
 
-    value = decode_unsigned_int(byte_list)
+    value = decode_unsigned_int(reversed_data)
     if value & 1 == 0:
         return value >> 1
     else:

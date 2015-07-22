@@ -261,17 +261,15 @@ class TypeDeclNode(Node):
         '''
         # pylint: disable=no-self-use
         # pylint: disable=unused-argument
-
         return False
 
     def insert_cast_to(self, compiler, target_type, expr):
         '''
         Inserts a cast to the target type
-        Base method will always fail
+        Only implemented by types that return true to can_cast_to
         '''
         # pylint: disable=no-self-use
         # pylint: disable=unused-argument
-
         assert False
 
     def can_cast_from(self, source_type):
@@ -282,17 +280,15 @@ class TypeDeclNode(Node):
         '''
         # pylint: disable=no-self-use
         # pylint: disable=unused-argument
-
         return False
 
     def insert_cast_from(self, compiler, source_type, expr):
         '''
         Inserts a cast from the source type
-        Base method will always fail
+        Only implemented by types that return true to can_cast_from
         '''
         # pylint: disable=no-self-use
         # pylint: disable=unused-argument
-
         assert False
 
     def is_message_type(self):
@@ -303,13 +299,22 @@ class TypeDeclNode(Node):
         # pylint: disable=no-self-use
         return False
 
-    def lookup_member(self, name):
+    def process_reverse_response(self, reversed_data):
         '''
-        Base method for type member look up
+        Process response data
+        Only implemented by types that return true to is_message_type
         '''
         # pylint: disable=no-self-use
         # pylint: disable=unused-argument
+        assert False
 
+    def lookup_member(self, name):
+        '''
+        Base method for type member look up
+        Only implemented by types that return true to is_message_type
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
         return None
 
 
@@ -595,3 +600,117 @@ class ArgumentListNode(Node):
             else:
                 # shouldn't reach here
                 assert False
+
+
+class ParameterDeclNode(Node, ResolutionHelper):
+
+    '''
+    Node class used as container of a parameter in a function declaration
+    '''
+
+    def __init__(self, type_name):
+        '''
+        Constructor
+        '''
+        super(ParameterDeclNode, self).__init__()
+        self.txt_type_name = type_name
+
+    def do_resolve_declaration(self, compiler):
+        '''
+        Template method from ResolutionHelper
+        '''
+        del compiler
+
+        return self.get_root_scope().lookup_type(self.txt_type_name)
+
+
+class ParameterListNode(Node):
+
+    '''
+    Node class used as container of parameters in function declarations
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ParameterListNode, self).__init__()
+        self.childs_parameters = []
+        self._already_resolved = False
+
+    def add_parameter(self, child):
+        '''
+        argument adder
+        '''
+        assert isinstance(child, ParameterDeclNode)
+        child.set_parent(self)
+        self.childs_parameters.append(child)
+
+    def resolve(self, compiler):
+        '''
+        resolve
+        '''
+        assert not self._already_resolved
+        for param in self.childs_parameters:
+            compiler.resolve_node(param)
+        self._already_resolved = True
+
+    def get_size(self):
+        return len(self.childs_parameters)
+
+    def get_type_at(self, i):
+        return self.childs_parameters[i].get_type()
+
+
+def create_parameter_list(compiler, ctx, type_list):
+    '''
+    Creates a ParameterListNode with type_list elements
+    '''
+    pl = compiler.init_node(ParameterListNode(), ctx)
+    for type_name in type_list:
+        pl.add_parameter(compiler.init_node(ParameterDeclNode(type_name), ctx))
+
+    return pl
+
+
+class OperatorDeclNode(Node, ResolutionHelper):
+
+    '''
+    Node class to represent an operator declaration
+    '''
+
+    def __init__(self, operator, type_name):
+        '''
+        Constructor
+        '''
+        super(OperatorDeclNode, self).__init__()
+        self.child_parameter_list = None
+        self.txt_operator = operator
+        self.txt_type_name = type_name
+
+    def set_parameter_list(self, child):
+        '''
+        parameter_list setter
+        '''
+        assert isinstance(child, ParameterListNode)
+        child.set_parent(self)
+        self.child_parameter_list = child
+
+    def do_resolve_declaration(self, compiler):
+        '''
+        Template method from ResolutionHelper
+        '''
+        compiler.resolve_node(self.child_parameter_list)
+
+        scope = self.get_root_scope()
+        scope.add_operator(compiler, self.txt_operator, self)
+
+        return scope.lookup_type(self.txt_type_name)
+
+    def static_evaluate(self, compiler, expr, arg_list):
+        '''
+        Do static evaluation of expressions when possible
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+        return None

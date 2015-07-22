@@ -14,10 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc import array_lit, expression, op_node
+from smartanthill_zc import array_lit, expression, op_node, comparison
 from smartanthill_zc.antlr_helper import (get_reference_lines,
                                           get_reference_text)
-from smartanthill_zc.builtin import negate_logic
 from smartanthill_zc.compiler import Ctx
 from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node
@@ -551,8 +550,8 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
     def visit_SourceProgramNode(self, node):
 
-        fs = node.get_return_scope().get_return_type().field_sequence
-        self._target.reply_fs = fs
+        rt = node.get_return_scope().get_return_type()
+        self._target.reply_type = rt
         visit_node(self, node.child_statement_list)
 
     def visit_StatementListStmtNode(self, node):
@@ -785,7 +784,7 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
 
     def visit_LogicOpExprNode(self, node):
 
-        txt_op = negate_logic(node.txt_operator, self._negate)
+        txt_op = comparison.negate_logic(node.txt_operator, self._negate)
         if txt_op == '&&':
             assert len(node.child_argument_list.childs_arguments) == 2
             visit_node(self, node.child_argument_list.childs_arguments[0])
