@@ -110,78 +110,8 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#continueStatement.
-    def visitContinueStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#breakStatement.
-    def visitBreakStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by ECMAScriptParser#returnStatement.
     def visitReturnStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#withStatement.
-    def visitWithStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#switchStatement.
-    def visitSwitchStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#caseBlock.
-    def visitCaseBlock(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#caseClauses.
-    def visitCaseClauses(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#caseClause.
-    def visitCaseClause(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#defaultClause.
-    def visitDefaultClause(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#labelledStatement.
-    def visitLabelledStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#throwStatement.
-    def visitThrowStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#tryStatement.
-    def visitTryStatement(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#catchProduction.
-    def visitCatchProduction(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#finallyProduction.
-    def visitFinallyProduction(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#debuggerStatement.
-    def visitDebuggerStatement(self, ctx):
         return self.visitChildren(ctx)
 
 
@@ -210,46 +140,6 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#elision.
-    def visitElision(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#objectLiteral.
-    def visitObjectLiteral(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#propertyNameAndValueList.
-    def visitPropertyNameAndValueList(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#PropertyExpressionAssignment.
-    def visitPropertyExpressionAssignment(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#PropertyGetter.
-    def visitPropertyGetter(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#PropertySetter.
-    def visitPropertySetter(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#propertyName.
-    def visitPropertyName(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#propertySetParameterList.
-    def visitPropertySetParameterList(self, ctx):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by ECMAScriptParser#arguments.
     def visitArguments(self, ctx):
         return self.visitChildren(ctx)
@@ -257,11 +147,6 @@ class ECMAScriptVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#argumentList.
     def visitArgumentList(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#expressionSequence.
-    def visitExpressionSequence(self, ctx):
         return self.visitChildren(ctx)
 
 
@@ -355,43 +240,8 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by ECMAScriptParser#identifierName.
-    def visitIdentifierName(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#reservedWord.
-    def visitReservedWord(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#keyword.
-    def visitKeyword(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#futureReservedWord.
-    def visitFutureReservedWord(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#getter.
-    def visitGetter(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#setter.
-    def visitSetter(self, ctx):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by ECMAScriptParser#eos.
     def visitEos(self, ctx):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by ECMAScriptParser#eof.
-    def visitEof(self, ctx):
         return self.visitChildren(ctx)
 
 

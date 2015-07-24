@@ -196,7 +196,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitExpressionStatement(self, ctx):
         stmt = self._compiler.init_node(statement.ExpressionStmtNode(), ctx)
 
-        expr = self.visit(ctx.expressionSequence())
+        expr = self.visit(ctx.singleExpression())
         stmt.set_expression(expr)
 
         return stmt
@@ -205,7 +205,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitIfStatement(self, ctx):
         stmt = self._compiler.init_node(statement.IfElseStmtNode(), ctx)
 
-        expr = self.visit(ctx.expressionSequence())
+        expr = self.visit(ctx.singleExpression())
         stmt.set_expression(expr)
 
         body = ctx.statement()
@@ -265,7 +265,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
                 ctx, "Loop 'for' only supported in the trivial form "
                 "'for(var i = ..; i < ..; i++) {..}'")
 
-        expr_list = ctx.expressionSequence()
+        expr_list = ctx.singleExpression()
         assert len(expr_list) == 2
 
         begin = self.visit(expr_list[0])
@@ -308,7 +308,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitReturnStatement(self, ctx):
         stmt = self._compiler.init_node(statement.ReturnStmtNode(), ctx)
 
-        exprCtx = ctx.expressionSequence()
+        exprCtx = ctx.singleExpression()
         if exprCtx:
             expr = self.visit(exprCtx)
             assert expr
@@ -329,19 +329,6 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
         return args
 
-    # Visit a parse tree produced by ECMAScriptParser#expressionSequence.
-    def visitExpressionSequence(self, ctx):
-        expr_list = ctx.singleExpression()
-
-        assert len(expr_list) >= 1
-
-        if len(expr_list) > 1:
-            self._compiler.report_error(
-                ctx,
-                "Expression sequence not supported")
-
-        return self.visit(expr_list[0])
-
     # Visit a parse tree produced by ECMAScriptParser#FunctionExpression.
     def visitFunctionExpression(self, ctx):
         expr = self._compiler.init_node(expression.FunctionCallExprNode(), ctx)
@@ -357,7 +344,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
         expr = self._compiler.init_node(expression.AssignmentExprNode(), ctx)
 
         expr.txt_name = get_token_text(self._compiler, ctx.Identifier())
-        rhs = self.visit(ctx.expressionSequence())
+        rhs = self.visit(ctx.singleExpression())
         expr.set_rhs(rhs)
 
         return expr
@@ -408,7 +395,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitMemberDotExpression(self, ctx):
 
         expr = self._compiler.init_node(expression.MemberAccessExprNode(), ctx)
-        expr.txt_member = get_token_text(self._compiler, ctx.identifierName())
+        expr.txt_member = get_token_text(self._compiler, ctx.Identifier())
 
         e = self.visit(ctx.singleExpression())
         expr.set_expression(e)
@@ -427,14 +414,14 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
     def visitParenthesizedExpression(self, ctx):
-        return self.visit(ctx.expressionSequence())
+        return self.visit(ctx.singleExpression())
 
     # Visit a parse tree produced by ECMAScriptParser#MethodExpression.
     def visitMethodExpression(self, ctx):
         expr = self._compiler.init_node(expression.BodyPartCallExprNode(), ctx)
 
-        expr.txt_bodypart = get_token_text(self._compiler, ctx.Identifier())
-        expr.txt_method = get_token_text(self._compiler, ctx.identifierName())
+        expr.txt_bodypart = get_token_text(self._compiler, ctx.Identifier(0))
+        expr.txt_method = get_token_text(self._compiler, ctx.Identifier(1))
         args = self.visit(ctx.arguments())
         expr.set_argument_list(args)
 

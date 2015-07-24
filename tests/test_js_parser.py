@@ -14,11 +14,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import pytest
-
 from smartanthill_zc import compiler
 from smartanthill_zc import parse_js
-from smartanthill_zc.errors import CompilerError
 from smartanthill_zc.antlr_helper import dump_antlr_tree
+from smartanthill_zc.errors import CompilerError
 
 
 def test_js_simple_return():
@@ -31,11 +30,10 @@ def test_js_simple_return():
         "+-+-SourceElementContext",
         "+-+-+-StatementContext",
         "+-+-+-+-ReturnStatementContext 'return'",
-        "+-+-+-+-+-ExpressionSequenceContext",
-        "+-+-+-+-+-+-MethodExpressionContext 'Some' '.'",
-        "+-+-+-+-+-+-+-IdentifierNameContext 'Thing'",
-        "+-+-+-+-+-+-+-ArgumentsContext '(' ')'",
-        "+-+-+-+-+-EosContext ';'"]
+        "+-+-+-+-+-MethodExpressionContext 'Some' '.' 'Thing'",
+        "+-+-+-+-+-+-ArgumentsContext '(' ')'",
+        "+-+-+-+-+-EosContext ';'"
+    ]
     assert actual == expected
 
 
@@ -43,4 +41,3 @@ def test_js_unsuported_grammar():
     with pytest.raises(CompilerError):
         comp = compiler.Compiler()
         parse_js.parse_js_string(comp, u'function problem() {;}')
-
