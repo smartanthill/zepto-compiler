@@ -14,8 +14,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import compiler, parse_js, builtin, vm, writer, visitor,\
-    parse_xml, statement, node
+    parse_xml, statement
 from smartanthill_zc.compiler import Compiler, Ctx
+from smartanthill_zc.root import RootNode
 
 
 def common_test_run(code):
@@ -69,7 +70,7 @@ def common_test_run(code):
     code = '\n'.join(code)
 
     comp = Compiler()
-    root = comp.init_node(node.RootNode(), Ctx.ROOT)
+    root = comp.init_node(RootNode(), Ctx.ROOT)
 
     js_tree = parse_js.parse_js_string(comp, code)
     source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)

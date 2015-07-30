@@ -14,7 +14,51 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import node, expression
+from smartanthill_zc.lookup import RootScope
+from smartanthill_zc.node import ParameterListNode, Node, ResolutionHelper
 
+
+class OperatorDeclNode(Node, ResolutionHelper):
+
+    '''
+    Node class to represent an operator declaration
+    '''
+
+    def __init__(self, operator, type_name):
+        '''
+        Constructor
+        '''
+        super(OperatorDeclNode, self).__init__()
+        self.child_parameter_list = None
+        self.txt_operator = operator
+        self.txt_type_name = type_name
+
+    def set_parameter_list(self, child):
+        '''
+        parameter_list setter
+        '''
+        assert isinstance(child, ParameterListNode)
+        child.set_parent(self)
+        self.child_parameter_list = child
+
+    def do_resolve_declaration(self, compiler):
+        '''
+        Template method from ResolutionHelper
+        '''
+        compiler.resolve_node(self.child_parameter_list)
+
+        scope = self.get_scope(RootScope)
+        scope.add_operator(compiler, self.txt_operator, self)
+
+        return scope.lookup_type(self.txt_type_name)
+
+    def static_evaluate(self, compiler, expr, arg_list):
+        '''
+        Do static evaluation of expressions when possible
+        '''
+        # pylint: disable=no-self-use
+        # pylint: disable=unused-argument
+        return None
 
 _negate_comparison_map = {'==': '!=',
                           '!=': '==',
@@ -108,7 +152,7 @@ def create_number_to_literal_comparison(compiler, ctx, root, operator_list):
         root.add_declaration(op2)
 
 
-class NumberToLiteralCompDeclNode(node.OperatorDeclNode):
+class NumberToLiteralCompDeclNode(OperatorDeclNode):
 
     '''
     Node class to represent an special operator declaration
@@ -214,7 +258,7 @@ def create_number_to_number_comparison(compiler, ctx, root, operator_list):
         root.add_declaration(op)
 
 
-class NumberToNumberCompDeclNode(node.OperatorDeclNode):
+class NumberToNumberCompDeclNode(OperatorDeclNode):
 
     '''
     Node class to represent an special operator declaration

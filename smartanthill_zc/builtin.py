@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 from smartanthill_zc import encode, expression, node, comparison
+from smartanthill_zc.lookup import RootScope
 from smartanthill_zc.node import (
     Node, ResolutionHelper,
     TypeDeclNode, create_parameter_list)
@@ -215,7 +216,8 @@ class LiteralTypeDeclNode(TypeDeclNode):
 
 def _create_operator(compiler, ctx, operator, ret_type, type_list):
 
-    op = compiler.init_node(node.OperatorDeclNode(operator, ret_type), ctx)
+    op = compiler.init_node(
+        comparison.OperatorDeclNode(operator, ret_type), ctx)
     op.set_parameter_list(create_parameter_list(compiler, ctx, type_list))
 
     return op
@@ -238,7 +240,7 @@ def _create_literal_operators(compiler, ctx, root, operator_list, ret_type,
         root.add_declaration(op)
 
 
-class NumberLiteralOpDeclNode(node.OperatorDeclNode):
+class NumberLiteralOpDeclNode(comparison.OperatorDeclNode):
 
     '''
     Node class to represent an operator declaration with literal arguments
@@ -328,7 +330,7 @@ def _create_logic_literal_ops(compiler, ctx, root, operator_list, ret_type,
         root.add_declaration(op)
 
 
-class LogicLiteralOpDeclNode(node.OperatorDeclNode):
+class LogicLiteralOpDeclNode(comparison.OperatorDeclNode):
 
     '''
     Node class to represent a logic operator declaration with one literal
@@ -434,7 +436,7 @@ class McuSleepDeclNode(Node, ResolutionHelper):
         '''
         compiler.resolve_node(self.child_parameter_list)
 
-        scope = self.get_root_scope()
+        scope = self.get_scope(RootScope)
         scope.add_function(compiler, 'mcu_sleep', self)
 
         return scope.lookup_type('_zc_void')

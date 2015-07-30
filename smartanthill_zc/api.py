@@ -16,9 +16,10 @@
 from os.path import dirname
 from xml.etree import ElementTree
 
-from smartanthill_zc import parse_xml, node, parse_js, builtin, visitor,\
+from smartanthill_zc import parse_xml, parse_js, builtin, visitor,\
     vm, statement, writer, op_node
 from smartanthill_zc.compiler import Compiler, Ctx, process_syntax_tree
+from smartanthill_zc.root import RootNode
 
 
 class ZeptoPlugin(object):
@@ -150,7 +151,7 @@ class ZeptoProgram(object):
     def compile(self, parameters=None):
 
         compiler = Compiler()
-        root = compiler.init_node(node.RootNode(), Ctx.ROOT)
+        root = compiler.init_node(RootNode(), Ctx.ROOT)
 
         builtins = builtin.create_builtins(compiler, Ctx.BUILTIN)
         root.set_builtins(builtins)

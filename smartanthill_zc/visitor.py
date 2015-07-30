@@ -38,7 +38,7 @@ def walk_node_childs(walker, node):
     assert isinstance(node, Node)
     names = dir(node)
     for current in names:
-        if current.startswith('child_'):
+        if current.startswith('child_') or current.startswith('ch_'):
             ch = getattr(node, current)
             if ch:
                 walker.walk_node(ch)

@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+from smartanthill_zc.lookup import RootScope
 from smartanthill_zc.node import (ExpressionNode, TypeDeclNode,
                                   resolve_expression_list)
 
@@ -107,7 +108,7 @@ class ArrayLiteralExprNode(ExpressionNode):
         for i in range(len(self.childs_expressions)):
             resolve_expression_list(compiler, self, self.childs_expressions, i)
 
-        scope = self.get_root_scope()
+        scope = self.get_scope(RootScope)
 
         name = _create_array_type_name(self.childs_expressions)
         t = scope.lookup_type(name)

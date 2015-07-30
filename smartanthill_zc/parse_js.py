@@ -15,13 +15,16 @@
 
 
 import antlr4
-
-from smartanthill_zc import array_lit, expression, statement, node
+from smartanthill_zc import array
+from smartanthill_zc import expression, statement, node
 from smartanthill_zc.ECMAScript import ECMAScriptVisitor
 from smartanthill_zc.ECMAScript.ECMAScriptLexer import ECMAScriptLexer
 from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
 from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
                                           get_token_text)
+from smartanthill_zc.node import StmtListNode
+
+from smartanthill_zc.root import SourceProgramNode
 
 
 def parse_js_string(compiler, data):
@@ -120,9 +123,9 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
 
     # Visit a parse tree produced by ECMAScriptParser#program.
     def visitProgram(self, ctx):
-        prog = self._compiler.init_node(node.SourceProgramNode(), ctx)
+        prog = self._compiler.init_node(SourceProgramNode(), ctx)
         stmt_list = self._compiler.init_node(
-            statement.StatementListStmtNode(), ctx)
+            StmtListNode(), ctx)
 
         elems = ctx.sourceElements()
         if elems:
@@ -152,7 +155,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     # Visit a parse tree produced by ECMAScriptParser#block.
     def visitBlock(self, ctx):
         stmt_list = self._compiler.init_node(
-            statement.StatementListStmtNode(), ctx)
+            StmtListNode(), ctx)
 
         st_list = ctx.statementList()
         if st_list:
@@ -374,14 +377,14 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     # Visit a parse tree produced by ECMAScriptParser#ArrayLiteralExpression.
     def visitArrayLiteralExpression(self, ctx):
 
-        expr = self._compiler.init_node(array_lit.ArrayLiteralExprNode(), ctx)
+        expr = self._compiler.init_node(array.ArrayLiteralExprNode(), ctx)
 
         elems = ctx.arrayLiteral().elementList()
 
         if not elems:
             self._compiler.report_error(
                 ctx,
-                "Empty array_lit expression not supported")
+                "Empty array expression not supported")
         else:
             exprs = elems.singleExpression()
             assert len(exprs) >= 1

@@ -14,10 +14,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc import array_lit, expression, op_node, comparison
+from smartanthill_zc import expression, op_node, comparison
+from smartanthill_zc import array
 from smartanthill_zc.antlr_helper import (get_reference_lines,
                                           get_reference_text)
 from smartanthill_zc.compiler import Ctx
+from smartanthill_zc.lookup import ReturnStmtScope
 from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node
 from smartanthill_zc.writer import BinaryWriter
@@ -384,7 +386,7 @@ class ExpressionStack(object):
 
 def _make_labels(ctx):
     '''
-    Helper to create an OpListNode from an StatementListStmtNode
+    Helper to create an OpListNode from an StmtListNode
     '''
     begin, end = get_reference_lines(ctx)
     return op_node.JumpLabel(begin, end + 1)
@@ -550,11 +552,11 @@ class _ZeptoVmOneVisitor(NodeVisitor):
 
     def visit_SourceProgramNode(self, node):
 
-        rt = node.get_return_scope().get_return_type()
+        rt = node.get_scope(ReturnStmtScope).get_return_type()
         self._target.reply_type = rt
         visit_node(self, node.child_statement_list)
 
-    def visit_StatementListStmtNode(self, node):
+    def visit_StmtListNode(self, node):
         for each in node.childs_statements:
             visit_node(self, each)
 
@@ -576,7 +578,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
             rearrange = self.add_reply_rearrange()
             self._vm.buffer.clear_for_exit(
                 rearrange, [node.child_expression.ref_decl])
-        elif isinstance(node.child_expression, array_lit.ArrayLiteralExprNode):
+        elif isinstance(node.child_expression, array.ArrayLiteralExprNode):
 
             already_here = []
             target_order = []

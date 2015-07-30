@@ -17,6 +17,7 @@ import math
 
 from smartanthill_zc import expression, encode, node, comparison
 from smartanthill_zc.encode import Encoding
+from smartanthill_zc.lookup import RootScope
 from smartanthill_zc.node import (DeclarationListNode, ExpressionNode, Node,
                                   ResolutionHelper, TypeDeclNode)
 
@@ -220,7 +221,7 @@ class FieldTypeDeclNode(TypeDeclNode):
         '''
         resolve
         '''
-        self._number_type = self.get_root_scope().lookup_type('_zc_number')
+        self._number_type = self.get_scope(RootScope).lookup_type('_zc_number')
         super(FieldTypeDeclNode, self).resolve(compiler)
 
     def can_cast_to(self, target_type):
@@ -421,7 +422,7 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
         '''
         resolve
         '''
-        self.ref_number_literal_type = self.get_root_scope().lookup_type(
+        self.ref_number_literal_type = self.get_scope(RootScope).lookup_type(
             '_zc_number_literal')
         super(CommandFieldTypeDeclNode, self).resolve(compiler)
 
@@ -482,7 +483,7 @@ class PluginDeclNode(Node, ResolutionHelper):
         '''
 
         compiler.resolve_node(self.child_parameter_list)
-        return self.get_root_scope().lookup_type(self.txt_type_name)
+        return self.get_scope(RootScope).lookup_type(self.txt_type_name)
 
     def lookup_method(self, name):
         '''
@@ -516,7 +517,7 @@ class BodyPartDeclNode(Node):
         assert self.ref_plugin
 
         compiler.resolve_node(self.ref_plugin)
-        self.get_root_scope().add_bodypart(compiler, self.txt_name, self)
+        self.get_scope(RootScope).add_bodypart(compiler, self.txt_name, self)
 
         self._resolved = True
 
@@ -655,7 +656,7 @@ def create_field_to_literal_comparison(compiler, ctx, field_name):
     return result
 
 
-class FieldToLiteralCompDeclNode(node.OperatorDeclNode):
+class FieldToLiteralCompDeclNode(comparison.OperatorDeclNode):
 
     '''
     Node class to represent an very special operator declaration
@@ -790,7 +791,7 @@ def create_field_to_field_comparison(compiler, et, field_name, other_field):
     return result
 
 
-class FieldToFieldCompDeclNode(node.OperatorDeclNode):
+class FieldToFieldCompDeclNode(comparison.OperatorDeclNode):
 
     '''
     Node class to represent an very special operator declaration
@@ -814,7 +815,7 @@ class FieldToFieldCompDeclNode(node.OperatorDeclNode):
         '''
         resolve
         '''
-        self._number_type = self.get_root_scope().lookup_type('_zc_number')
+        self._number_type = self.get_scope(RootScope).lookup_type('_zc_number')
         super(FieldToFieldCompDeclNode, self).resolve(compiler)
 
     def static_evaluate(self, compiler, expr, arg_list):

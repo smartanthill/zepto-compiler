@@ -15,11 +15,9 @@
 
 import pytest
 
-from smartanthill_zc import builtin, node
-from smartanthill_zc import compiler, parse_xml
-from smartanthill_zc import parse_js
-from smartanthill_zc import visitor
-from smartanthill_zc.compiler import Ctx
+from smartanthill_zc import builtin, compiler, parse_xml, parse_js, visitor
+from smartanthill_zc.compiler import Ctx, Compiler
+from smartanthill_zc.root import RootNode
 
 
 def common_test_run(code):
@@ -70,8 +68,8 @@ def common_test_run(code):
     xml = '\n'.join(xml)
     code = '\n'.join(code)
 
-    comp = compiler.Compiler()
-    root = comp.init_node(node.RootNode(), Ctx.ROOT)
+    comp = Compiler()
+    root = comp.init_node(RootNode(), Ctx.ROOT)
 
     js_tree = parse_js.parse_js_string(comp, code)
     source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)

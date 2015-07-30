@@ -15,67 +15,29 @@
 
 
 from smartanthill_zc import expression, node
-from smartanthill_zc.lookup import StatementListScope
+from smartanthill_zc.lookup import StatementListScope, ReturnStmtScope,\
+    RootScope
 from smartanthill_zc.node import (ArgumentListNode, ExpressionNode,
                                   ResolutionHelper, StatementNode,
-                                  expression_type_match, resolve_expression)
-
-
-class StatementListStmtNode(StatementNode):
-
-    '''
-    Node class representing an statement list
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(StatementListStmtNode, self).__init__()
-        self.childs_statements = []
-        self._scope = StatementListScope(self)
-        self.has_flow_stmt = False
-
-    def add_statement(self, child):
-        '''
-        statement adder
-        '''
-        if not child:
-            assert False
-        assert isinstance(child, StatementNode)
-        child.set_parent(self)
-        self.childs_statements.append(child)
-
-    def resolve(self, compiler):
-        for stmt in self.childs_statements:
-            compiler.resolve_node(stmt)
-            if self.has_flow_stmt:
-                compiler.report_error(stmt.ctx, "Unreachable statement")
-            if stmt.is_flow_stmt:
-                self.has_flow_stmt = True
-
-    def get_stmt_scope(self):
-        ''''
-        Returns this node scope
-        '''
-        return self._scope
+                                  expression_type_match, resolve_expression,
+                                  StmtListNode)
 
 
 def make_statement_list(compiler, stmt):
     '''
-    If stmt is instance of StatementListStmtNode, returns stmt.
-    Otherwise, creates and returns an StatementListStmtNode holding stmt
+    If stmt is instance of StmtListNode, returns stmt.
+    Otherwise, creates and returns an StmtListNode holding stmt
 
-    This helper function is used to always use StatementListStmtNode as child
+    This helper function is used to always use StmtListNode as child
     of statements like if-else, or for loops, even when a single statement
     (without braces) is used.
     '''
     assert isinstance(stmt, StatementNode)
 
-    if isinstance(stmt, StatementListStmtNode):
+    if isinstance(stmt, StmtListNode):
         return stmt
 
-    stmt_list = compiler.init_node(StatementListStmtNode(), stmt.ctx)
+    stmt_list = compiler.init_node(StmtListNode(), stmt.ctx)
     stmt_list.add_statement(stmt)
 
     return stmt_list
@@ -148,7 +110,7 @@ class ReturnStmtNode(StatementNode):
             compiler.report_error(
                 self.ctx, "Type not valid for reply message")
 
-        self.get_return_scope().add_return_stmt(
+        self.get_scope(ReturnStmtScope).add_return_stmt(
             compiler, self.ctx, self.child_expression.get_type())
 
 
@@ -181,10 +143,10 @@ class VariableDeclarationStmtNode(StatementNode, ResolutionHelper):
         # we are adding variable name after resolution of initializer
         # because we don't allow that kind of resolution cycle
         if self.flg_root_scope:
-            self.get_root_scope().add_parameter(
+            self.get_scope(RootScope).add_parameter(
                 compiler, self.txt_name, self)
         else:
-            self.get_stmt_scope().add_variable(
+            self.get_scope(StatementListScope).add_variable(
                 compiler, self.txt_name, self)
 
         return self.child_initializer.get_type()
@@ -243,7 +205,7 @@ class IfElseStmtNode(StatementNode):
         '''
         if_branch setter
         '''
-        assert isinstance(child, StatementListStmtNode)
+        assert isinstance(child, StmtListNode)
         child.set_parent(self)
         self.child_if_branch = child
 
@@ -251,7 +213,7 @@ class IfElseStmtNode(StatementNode):
         '''
         else_branch setter
         '''
-        assert isinstance(child, StatementListStmtNode)
+        assert isinstance(child, StmtListNode)
         child.set_parent(self)
         self.child_else_branch = child
 
@@ -260,7 +222,7 @@ class IfElseStmtNode(StatementNode):
         compiler.resolve_node(self.child_if_branch)
         compiler.resolve_node(self.child_else_branch)
 
-        t = self.get_root_scope().lookup_type('_zc_boolean')
+        t = self.get_scope(RootScope).lookup_type('_zc_boolean')
 
         if not expression_type_match(compiler, t, self, 'child_expression'):
             compiler.report_error(
@@ -292,8 +254,7 @@ class McuSleepStmtNode(StatementNode):
 
     def resolve(self, compiler):
         compiler.resolve_node(self.child_argument_list)
-        decl = self.get_root_scope().lookup_function(
-            'mcu_sleep')
+        decl = self.get_scope(RootScope).lookup_function('mcu_sleep')
         assert decl  # is built in function
 
         self.child_argument_list.make_match(compiler,
@@ -350,16 +311,19 @@ class SimpleForStmtNode(StatementNode):
         '''
         statement_list setter
         '''
-        assert isinstance(child, StatementListStmtNode)
+        assert isinstance(child, StmtListNode)
         child.set_parent(self)
         self.child_statement_list = child
 
-    def get_stmt_scope(self):
+    def get_scope(self, kind):
         ''''
         Returns this node scope
         '''
-        assert self._scope
-        return self._scope
+        if kind == StatementListScope:
+            assert self._scope
+            return self._scope
+        else:
+            return super(SimpleForStmtNode, self).get_scope(kind)
 
     def resolve(self, compiler):
         resolve_expression(compiler, self, 'child_begin_expression')
@@ -369,7 +333,7 @@ class SimpleForStmtNode(StatementNode):
 
 def create_parameters(compiler, data, ctx):
     '''
-    Creates an StatementListStmtNode and populates it with
+    Creates an StmtListNode and populates it with
     VariableDeclarationStmtNode with data from dictionary.
     Used for parameters
     '''

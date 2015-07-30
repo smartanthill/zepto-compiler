@@ -24,6 +24,7 @@ from smartanthill_zc import visitor
 from smartanthill_zc.compiler import Compiler, Ctx
 from smartanthill_zc.encode import create_half_float, half_float_value,\
     half_float_next_down
+from smartanthill_zc.root import RootNode
 
 
 def main():
@@ -88,7 +89,7 @@ def main():
 #    etdump = visitor.dump_tree(bodyparts)
 #    print '\n'.join(etdump)
 
-    root = comp.init_node(node.RootNode(), Ctx.ROOT)
+    root = comp.init_node(RootNode(), Ctx.ROOT)
 
     js_tree = parse_js.parse_js_string(comp, code)
     source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)

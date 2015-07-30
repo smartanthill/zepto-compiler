@@ -15,7 +15,7 @@
 
 
 from smartanthill_zc import errors
-from smartanthill_zc.lookup import ReturnStmtScope, RootScope
+from smartanthill_zc.lookup import RootScope, StatementListScope
 
 
 class ResolutionHelper(object):
@@ -95,23 +95,11 @@ class Node(object):
         self._parent = None
         self._resolved = False
 
-    def get_stmt_scope(self):
-        ''''
-        Walks the tree up until if find an scope to return
+    def get_scope(self, kind):
         '''
-        return self._parent.get_stmt_scope()
-
-    def get_root_scope(self):
-        ''''
-         Walks the tree up, until a RootScope to return
-         '''
-        return self._parent.get_root_scope()
-
-    def get_return_scope(self):
+         Walks the tree up, until an scope of requested kind if found
         '''
-         Walks the tree up, until a ReturnStmtScope to return
-        '''
-        return self._parent.get_return_scope()
+        return self._parent.get_scope(kind)
 
     def set_parent(self, parent):
         '''
@@ -136,6 +124,49 @@ class StatementNode(Node):
     def __init__(self):
         super(StatementNode, self).__init__()
         self.is_flow_stmt = False
+
+
+class StmtListNode(StatementNode):
+
+    '''
+    Node class representing an statement list
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(StmtListNode, self).__init__()
+        self.childs_statements = []
+        self._scope = StatementListScope(self)
+        self.has_flow_stmt = False
+
+    def add_statement(self, child):
+        '''
+        statement adder
+        '''
+        if not child:
+            assert False
+        assert isinstance(child, StatementNode)
+        child.set_parent(self)
+        self.childs_statements.append(child)
+
+    def resolve(self, compiler):
+        for stmt in self.childs_statements:
+            compiler.resolve_node(stmt)
+            if self.has_flow_stmt:
+                compiler.report_error(stmt.ctx, "Unreachable statement")
+            if stmt.is_flow_stmt:
+                self.has_flow_stmt = True
+
+    def get_scope(self, kind):
+        ''''
+        Returns this node scope
+        '''
+        if kind == StatementListScope:
+            return self._scope
+        else:
+            return super(StmtListNode, self).get_scope(kind)
 
 
 class ExpressionNode(Node):
@@ -250,7 +281,7 @@ class TypeDeclNode(Node):
         Resolve
         '''
         assert not self._resolved
-        self.get_root_scope().add_type(compiler, self.txt_name, self)
+        self.get_scope(RootScope).add_type(compiler, self.txt_name, self)
         self._resolved = True
 
     def can_cast_to(self, target_type):
@@ -339,71 +370,6 @@ def expression_type_match(compiler, lhs_type, parent, child_name):
         return False
 
 
-class RootNode(Node):
-
-    '''
-    Root node class used as root of the tree
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(RootNode, self).__init__()
-        self.child_builtins = None
-        self.child_bodyparts = None
-        self.child_parameters = None
-        self.child_source_program = None
-        self._scope = RootScope(self)
-
-    def get_root_scope(self):
-        ''''
-         Walks the tree up, until a RootScop to return
-         '''
-        return self._scope
-
-    def set_builtins(self, child):
-        '''
-        built-ins setter
-        '''
-        assert isinstance(child, DeclarationListNode)
-        child.set_parent(self)
-        self.child_builtins = child
-
-    def set_bodyparts(self, child):
-        '''
-        body-parts setter
-        '''
-        assert isinstance(child, Node)
-        child.set_parent(self)
-        self.child_bodyparts = child
-
-    def set_parameters(self, child):
-        '''
-        parameters setter
-        '''
-        assert isinstance(child, DeclarationListNode)
-        child.set_parent(self)
-        self.child_parameters = child
-
-    def set_source_program(self, child):
-        '''
-        program setter
-        '''
-        assert isinstance(child, SourceProgramNode)
-        child.set_parent(self)
-        self.child_source_program = child
-
-    def resolve(self, compiler):
-        # First built-ins
-        compiler.resolve_node(self.child_builtins)
-        # Next body-parts and parameters
-        compiler.resolve_node(self.child_bodyparts)
-        compiler.resolve_node(self.child_parameters)
-        # Last user code
-        compiler.resolve_node(self.child_source_program)
-
-
 class DeclarationListNode(Node):
 
     '''
@@ -437,47 +403,6 @@ class DeclarationListNode(Node):
     def resolve(self, compiler):
         for decl in self.childs_declarations:
             compiler.resolve_node(decl)
-
-
-class SourceProgramNode(Node):
-
-    '''
-    Node class container of a program, similar to a function but
-    without parameters
-    '''
-
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        super(SourceProgramNode, self).__init__()
-        self.child_statement_list = None
-        self._return_scope = ReturnStmtScope(self)
-
-    def get_stmt_scope(self):
-        ''''
-        Returns None, do not try to further walk up
-        '''
-        return None
-
-    def get_return_scope(self):
-        '''
-        Returns return scope
-        Since we don't currently support a function node, RootNode will
-        make its job
-        '''
-        return self._return_scope
-
-    def set_statement_list(self, child):
-        '''
-        statement_list setter
-        '''
-        assert isinstance(child, StatementNode)
-        child.set_parent(self)
-        self.child_statement_list = child
-
-    def resolve(self, compiler):
-        compiler.resolve_node(self.child_statement_list)
 
 
 class ArgumentListNode(Node):
@@ -621,7 +546,7 @@ class ParameterDeclNode(Node, ResolutionHelper):
         '''
         del compiler
 
-        return self.get_root_scope().lookup_type(self.txt_type_name)
+        return self.get_scope(RootScope).lookup_type(self.txt_type_name)
 
 
 class ParameterListNode(Node):
@@ -671,46 +596,3 @@ def create_parameter_list(compiler, ctx, type_list):
         pl.add_parameter(compiler.init_node(ParameterDeclNode(type_name), ctx))
 
     return pl
-
-
-class OperatorDeclNode(Node, ResolutionHelper):
-
-    '''
-    Node class to represent an operator declaration
-    '''
-
-    def __init__(self, operator, type_name):
-        '''
-        Constructor
-        '''
-        super(OperatorDeclNode, self).__init__()
-        self.child_parameter_list = None
-        self.txt_operator = operator
-        self.txt_type_name = type_name
-
-    def set_parameter_list(self, child):
-        '''
-        parameter_list setter
-        '''
-        assert isinstance(child, ParameterListNode)
-        child.set_parent(self)
-        self.child_parameter_list = child
-
-    def do_resolve_declaration(self, compiler):
-        '''
-        Template method from ResolutionHelper
-        '''
-        compiler.resolve_node(self.child_parameter_list)
-
-        scope = self.get_root_scope()
-        scope.add_operator(compiler, self.txt_operator, self)
-
-        return scope.lookup_type(self.txt_type_name)
-
-    def static_evaluate(self, compiler, expr, arg_list):
-        '''
-        Do static evaluation of expressions when possible
-        '''
-        # pylint: disable=no-self-use
-        # pylint: disable=unused-argument
-        return None

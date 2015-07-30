@@ -29,7 +29,7 @@ def lookup_variable(scope, name):
     else:
         p = scope.get_owner().get_parent()
         if p:
-            return lookup_variable(p.get_stmt_scope(), name)
+            return lookup_variable(p.get_scope(StatementListScope), name)
         else:
             return None
 

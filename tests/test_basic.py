@@ -14,16 +14,14 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import pytest
-
-from smartanthill_zc import node, errors
-from smartanthill_zc import parse_js
-from smartanthill_zc import visitor
+from smartanthill_zc import errors, parse_js, visitor
 from smartanthill_zc.compiler import Ctx, Compiler
+from smartanthill_zc.root import RootNode
 
 
 def common_test_run(code):
     comp = Compiler()
-    root = comp.init_node(node.RootNode(), Ctx.ROOT)
+    root = comp.init_node(RootNode(), Ctx.ROOT)
 
     js_tree = parse_js.parse_js_string(comp, code)
     source = parse_js.js_parse_tree_to_syntax_tree(comp, js_tree)
@@ -41,7 +39,7 @@ def test_js_simple_return():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-ReturnStmtNode",
         "+-+-+-+-BodyPartCallExprNode bodypart='Some' method='Thing'",
         "+-+-+-+-+-ArgumentListNode"
@@ -55,13 +53,13 @@ def test_js_if_else():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-IfElseStmtNode",
-        "+-+-+-+-StatementListStmtNode",
+        "+-+-+-+-StmtListNode",
         "+-+-+-+-+-ReturnStmtNode",
         "+-+-+-+-+-+-NumberLiteralExprNode literal='0'",
         "+-+-+-+-VariableExprNode name='i'",
-        "+-+-+-+-StatementListStmtNode",
+        "+-+-+-+-StmtListNode",
         "+-+-+-+-+-ReturnStmtNode",
         "+-+-+-+-+-+-NumberLiteralExprNode literal='15.5'"
     ]
@@ -78,7 +76,7 @@ def test_js_nop():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-NopStmtNode",
         "+-+-+-NopStmtNode",
         "+-+-+-NopStmtNode"
@@ -92,7 +90,7 @@ def test_js_mcu_sleep():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-McuSleepStmtNode",
         "+-+-+-+-ArgumentListNode",
         "+-+-+-+-+-NumberLiteralExprNode literal='60'"
@@ -106,7 +104,7 @@ def test_js_var_init():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-VariableDeclarationStmtNode name='i'",
         "+-+-+-+-NumberLiteralExprNode literal='60'"
     ]
@@ -135,11 +133,11 @@ def test_js_trivial_loop():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-SimpleForStmtNode name='i'",
         "+-+-+-+-NumberLiteralExprNode literal='0'",
         "+-+-+-+-NumberLiteralExprNode literal='5'",
-        "+-+-+-+-StatementListStmtNode",
+        "+-+-+-+-StmtListNode",
         "+-+-+-+-+-NopStmtNode"
     ]
 
@@ -164,7 +162,7 @@ def test_js_binary_operator():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-ReturnStmtNode",
         "+-+-+-+-LogicOpExprNode operator='&&'",
         "+-+-+-+-+-ArgumentListNode",
@@ -181,7 +179,7 @@ def test_js_unary_operator():
     expected = [
         "RootNode",
         "+-SourceProgramNode",
-        "+-+-StatementListStmtNode",
+        "+-+-StmtListNode",
         "+-+-+-ReturnStmtNode",
         "+-+-+-+-LogicOpExprNode operator='!'",
         "+-+-+-+-+-ArgumentListNode",

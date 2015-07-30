@@ -15,6 +15,7 @@
 
 
 from smartanthill_zc import lookup
+from smartanthill_zc.lookup import StatementListScope, RootScope
 from smartanthill_zc.node import (ArgumentListNode, ExpressionNode,
                                   expression_type_match, resolve_expression)
 
@@ -47,7 +48,7 @@ class FunctionCallExprNode(ExpressionNode):
         compiler.report_error(
             self.ctx, "Unresolved function call '%s'", self.txt_name)
 
-        t = self.get_root_scope().lookup_type('_zc_void')
+        t = self.get_scope(RootScope).lookup_type('_zc_void')
         self.set_type(t)
         return None
 
@@ -80,7 +81,7 @@ class BodyPartCallExprNode(ExpressionNode):
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
 
-        bp = self.get_root_scope().lookup_bodypart(self.txt_bodypart)
+        bp = self.get_scope(RootScope).lookup_bodypart(self.txt_bodypart)
 
         if not bp:
             compiler.report_error(self.ctx, "Unresolved plug-in name '%s'",
@@ -178,7 +179,7 @@ class NumberLiteralExprNode(ExpressionNode):
 
         # pylint: disable=unused-argument
 
-        scope = self.get_root_scope()
+        scope = self.get_scope(RootScope)
 
         self.set_type(scope.lookup_type('_zc_number_literal'))
         return None
@@ -209,7 +210,7 @@ class BooleanLiteralExprNode(ExpressionNode):
 
         del compiler
 
-        scope = self.get_root_scope()
+        scope = self.get_scope(RootScope)
         self.set_type(scope.lookup_type('_zc_boolean_literal'))
 
         return None
@@ -299,9 +300,10 @@ class VariableExprNode(ExpressionNode):
 
     def resolve_expr(self, compiler):
 
-        decl = lookup.lookup_variable(self.get_stmt_scope(), self.txt_name)
+        decl = lookup.lookup_variable(
+            self.get_scope(StatementListScope), self.txt_name)
         if not decl:
-            decl = self.get_root_scope().lookup_parameter(self.txt_name)
+            decl = self.get_scope(RootScope).lookup_parameter(self.txt_name)
             if not decl:
                 compiler.report_error(
                     self.ctx, "Unresolved variable '%s'", self.txt_name)
@@ -347,7 +349,8 @@ class AssignmentExprNode(ExpressionNode):
 
         resolve_expression(compiler, self, 'child_rhs')
 
-        decl = lookup.lookup_variable(self.get_stmt_scope(), self.txt_name)
+        decl = lookup.lookup_variable(
+            self.get_scope(StatementListScope), self.txt_name)
         if not decl:
             compiler.report_error(
                 self.ctx, "Unresolved variable '%s'" % self.txt_name)
@@ -362,7 +365,7 @@ class AssignmentExprNode(ExpressionNode):
                 self.txt_name)
             # no need to raise here
 
-        self.set_type(self.get_root_scope().lookup_type('_zc_void'))
+        self.set_type(self.get_scope(RootScope).lookup_type('_zc_void'))
         return None
 
 
@@ -391,7 +394,8 @@ class OperatorExprNode(ExpressionNode):
 
     def resolve_expr(self, compiler):
         compiler.resolve_node(self.child_argument_list)
-        candidates = self.get_root_scope().lookup_operator(self.txt_operator)
+        candidates = self.get_scope(
+            RootScope).lookup_operator(self.txt_operator)
 
         if len(candidates) == 0:
             compiler.report_error(
