@@ -240,20 +240,28 @@ def resolve_expression(compiler, parent, child_name):
             expr.assert_resolved()
 
 
-def resolve_expression_list(compiler, parent, expr_list, i):
+def resolve_expression_list(compiler, parent, expr_list):
+    '''
+    Resolve child expression list, to allow expression replacement
+    '''
+    for i in range(len(expr_list)):
+        _resolve_expression_list_item(compiler, parent, expr_list, i)
+
+
+def _resolve_expression_list_item(compiler, parent, expr_list, i):
     '''
     Resolve child expression list by index, to allow expression
     replacement
     '''
     replacement = expr_list[i].resolve_expr(compiler)
 
-    if replacement and replacement != expr_list[i]:
+    if replacement is not None and replacement != expr_list[i]:
         assert isinstance(replacement, ExpressionNode)
         replacement.set_parent(parent)
         expr_list[i] = replacement
 
         # resolve again (replacement)
-        resolve_expression_list(compiler, parent, expr_list, i)
+        _resolve_expression_list_item(compiler, parent, expr_list, i)
     else:
         expr_list[i].assert_resolved()
 
@@ -427,8 +435,7 @@ class ArgumentListNode(Node):
         self.childs_arguments.append(child)
 
     def resolve(self, compiler):
-        for i in range(len(self.childs_arguments)):
-            resolve_expression_list(compiler, self, self.childs_arguments, i)
+        resolve_expression_list(compiler, self, self.childs_arguments)
 
     def overload_filter(self, compiler, decl_list):
         '''

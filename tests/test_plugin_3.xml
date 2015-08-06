@@ -16,31 +16,15 @@ Copyright (C) 2015 OLogN Technologies AG
   <description>Short description of plugin's capabilities</description>
 
   <request>
-    <field name="abc" type="encoded-int[max=2]"  min="0" max="99" />
+    <field name="abc" type="encoded-int[max=2]" />
   </request>
 
   <response>
-    <field name="xyz" type="encoded-int[max=2]" min="0" max="255">
+    <field name="xyz" type="encoded-int[max=2]">
       <meaning type="float">
         <linear-conversion input-point0="0" output-point0="20.0"
                            input-point1="100" output-point1="40.0" />
       </meaning>
     </field>
   </response>
-
-  <configuration>
-    <peripheral>
-      <pin type="spi[sclk]" name="pin_spi_sclk" title="SPI SCLK Pin" />
-      <pin type="spi[mosi]" name="pin_spi_mosi" title="SPI MOSI Pin" />
-      <pin type="spi[miso]" name="pin_spi_miso" title="SPI MISO Pin" />
-      <pin type="spi[ss]"   name="pin_spi_ss"   title="SPI SS Pin" />
-      <pin type="digital"   name="pin_led1"     title="LED 1 Pin" />
-      <pin type="digital"   name="pin_led2"     title="LED 2 Pin" />
-    </peripheral>
-    <options>
-      <option type="uint[2]" name="delay_blink_ms" default="150" title="Delay between blinks, ms" />
-      <option type="char[30]" name="welcome_to" default="Welcome to SmartAnthill" />
-    </options>
-  </configuration>
-
 </smartanthill.plugin>

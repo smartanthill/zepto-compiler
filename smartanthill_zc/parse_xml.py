@@ -317,7 +317,7 @@ def get_enconding_helper(compiler, ctx, att):
     min_value = type_min
     max_value = type_max
     try:
-        if 'min' in att:
+        if 'min' in att and att['min'] is not None:
             min_value = long(att['min'])
             if min_value < type_min or min_value > type_max:
                 compiler.report_error(ctx, "Bad min %d" % min_value)
@@ -327,7 +327,7 @@ def get_enconding_helper(compiler, ctx, att):
         compiler.report_error(ctx, "Bad min '%s'" % att['min'])
 
     try:
-        if 'max' in att:
+        if 'max' in att and att['max'] is not None:
             max_value = long(att['max'])
             if max_value > type_max or max_value < type_min:
                 compiler.report_error(ctx, "Bad max %d" % max_value)

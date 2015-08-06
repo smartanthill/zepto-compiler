@@ -105,8 +105,8 @@ class ArrayLiteralExprNode(ExpressionNode):
         self.child_expression_type = child
 
     def resolve_expr(self, compiler):
-        for i in range(len(self.childs_expressions)):
-            resolve_expression_list(compiler, self, self.childs_expressions, i)
+
+        resolve_expression_list(compiler, self, self.childs_expressions)
 
         scope = self.get_scope(RootScope)
 
