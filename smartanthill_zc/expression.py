@@ -168,13 +168,6 @@ class NumberLiteralExprNode(ExpressionNode):
         super(NumberLiteralExprNode, self).__init__()
         self.txt_literal = None
 
-    def set_literal(self, literal):
-        '''
-        literal setter
-        TODO add literal format check
-        '''
-        self.txt_literal = literal
-
     def resolve_expr(self, compiler):
 
         # pylint: disable=unused-argument

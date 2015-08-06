@@ -14,7 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc import expression, node
 from smartanthill_zc.lookup import StatementListScope, ReturnStmtScope,\
     RootScope
 from smartanthill_zc.node import (ArgumentListNode, ExpressionNode,
@@ -329,37 +328,3 @@ class SimpleForStmtNode(StatementNode):
         resolve_expression(compiler, self, 'child_begin_expression')
         resolve_expression(compiler, self, 'child_end_expression')
         compiler.resolve_node(self.child_statement_list)
-
-
-def create_parameters(compiler, data, ctx):
-    '''
-    Creates an StmtListNode and populates it with
-    VariableDeclarationStmtNode with data from dictionary.
-    Used for parameters
-    '''
-
-    decls = compiler.init_node(node.DeclarationListNode(), ctx)
-
-    if data is not None:
-        for key, value in data.iteritems():
-
-            assert isinstance(key, str)
-            var = compiler.init_node(VariableDeclarationStmtNode(), ctx)
-            var.txt_name = key
-            var.flg_root_scope = True
-
-            if isinstance(value, (int, long)):
-                expr = compiler.init_node(
-                    expression.NumberLiteralExprNode(), ctx)
-                expr.set_literal(str(value))
-                var.set_initializer(expr)
-            else:
-                compiler.report_error(
-                    ctx, "Invalid data type '%s' at parameter '%s'",
-                    type(value).__name__, key)
-
-            decls.add_declaration(var)
-
-    compiler.check_stage('parameter')
-
-    return decls

@@ -180,3 +180,32 @@ def test_response_2():
     res = zp.process_response(bytearray([0x40, 0x00, 98, 0x00, 100]))
 
     assert res == [{'xyz': 29.8}, {'xyz': 30.0}]
+
+
+def test_dynamic_data_1():
+
+    plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
+
+    sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+    zp = api.ZeptoProgram(
+        "return BodyPartName.Execute(PARAM1)", [sensor1])
+
+    opcode = zp.compile({"PARAM1": 5})
+
+    assert opcode == zp.compile({"PARAM1": "5"})
+    assert opcode == zp.compile({"PARAM1": 5.0})
+    assert opcode == zp.compile({"PARAM1": "5.0"})
+
+
+def test_bad_dynamic_data_error():
+    with pytest.raises(errors.CompilerError):
+
+        plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
+
+        sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+        zp = api.ZeptoProgram(
+            "return BodyPartName.Execute(PARAM1)", [sensor1])
+
+        zp.compile({"PARAM1": "x"})

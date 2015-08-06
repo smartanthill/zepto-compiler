@@ -23,13 +23,12 @@ from smartanthill_zc.ECMAScript.ECMAScriptParser import ECMAScriptParser
 from smartanthill_zc.antlr_helper import (_ProxyAntlrErrorListener,
                                           get_token_text)
 from smartanthill_zc.node import StmtListNode
-
 from smartanthill_zc.root import SourceProgramNode
 
 
 def parse_js_string(compiler, data):
     '''
-    Parse unicode string containing java script code
+    Parse string containing java script code
     Returns an antlr parse tree
     '''
 
@@ -45,6 +44,73 @@ def parse_js_string(compiler, data):
     compiler.check_stage('parse_js')
 
     return tree
+
+
+def _parse_js_number(compiler, data, ctx):
+    '''
+    Parse string containing number literal
+    Returns an antlr parse tree
+    '''
+
+    #    input = FileStream(argv[1])
+    istream = antlr4.InputStream.InputStream(data)
+    lexer = ECMAScriptLexer(istream)
+    stream = antlr4.CommonTokenStream(lexer)
+    parser = ECMAScriptParser(stream)
+#    parser.removeErrorListener()
+    parser.addErrorListener(_ProxyAntlrErrorListener(compiler))
+    tree = parser.numericLiteral()
+
+    token = tree.DecimalLiteral()
+    if token is None:
+        compiler.report_error(ctx, "Invalid number literal '%s'", data)
+        compiler.raise_error()
+
+    txt = get_token_text(compiler, token)
+
+    return txt
+
+
+def create_parameters(compiler, data, ctx):
+    '''
+    Creates an StmtListNode and populates it with
+    VariableDeclarationStmtNode with data from dictionary.
+    Used for parameters
+    '''
+
+    decls = compiler.init_node(node.DeclarationListNode(), ctx)
+
+    if data is not None:
+        for key, value in data.iteritems():
+
+            assert isinstance(key, str)
+            var = compiler.init_node(
+                statement.VariableDeclarationStmtNode(), ctx)
+            var.txt_name = key
+            var.flg_root_scope = True
+
+            if isinstance(value, (int, float)):
+                expr = compiler.init_node(
+                    expression.NumberLiteralExprNode(), ctx)
+                expr.txt_literal = str(value)
+                var.set_initializer(expr)
+            elif isinstance(value, str):
+                expr = compiler.init_node(
+                    expression.NumberLiteralExprNode(), ctx)
+
+                expr.txt_literal = _parse_js_number(compiler, value, ctx)
+                var.set_initializer(expr)
+
+            else:
+                compiler.report_error(
+                    ctx, "Invalid data type '%s' at parameter '%s'",
+                    type(value).__name__, key)
+
+            decls.add_declaration(var)
+
+    compiler.check_stage('parameter')
+
+    return decls
 
 
 def js_parse_tree_to_syntax_tree(compiler, js_tree):

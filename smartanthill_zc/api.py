@@ -17,7 +17,7 @@ from os.path import dirname
 from xml.etree import ElementTree
 
 from smartanthill_zc import parse_xml, parse_js, builtin, visitor,\
-    vm, statement, writer, op_node, encode
+    vm, writer, op_node, encode
 from smartanthill_zc.compiler import Compiler, Ctx, process_syntax_tree
 from smartanthill_zc.root import RootNode
 
@@ -161,7 +161,7 @@ class ZeptoProgram(object):
         root.set_bodyparts(bodyparts)
 
         if parameters:
-            params = statement.create_parameters(
+            params = parse_js.create_parameters(
                 compiler, parameters, Ctx.PARAM)
             root.set_parameters(params)
 
