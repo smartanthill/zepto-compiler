@@ -17,7 +17,7 @@ from os.path import dirname
 from xml.etree import ElementTree
 
 from smartanthill_zc import parse_xml, parse_js, builtin, visitor,\
-    vm, statement, writer, op_node
+    vm, statement, writer, op_node, encode
 from smartanthill_zc.compiler import Compiler, Ctx, process_syntax_tree
 from smartanthill_zc.root import RootNode
 
@@ -186,6 +186,12 @@ class ZeptoProgram(object):
         assert self._response_type.is_message_type()
 
         data.reverse()
+        header = encode.decode_unsigned_int(data)
+        assert header % 16 == 0
+        size = header / 16
+        if size != len(data):
+            data = data[-size:]
+
         return self._response_type.process_reverse_response(data)
 
 

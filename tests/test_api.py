@@ -14,7 +14,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import pytest
-
 from smartanthill_zc import api, errors
 
 
@@ -43,6 +42,7 @@ def test_api_1():
     # 0x06 signed encode for bodypart-id '3'
     # 0x01 data length
     # 0x14 signed encode for data value '10'
+
     assert opcode == bytearray([0x02, 0x06, 0x01, 0x14])
 
 
@@ -62,6 +62,7 @@ def test_no_param():
     # 0x06 signed encode for bodypart-id '3'
     # 0x01 data length
     # 0x14 signed encode for data value '10'
+
     assert opcode == bytearray([0x02, 0x06, 0x01, 0x14])
 
 
@@ -107,7 +108,7 @@ def test_api_2():
     # 0x02 opcode for ZEPTOVM_OP_EXEC
     # 0x06 signed encode for bodypart-id '3'
     # 0x00 data length
-    # 0x14 signed encode for data value '10'
+
     assert opcode == bytearray([0x02, 0x06, 0x00])
 
 
@@ -142,10 +143,40 @@ def test_response_1():
 
     # 0x02 opcode for ZEPTOVM_OP_EXEC
     # 0x06 signed encode for bodypart-id '3'
-    # 0x00 data length
-    # 0x14 signed encode for data value '10'
+    # 0x01 data length
+    # 0x04 signed encode for data value '10'
     assert opcode == bytearray([0x02, 0x06, 0x01, 0x04])
 
-    res = zp.process_response(bytearray([98]))
+    res = zp.process_response(bytearray([0x20, 0x00, 98, 0xcd, 0xcd, 0xcd]))
 
     assert res == {'xyz': 29.8}
+
+
+def test_response_2():
+
+    plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
+
+    sensor2 = api.ZeptoBodyPart(plugin, 1, 'Other')
+    sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+    zp = api.ZeptoProgram(
+        "return [BodyPartName.Execute(2), Other.Execute(3)]",
+        [sensor1, sensor2])
+
+    opcode = zp.compile()
+
+    # 0x02 opcode for ZEPTOVM_OP_EXEC
+    # 0x06 signed encode for bodypart-id '3'
+    # 0x01 data length
+    # 0x04 signed encode for data value '2'
+    # 0x02 opcode for ZEPTOVM_OP_EXEC
+    # 0x06 signed encode for bodypart-id '1'
+    # 0x01 data length
+    # 0x06 signed encode for data value '3'
+
+    assert opcode == bytearray(
+        [0x02, 0x06, 0x01, 0x04, 0x02, 0x02, 0x01, 0x06])
+
+    res = zp.process_response(bytearray([0x40, 0x00, 98, 0x00, 100]))
+
+    assert res == [{'xyz': 29.8}, {'xyz': 30.0}]

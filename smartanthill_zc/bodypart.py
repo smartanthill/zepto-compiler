@@ -374,6 +374,9 @@ class MessageTypeDeclNode(TypeDeclNode):
         '''
         Process response data
         '''
+        # discard TYPE_OF_FRAME until further definitions
+        encode.decode_unsigned_int(reversed_data)  # TODO: TYPE_OF_FRAME
+
         result = {}
         for each in self.childs_elements:
             current = each.ref_field_type.process_reverse(reversed_data)
