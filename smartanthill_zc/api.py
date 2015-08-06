@@ -185,6 +185,7 @@ class ZeptoProgram(object):
         assert self._response_type
         assert self._response_type.is_message_type()
 
+        data = data[:]  # make a copy
         data.reverse()
         header = encode.decode_unsigned_int(data)
         assert header % 16 == 0
