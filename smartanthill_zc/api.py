@@ -43,7 +43,7 @@ class ZeptoPlugin(object):
     def get_request_fields(self):
         return self._get_items_by_path(
             "./request",
-            ("type", "name")
+            ("type", "name", "title", "min", "max", "default")
         )
 
     def get_response_fields(self):
@@ -80,7 +80,7 @@ class ZeptoPlugin(object):
     def get_options(self):
         options = self._get_items_by_path(
             "./configuration/options",
-            ("type", "name", "title", "default")
+            ("type", "name", "title", "min", "max", "default")
         )
 
         for index, item in enumerate(options or []):
