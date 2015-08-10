@@ -79,12 +79,6 @@ class _TextWriter(object):
         self._current = None
         self._compiler = compiler
 
-    def get_compiler(self):
-        '''
-        Returns the compiler instance
-        '''
-        return self._compiler
-
     def create_sub_writer(self):
         '''
         Creates a new sub writer instance
@@ -257,12 +251,6 @@ class BinaryWriter(object):
         '''
         self._result = bytearray()
         self._compiler = compiler
-
-    def get_compiler(self):
-        '''
-        Returns the compiler instance
-        '''
-        return self._compiler
 
     def create_sub_writer(self):
         '''

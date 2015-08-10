@@ -204,7 +204,7 @@ def zepto_exec_cmd(bodypart_id, data):
     compiler = Compiler()
     op = compiler.init_node(op_node.ExecOpNode(), Ctx.TARGET)
     op.bodypart_id = bodypart_id
-    op.data = data
+    op.data = bytearray(data)
 
     code = writer.write_binary(compiler, op)
 

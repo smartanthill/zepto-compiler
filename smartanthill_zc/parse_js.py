@@ -46,10 +46,10 @@ def parse_js_string(compiler, data):
     return tree
 
 
-def _parse_js_number(compiler, data, ctx):
+def _parse_js_expression(compiler, data, ctx):
     '''
-    Parse string containing number literal
-    Returns an antlr parse tree
+    Parse string containing constant expression
+    Returns a node tree with expression node
     '''
 
     #    input = FileStream(argv[1])
@@ -59,16 +59,89 @@ def _parse_js_number(compiler, data, ctx):
     parser = ECMAScriptParser(stream)
 #    parser.removeErrorListener()
     parser.addErrorListener(_ProxyAntlrErrorListener(compiler))
-    tree = parser.numericLiteral()
+    tree = parser.singleExpression()
 
-    token = tree.DecimalLiteral()
-    if token is None:
-        compiler.report_error(ctx, "Invalid number literal '%s'", data)
-        compiler.raise_error()
+    check = _FilterParameterExpressionVisitor(ctx, compiler)
+    check.visit(tree)
 
-    txt = get_token_text(compiler, token)
+    visitor = _JsSyntaxVisitor(compiler)
+    expr = visitor.visit(tree)
 
-    return txt
+    return expr
+
+
+class _FilterParameterExpressionVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
+
+    '''
+    Visitor class that implements js_tree_to_syntax_tree function
+
+    The template for the visitor is copy&paste from super class interface
+    ECMAScriptVisitor.ECMAScriptVisitor
+    '''
+
+    def __init__(self, ctx, compiler):
+        '''
+        Constructor
+        '''
+        self.ctx = ctx
+        self._compiler = compiler
+
+    def visitChildren(self, current):
+        '''
+        Overrides antlr4.ParseTreeVisitor method
+        Changes default action, from walking down the tree to
+        fail with assert, this will expose any parsed node that does not have
+        a valid interpretation rule here
+        '''
+        self._compiler.report_error(
+            self.ctx,
+            "Unsupported parameter value '%s'" % str(current.getText()))
+
+    # Visit a parse tree produced by ECMAScriptParser#LogicalOrExpression.
+    def visitLogicalOrExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+        self.visit(ctx.singleExpression(1))
+
+    # Visit a parse tree produced by ECMAScriptParser#LogicalAndExpression.
+    def visitLogicalAndExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+        self.visit(ctx.singleExpression(1))
+
+    # Visit a parse tree produced by ECMAScriptParser#LiteralExpression.
+    def visitLiteralExpression(self, ctx):
+        pass
+
+    # Visit a parse tree produced by ECMAScriptParser#NotExpression.
+    def visitNotExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+
+    # Visit a parse tree produced by ECMAScriptParser#RelationalExpression.
+    def visitRelationalExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+        self.visit(ctx.singleExpression(1))
+
+    # Visit a parse tree produced by ECMAScriptParser#ParenthesizedExpression.
+    def visitParenthesizedExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+
+    # Visit a parse tree produced by ECMAScriptParser#EqualityExpression.
+    def visitEqualityExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+        self.visit(ctx.singleExpression(1))
+
+    # Visit a parse tree produced by ECMAScriptParser#UnaryExpression.
+    def visitUnaryExpression(self, ctx):
+        self.visit(ctx.singleExpression())
+
+    # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
+    def visitAdditiveExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+        self.visit(ctx.singleExpression(1))
+
+    # Visit a parse tree produced by ECMAScriptParser#MultiplicativeExpression.
+    def visitMultiplicativeExpression(self, ctx):
+        self.visit(ctx.singleExpression(0))
+        self.visit(ctx.singleExpression(1))
 
 
 def create_parameters(compiler, data, ctx):
@@ -95,16 +168,13 @@ def create_parameters(compiler, data, ctx):
                 expr.txt_literal = str(value)
                 var.set_initializer(expr)
             elif isinstance(value, str):
-                expr = compiler.init_node(
-                    expression.NumberLiteralExprNode(), ctx)
-
-                expr.txt_literal = _parse_js_number(compiler, value, ctx)
+                expr = _parse_js_expression(compiler, value, ctx)
                 var.set_initializer(expr)
 
             else:
                 compiler.report_error(
-                    ctx, "Invalid data type '%s' at parameter '%s'",
-                    type(value).__name__, key)
+                    ctx, "Invalid data type '%s' at parameter '%s'" %
+                    (type(value).__name__, key))
 
             decls.add_declaration(var)
 
@@ -175,7 +245,7 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
                         '*', '/', '%', '+', '-',
                         '<', '>', '<=', '>=', '==', '!=']:
             self._compiler.report_error(
-                node_ctx, "Operator '%s' not supported", text)
+                node_ctx, "Operator '%s' not supported" % text)
 
         arg_list = self._compiler.init_node(node.ArgumentListNode(), node_ctx)
 
@@ -500,6 +570,11 @@ class _JsSyntaxVisitor(ECMAScriptVisitor.ECMAScriptVisitor):
     def visitEqualityExpression(self, ctx):
         return self.init_operator(expression.ComparisonOpExprNode(), ctx,
                                   ctx.getChild(1), ctx.singleExpression())
+
+    # Visit a parse tree produced by ECMAScriptParser#UnaryExpression.
+    def visitUnaryExpression(self, ctx):
+        return self.init_operator(expression.UnaryOpExprNode(), ctx,
+                                  ctx.getChild(0), [ctx.singleExpression()])
 
     # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
     def visitAdditiveExpression(self, ctx):

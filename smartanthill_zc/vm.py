@@ -14,8 +14,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc import expression, op_node, comparison
 from smartanthill_zc import array
+from smartanthill_zc import expression, op_node, comparison
 from smartanthill_zc.antlr_helper import (get_reference_lines,
                                           get_reference_text)
 from smartanthill_zc.compiler import Ctx
@@ -414,7 +414,7 @@ class _ZeptoVm(object):
 
         if target_vm.number > self.level.number:
             compiler.report_error(
-                ctx, "Operation is not supported by " + self.level.fullname)
+                ctx, "Operation is not supported by %s" % self.level.fullname)
             compiler.raise_error()
 
 
@@ -479,8 +479,8 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         '''
         Default action when a node specific action is not found
         '''
-        self._compiler.report_error(node.ctx, "Statement not supported by "
-                                    + self._vm.level.fullname)
+        self._compiler.report_error(node.ctx, "Statement not supported by %s"
+                                    % self._vm.level.fullname)
 
     def add_reply_rearrange(self):
         '''
@@ -599,7 +599,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
                 else:
                     self._compiler.report_error(
                         current.ctx, "Expression at 'return' statement could "
-                        "not be resolved for " + self._vm.level.fullname)
+                        "not be resolved for %s" % self._vm.level.fullname)
 
             # first rearrange to drop everything not needed
             rearrange = self.add_reply_rearrange()
@@ -615,7 +615,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at 'return' statement could not be "
-                "resolved for " + self._vm.level.fullname)
+                "resolved for %s" % self._vm.level.fullname)
 
         exitop = self._compiler.init_node(op_node.ExitOpNode(), node.ctx)
 
@@ -629,20 +629,17 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._add_op(stmtop)
 
     def _BodyPartCallExprNode(self, node):
-        exprop = self._compiler.init_node(op_node.ExecOpNode(), node.ctx)
-        exprop.bodypart_id = node.ref_bodypart_decl.bodypart_id
+        ex = self._compiler.init_node(op_node.ExecOpNode(), node.ctx)
+        ex.bodypart_id = node.ref_bodypart_decl.bodypart_id
 
-        if len(node.child_argument_list.childs_arguments) == 0:
-            pass
-        elif len(node.child_argument_list.childs_arguments) == 1:
-            exprop.encode_helper = node.child_argument_list.childs_arguments[
-                0].get_type().get_encoding()
-            exprop.data_value = node.child_argument_list.childs_arguments[
-                0].get_static_value()
-        else:
-            assert False
+        for each in node.child_argument_list.childs_arguments:
+            encode_helper = each.get_type().get_encoding()
+            value = each.get_static_value()
 
-        self._add_op(exprop)
+            data = encode_helper.encode_value(self._compiler, each.ctx, value)
+            ex.data.extend(data)
+
+        self._add_op(ex)
 
     def visit_IfElseStmtNode(self, node):
 
@@ -716,7 +713,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         else:
             self._compiler.report_error(
                 node.ctx, "Expression at statement could not be "
-                "resolved for " + self._vm.level.fullname)
+                "resolved for %s" % self._vm.level.fullname)
 
     def visit_SimpleForStmtNode(self, node):
 
@@ -772,8 +769,8 @@ class _ZeptoVmIfExprVisitor(NodeVisitor):
         '''
         Default action when a node specific action is not found
         '''
-        self._compiler.report_error(node.ctx, "Expression not supported by "
-                                    + self._vm.level.fullname)
+        self._compiler.report_error(node.ctx, "Expression not supported by %s"
+                                    % self._vm.level.fullname)
 
     def _visit_expression(self, node):
         '''
@@ -934,8 +931,8 @@ class _ZeptoVmExprVisitor(NodeVisitor):
         '''
         Default action when a node specific action is not found
         '''
-        self._compiler.report_error(node.ctx, "Expression not supported by "
-                                    + self._vm.level.fullname)
+        self._compiler.report_error(node.ctx, "Expression not supported by %s"
+                                    % self._vm.level.fullname)
         self._compiler.raise_error()
 
     def visit_MemberAccessExprNode(self, node):

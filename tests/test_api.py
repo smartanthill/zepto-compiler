@@ -13,7 +13,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import pytest
 from smartanthill_zc import api, errors
 
 
@@ -67,8 +66,7 @@ def test_no_param():
 
 
 def test_no_param_error():
-    with pytest.raises(errors.CompilerError):
-
+    try:
         plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
 
         sensor2 = api.ZeptoBodyPart(plugin, 1, 'Other')
@@ -78,11 +76,13 @@ def test_no_param_error():
             "return BodyPartName.Execute(PARAM)", [sensor1, sensor2])
 
         zp.compile()
+        assert False
+    except errors.CompilerError as e:
+        assert e.text == ["line 1, Unresolved variable 'PARAM'"]
 
 
 def test_no_arg_error():
-    with pytest.raises(errors.CompilerError):
-
+    try:
         plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
 
         sensor2 = api.ZeptoBodyPart(plugin, 1, 'Other')
@@ -92,6 +92,10 @@ def test_no_arg_error():
             "return BodyPartName.Execute()", [sensor1, sensor2])
 
         zp.compile()
+        assert False
+    except errors.CompilerError as e:
+        assert e.text == [
+            "line 1, Wrong number of arguments, need 1 but given 0"]
 
 
 def test_api_2():
@@ -119,7 +123,7 @@ def test_api_3():
     sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
 
     zp = api.ZeptoProgram(
-        "return BodyPartName.Execute(3)", [sensor1])
+        "return BodyPartName.Execute(3, 5)", [sensor1])
 
     opcode = zp.compile()
 
@@ -127,7 +131,9 @@ def test_api_3():
     # 0x06 signed encode for bodypart-id '3'
     # 0x01 data length
     # 0x06 signed encode for data value '3'
-    assert opcode == bytearray([0x02, 0x06, 0x01, 0x06])
+    # 0x06 signed encode for data value '5'
+
+    assert opcode == bytearray([0x02, 0x06, 0x02, 0x06, 0x05])
 
 
 def test_response_1():
@@ -196,11 +202,11 @@ def test_dynamic_data_1():
     assert opcode == zp.compile({"PARAM1": "5"})
     assert opcode == zp.compile({"PARAM1": 5.0})
     assert opcode == zp.compile({"PARAM1": "5.0"})
+    assert opcode == zp.compile({"PARAM1": "2 + 3"})
 
 
 def test_bad_dynamic_data_error():
-    with pytest.raises(errors.CompilerError):
-
+    try:
         plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
 
         sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
@@ -209,3 +215,27 @@ def test_bad_dynamic_data_error():
             "return BodyPartName.Execute(PARAM1)", [sensor1])
 
         zp.compile({"PARAM1": "x"})
+
+        assert False
+
+    except errors.CompilerError as e:
+        assert e.text == ["<parameter>, Unsupported parameter value 'x'"]
+
+
+def test_bad_dynamic_data_error_2():
+    try:
+        plugin = api.ZeptoPlugin('tests/test_plugin_3.xml')
+
+        sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+        zp = api.ZeptoProgram(
+            "return BodyPartName.Execute(PARAM1, PARAM2)", [sensor1])
+
+        zp.compile({"PARAM1": "100000", "PARAM2": "-1"})
+
+        assert False
+
+    except errors.CompilerError as e:
+        assert e.text == [
+            "line 1, Value 100000.0 outside valid range [-32768, 32767]",
+            "line 1, Value -1.0 outside valid range [0, 255]"]

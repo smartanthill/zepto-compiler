@@ -46,7 +46,7 @@ class FunctionCallExprNode(ExpressionNode):
         compiler.resolve_node(self.child_argument_list)
 
         compiler.report_error(
-            self.ctx, "Unresolved function call '%s'", self.txt_name)
+            self.ctx, "Unresolved function call '%s'" % self.txt_name)
 
         t = self.get_scope(RootScope).lookup_type('_zc_void')
         self.set_type(t)
@@ -84,7 +84,7 @@ class BodyPartCallExprNode(ExpressionNode):
         bp = self.get_scope(RootScope).lookup_bodypart(self.txt_bodypart)
 
         if not bp:
-            compiler.report_error(self.ctx, "Unresolved plug-in name '%s'",
+            compiler.report_error(self.ctx, "Unresolved plug-in name '%s'" %
                                   self.txt_bodypart)
             compiler.raise_error()
 
@@ -139,7 +139,7 @@ class MemberAccessExprNode(ExpressionNode):
         t = self.child_expression.get_type()
         m = t.lookup_member(self.txt_member)
         if not m:
-            compiler.report_error(self.ctx, "Member '%s' not found",
+            compiler.report_error(self.ctx, "Member '%s' not found" %
                                   self.txt_member)
             compiler.raise_error()
 
@@ -299,7 +299,7 @@ class VariableExprNode(ExpressionNode):
             decl = self.get_scope(RootScope).lookup_parameter(self.txt_name)
             if not decl:
                 compiler.report_error(
-                    self.ctx, "Unresolved variable '%s'", self.txt_name)
+                    self.ctx, "Unresolved variable '%s'" % self.txt_name)
                 compiler.raise_error()
 
         self.ref_decl = decl
@@ -431,6 +431,20 @@ class ArithmeticOpExprNode(OperatorExprNode):
         Constructor
         '''
         super(ArithmeticOpExprNode, self).__init__()
+
+
+class UnaryOpExprNode(OperatorExprNode):
+
+    '''
+    Node class representing an unary arithmetic operator expression
+    Prefix '+', '-'
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(UnaryOpExprNode, self).__init__()
 
 
 class ComparisonOpExprNode(OperatorExprNode):

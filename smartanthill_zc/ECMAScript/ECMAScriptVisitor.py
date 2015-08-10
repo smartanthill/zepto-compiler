@@ -215,6 +215,11 @@ class ECMAScriptVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by ECMAScriptParser#UnaryExpression.
+    def visitUnaryExpression(self, ctx):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by ECMAScriptParser#AdditiveExpression.
     def visitAdditiveExpression(self, ctx):
         return self.visitChildren(ctx)

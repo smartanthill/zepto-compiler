@@ -126,4 +126,4 @@ class RootNode(Node):
         if kind == RootScope:
             return self._root_scope
         else:
-            return super(RootNode, self).get_scope(kind)
+            return None

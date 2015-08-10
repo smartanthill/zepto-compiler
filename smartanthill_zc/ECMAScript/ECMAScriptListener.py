@@ -382,6 +382,15 @@ class ECMAScriptListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by ECMAScriptParser#UnaryExpression.
+    def enterUnaryExpression(self, ctx):
+        pass
+
+    # Exit a parse tree produced by ECMAScriptParser#UnaryExpression.
+    def exitUnaryExpression(self, ctx):
+        pass
+
+
     # Enter a parse tree produced by ECMAScriptParser#AdditiveExpression.
     def enterAdditiveExpression(self, ctx):
         pass

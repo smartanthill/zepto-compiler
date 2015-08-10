@@ -17,6 +17,7 @@ Copyright (C) 2015 OLogN Technologies AG
 
   <request>
     <field name="abc" type="encoded-int[max=2]" />
+    <field name="def" type="encoded-uint[max=1]" />
   </request>
 
   <response>

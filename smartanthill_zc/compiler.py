@@ -80,6 +80,7 @@ class Compiler(object):
         self.next_node_id = 0
         self.removed_nodes = []
         self.error_flag = False
+        self.error_message = []
 
     def init_node(self, node, ctx):
         '''
@@ -105,15 +106,13 @@ class Compiler(object):
         if node:
             node.resolve(self)
 
-    def report_error(self, ctx, fmt, args=None):
+    def report_error(self, ctx, text):
         '''
         Reports an error
         '''
         self.error_flag = True
-        if args:
-            print format_location(ctx) + fmt % args
-        else:
-            print format_location(ctx) + fmt
+        self.error_message.append(format_location(ctx) + text)
+        print self.error_message[-1]
 
     def syntax_error(self):
         '''
@@ -137,7 +136,7 @@ class Compiler(object):
         Raises CompilerError
         '''
         # pylint: disable=no-self-use
-        raise CompilerError()
+        raise CompilerError(self.error_message)
 
 
 def process_syntax_tree(compiler, root):

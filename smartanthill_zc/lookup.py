@@ -56,7 +56,7 @@ class StatementListScope(object):
         '''
         if name in self._variables:
             compiler.report_error(
-                node.ctx, "Redeclaration of '%s'", name)
+                node.ctx, "Redeclaration of '%s'" % name)
             compiler.report_error(
                 self._variables[name].ctx, "Previous was here")
 
@@ -137,7 +137,7 @@ class RootScope(object):
 
         if name in self._bodyparts:
             compiler.report_error(
-                node.ctx, "Duplicate use of plug-in name '%s'", name)
+                node.ctx, "Duplicate use of plug-in name '%s'" % name)
 
         self._bodyparts[name] = node
 
@@ -154,7 +154,7 @@ class RootScope(object):
 
         if name in self._types:
             compiler.report_error(
-                node.ctx, "Duplicate use of type name '%s'", name)
+                node.ctx, "Duplicate use of type name '%s'" % name)
 
         self._types[name] = node
 
@@ -188,7 +188,7 @@ class RootScope(object):
 
         if name in self._functions:
             compiler.report_error(
-                node.ctx, "Duplicate use of name '%s'", name)
+                node.ctx, "Duplicate use of name '%s'" % name)
 
         self._functions[name] = node
 
@@ -204,7 +204,7 @@ class RootScope(object):
         '''
         if name in self._parameters:
             compiler.report_error(
-                node.ctx, "Redeclaration of '%s'", name)
+                node.ctx, "Redeclaration of '%s'" % name)
             compiler.report_error(
                 self._parameters[name].ctx, "Previous was here")
 

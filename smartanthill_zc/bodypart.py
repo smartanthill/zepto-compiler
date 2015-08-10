@@ -99,8 +99,10 @@ class EncodingHelper(object):
         Check value range and encode
         '''
         if value < self._min_value or value > self._max_value:
-            compiler.report_error(ctx, 'Value %s outside valid range [%s, %s]',
-                                  value, self._min_value, self._max_value)
+            compiler.report_error(
+                ctx,
+                'Value %s outside valid range [%s, %s]' %
+                (value, self._min_value, self._max_value))
             value = self._min_value
 
         if self.encoding == Encoding.UNSIGNED_INT:

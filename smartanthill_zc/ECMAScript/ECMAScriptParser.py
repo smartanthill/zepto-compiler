@@ -15,7 +15,7 @@ else:
 def serializedATN():
     with StringIO() as buf:
         buf.write(u"\3\u0430\ud6d1\u8206\uad2d\u4417\uaef1\u8d80\uaadd\3")
-        buf.write(u"g\u0141\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t")
+        buf.write(u"g\u0143\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t")
         buf.write(u"\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r")
         buf.write(u"\4\16\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22\4")
         buf.write(u"\23\t\23\4\24\t\24\4\25\t\25\4\26\t\26\4\27\t\27\4\30")
@@ -42,87 +42,87 @@ def serializedATN():
         buf.write(u"\13\26\3\27\3\27\5\27\u00fc\n\27\3\27\3\27\3\30\3\30")
         buf.write(u"\3\30\7\30\u0103\n\30\f\30\16\30\u0106\13\30\3\31\3\31")
         buf.write(u"\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3")
-        buf.write(u"\31\3\31\3\31\3\31\3\31\3\31\3\31\5\31\u011b\n\31\3\31")
-        buf.write(u"\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3")
-        buf.write(u"\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\7\31")
-        buf.write(u"\u0132\n\31\f\31\16\31\u0135\13\31\3\32\3\32\3\33\3\33")
-        buf.write(u"\5\33\u013b\n\33\3\34\3\34\3\35\3\35\3\35\2\3\60\36\2")
-        buf.write(u"\4\6\b\n\f\16\20\22\24\26\30\32\34\36 \"$&(*,.\60\62")
-        buf.write(u"\64\668\2\b\3\2\27\31\3\2\23\24\3\2\35 \3\2!$\3\2*\64")
-        buf.write(u"\3\3\13\13\u0154\2;\3\2\2\2\4@\3\2\2\2\6D\3\2\2\2\bN")
-        buf.write(u"\3\2\2\2\nP\3\2\2\2\fT\3\2\2\2\16[\3\2\2\2\20_\3\2\2")
-        buf.write(u"\2\22c\3\2\2\2\24k\3\2\2\2\26o\3\2\2\2\30r\3\2\2\2\32")
-        buf.write(u"t\3\2\2\2\34w\3\2\2\2\36\u00cd\3\2\2\2 \u00cf\3\2\2\2")
-        buf.write(u"\"\u00d5\3\2\2\2$\u00e0\3\2\2\2&\u00e9\3\2\2\2(\u00eb")
-        buf.write(u"\3\2\2\2*\u00f1\3\2\2\2,\u00f9\3\2\2\2.\u00ff\3\2\2\2")
-        buf.write(u"\60\u011a\3\2\2\2\62\u0136\3\2\2\2\64\u013a\3\2\2\2\66")
-        buf.write(u"\u013c\3\2\2\28\u013e\3\2\2\2:<\5\4\3\2;:\3\2\2\2;<\3")
-        buf.write(u"\2\2\2<=\3\2\2\2=>\7\2\2\3>\3\3\2\2\2?A\5\6\4\2@?\3\2")
-        buf.write(u"\2\2AB\3\2\2\2B@\3\2\2\2BC\3\2\2\2C\5\3\2\2\2DE\5\b\5")
-        buf.write(u"\2E\7\3\2\2\2FO\5\f\7\2GO\5\20\t\2HO\5\30\r\2IO\5\32")
-        buf.write(u"\16\2JO\5\34\17\2KO\5\36\20\2LO\5 \21\2MO\5\n\6\2NF\3")
-        buf.write(u"\2\2\2NG\3\2\2\2NH\3\2\2\2NI\3\2\2\2NJ\3\2\2\2NK\3\2")
-        buf.write(u"\2\2NL\3\2\2\2NM\3\2\2\2O\t\3\2\2\2PQ\7\3\2\2QR\5,\27")
-        buf.write(u"\2RS\58\35\2S\13\3\2\2\2TV\7\t\2\2UW\5\16\b\2VU\3\2\2")
-        buf.write(u"\2VW\3\2\2\2WX\3\2\2\2XY\7\n\2\2Y\r\3\2\2\2Z\\\5\b\5")
-        buf.write(u"\2[Z\3\2\2\2\\]\3\2\2\2][\3\2\2\2]^\3\2\2\2^\17\3\2\2")
-        buf.write(u"\2_`\7@\2\2`a\5\22\n\2ab\58\35\2b\21\3\2\2\2ch\5\24\13")
-        buf.write(u"\2de\7\f\2\2eg\5\24\13\2fd\3\2\2\2gj\3\2\2\2hf\3\2\2")
-        buf.write(u"\2hi\3\2\2\2i\23\3\2\2\2jh\3\2\2\2km\7c\2\2ln\5\26\f")
-        buf.write(u"\2ml\3\2\2\2mn\3\2\2\2n\25\3\2\2\2op\7\r\2\2pq\5\60\31")
-        buf.write(u"\2q\27\3\2\2\2rs\7\13\2\2s\31\3\2\2\2tu\5\60\31\2uv\7")
-        buf.write(u"\13\2\2v\33\3\2\2\2wx\7N\2\2xy\7\7\2\2yz\5\60\31\2z{")
-        buf.write(u"\7\b\2\2{~\5\b\5\2|}\7>\2\2}\177\5\b\5\2~|\3\2\2\2~\177")
-        buf.write(u"\3\2\2\2\177\35\3\2\2\2\u0080\u0081\7:\2\2\u0081\u0082")
-        buf.write(u"\5\b\5\2\u0082\u0083\7H\2\2\u0083\u0084\7\7\2\2\u0084")
-        buf.write(u"\u0085\5\60\31\2\u0085\u0086\7\b\2\2\u0086\u0087\58\35")
-        buf.write(u"\2\u0087\u00ce\3\2\2\2\u0088\u0089\7H\2\2\u0089\u008a")
-        buf.write(u"\7\7\2\2\u008a\u008b\5\60\31\2\u008b\u008c\7\b\2\2\u008c")
-        buf.write(u"\u008d\5\b\5\2\u008d\u00ce\3\2\2\2\u008e\u008f\7F\2\2")
-        buf.write(u"\u008f\u0090\7\7\2\2\u0090\u0091\7@\2\2\u0091\u0092\7")
-        buf.write(u"c\2\2\u0092\u0093\7\r\2\2\u0093\u0094\5\60\31\2\u0094")
-        buf.write(u"\u0095\7\13\2\2\u0095\u0096\7c\2\2\u0096\u0097\7\35\2")
-        buf.write(u"\2\u0097\u0098\5\60\31\2\u0098\u0099\7\13\2\2\u0099\u009a")
-        buf.write(u"\7c\2\2\u009a\u009b\7\21\2\2\u009b\u009c\7\b\2\2\u009c")
-        buf.write(u"\u009d\5\b\5\2\u009d\u00ce\3\2\2\2\u009e\u009f\7F\2\2")
-        buf.write(u"\u009f\u00a1\7\7\2\2\u00a0\u00a2\5\60\31\2\u00a1\u00a0")
-        buf.write(u"\3\2\2\2\u00a1\u00a2\3\2\2\2\u00a2\u00a3\3\2\2\2\u00a3")
-        buf.write(u"\u00a5\7\13\2\2\u00a4\u00a6\5\60\31\2\u00a5\u00a4\3\2")
-        buf.write(u"\2\2\u00a5\u00a6\3\2\2\2\u00a6\u00a7\3\2\2\2\u00a7\u00a9")
-        buf.write(u"\7\13\2\2\u00a8\u00aa\5\60\31\2\u00a9\u00a8\3\2\2\2\u00a9")
-        buf.write(u"\u00aa\3\2\2\2\u00aa\u00ab\3\2\2\2\u00ab\u00ac\7\b\2")
-        buf.write(u"\2\u00ac\u00ce\5\b\5\2\u00ad\u00ae\7F\2\2\u00ae\u00af")
-        buf.write(u"\7\7\2\2\u00af\u00b0\7@\2\2\u00b0\u00b1\5\22\n\2\u00b1")
-        buf.write(u"\u00b3\7\13\2\2\u00b2\u00b4\5\60\31\2\u00b3\u00b2\3\2")
-        buf.write(u"\2\2\u00b3\u00b4\3\2\2\2\u00b4\u00b5\3\2\2\2\u00b5\u00b7")
-        buf.write(u"\7\13\2\2\u00b6\u00b8\5\60\31\2\u00b7\u00b6\3\2\2\2\u00b7")
-        buf.write(u"\u00b8\3\2\2\2\u00b8\u00b9\3\2\2\2\u00b9\u00ba\7\b\2")
-        buf.write(u"\2\u00ba\u00bb\5\b\5\2\u00bb\u00ce\3\2\2\2\u00bc\u00bd")
-        buf.write(u"\7F\2\2\u00bd\u00be\7\7\2\2\u00be\u00bf\5\60\31\2\u00bf")
-        buf.write(u"\u00c0\7Q\2\2\u00c0\u00c1\5\60\31\2\u00c1\u00c2\7\b\2")
-        buf.write(u"\2\u00c2\u00c3\5\b\5\2\u00c3\u00ce\3\2\2\2\u00c4\u00c5")
-        buf.write(u"\7F\2\2\u00c5\u00c6\7\7\2\2\u00c6\u00c7\7@\2\2\u00c7")
-        buf.write(u"\u00c8\5\24\13\2\u00c8\u00c9\7Q\2\2\u00c9\u00ca\5\60")
-        buf.write(u"\31\2\u00ca\u00cb\7\b\2\2\u00cb\u00cc\5\b\5\2\u00cc\u00ce")
-        buf.write(u"\3\2\2\2\u00cd\u0080\3\2\2\2\u00cd\u0088\3\2\2\2\u00cd")
-        buf.write(u"\u008e\3\2\2\2\u00cd\u009e\3\2\2\2\u00cd\u00ad\3\2\2")
-        buf.write(u"\2\u00cd\u00bc\3\2\2\2\u00cd\u00c4\3\2\2\2\u00ce\37\3")
-        buf.write(u"\2\2\2\u00cf\u00d1\7C\2\2\u00d0\u00d2\5\60\31\2\u00d1")
-        buf.write(u"\u00d0\3\2\2\2\u00d1\u00d2\3\2\2\2\u00d2\u00d3\3\2\2")
-        buf.write(u"\2\u00d3\u00d4\58\35\2\u00d4!\3\2\2\2\u00d5\u00d6\7J")
-        buf.write(u"\2\2\u00d6\u00d7\7c\2\2\u00d7\u00d9\7\7\2\2\u00d8\u00da")
-        buf.write(u"\5$\23\2\u00d9\u00d8\3\2\2\2\u00d9\u00da\3\2\2\2\u00da")
-        buf.write(u"\u00db\3\2\2\2\u00db\u00dc\7\b\2\2\u00dc\u00dd\7\t\2")
-        buf.write(u"\2\u00dd\u00de\5&\24\2\u00de\u00df\7\n\2\2\u00df#\3\2")
-        buf.write(u"\2\2\u00e0\u00e5\7c\2\2\u00e1\u00e2\7\f\2\2\u00e2\u00e4")
-        buf.write(u"\7c\2\2\u00e3\u00e1\3\2\2\2\u00e4\u00e7\3\2\2\2\u00e5")
-        buf.write(u"\u00e3\3\2\2\2\u00e5\u00e6\3\2\2\2\u00e6%\3\2\2\2\u00e7")
-        buf.write(u"\u00e5\3\2\2\2\u00e8\u00ea\5\4\3\2\u00e9\u00e8\3\2\2")
-        buf.write(u"\2\u00e9\u00ea\3\2\2\2\u00ea\'\3\2\2\2\u00eb\u00ed\7")
-        buf.write(u"\5\2\2\u00ec\u00ee\5*\26\2\u00ed\u00ec\3\2\2\2\u00ed")
-        buf.write(u"\u00ee\3\2\2\2\u00ee\u00ef\3\2\2\2\u00ef\u00f0\7\6\2")
-        buf.write(u"\2\u00f0)\3\2\2\2\u00f1\u00f6\5\60\31\2\u00f2\u00f3\7")
-        buf.write(u"\f\2\2\u00f3\u00f5\5\60\31\2\u00f4\u00f2\3\2\2\2\u00f5")
+        buf.write(u"\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\5\31\u011d")
+        buf.write(u"\n\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3")
+        buf.write(u"\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31\3\31")
+        buf.write(u"\3\31\7\31\u0134\n\31\f\31\16\31\u0137\13\31\3\32\3\32")
+        buf.write(u"\3\33\3\33\5\33\u013d\n\33\3\34\3\34\3\35\3\35\3\35\2")
+        buf.write(u"\3\60\36\2\4\6\b\n\f\16\20\22\24\26\30\32\34\36 \"$&")
+        buf.write(u"(*,.\60\62\64\668\2\b\3\2\23\24\3\2\27\31\3\2\35 \3\2")
+        buf.write(u"!$\3\2*\64\3\3\13\13\u0157\2;\3\2\2\2\4@\3\2\2\2\6D\3")
+        buf.write(u"\2\2\2\bN\3\2\2\2\nP\3\2\2\2\fT\3\2\2\2\16[\3\2\2\2\20")
+        buf.write(u"_\3\2\2\2\22c\3\2\2\2\24k\3\2\2\2\26o\3\2\2\2\30r\3\2")
+        buf.write(u"\2\2\32t\3\2\2\2\34w\3\2\2\2\36\u00cd\3\2\2\2 \u00cf")
+        buf.write(u"\3\2\2\2\"\u00d5\3\2\2\2$\u00e0\3\2\2\2&\u00e9\3\2\2")
+        buf.write(u"\2(\u00eb\3\2\2\2*\u00f1\3\2\2\2,\u00f9\3\2\2\2.\u00ff")
+        buf.write(u"\3\2\2\2\60\u011c\3\2\2\2\62\u0138\3\2\2\2\64\u013c\3")
+        buf.write(u"\2\2\2\66\u013e\3\2\2\28\u0140\3\2\2\2:<\5\4\3\2;:\3")
+        buf.write(u"\2\2\2;<\3\2\2\2<=\3\2\2\2=>\7\2\2\3>\3\3\2\2\2?A\5\6")
+        buf.write(u"\4\2@?\3\2\2\2AB\3\2\2\2B@\3\2\2\2BC\3\2\2\2C\5\3\2\2")
+        buf.write(u"\2DE\5\b\5\2E\7\3\2\2\2FO\5\f\7\2GO\5\20\t\2HO\5\30\r")
+        buf.write(u"\2IO\5\32\16\2JO\5\34\17\2KO\5\36\20\2LO\5 \21\2MO\5")
+        buf.write(u"\n\6\2NF\3\2\2\2NG\3\2\2\2NH\3\2\2\2NI\3\2\2\2NJ\3\2")
+        buf.write(u"\2\2NK\3\2\2\2NL\3\2\2\2NM\3\2\2\2O\t\3\2\2\2PQ\7\3\2")
+        buf.write(u"\2QR\5,\27\2RS\58\35\2S\13\3\2\2\2TV\7\t\2\2UW\5\16\b")
+        buf.write(u"\2VU\3\2\2\2VW\3\2\2\2WX\3\2\2\2XY\7\n\2\2Y\r\3\2\2\2")
+        buf.write(u"Z\\\5\b\5\2[Z\3\2\2\2\\]\3\2\2\2][\3\2\2\2]^\3\2\2\2")
+        buf.write(u"^\17\3\2\2\2_`\7@\2\2`a\5\22\n\2ab\58\35\2b\21\3\2\2")
+        buf.write(u"\2ch\5\24\13\2de\7\f\2\2eg\5\24\13\2fd\3\2\2\2gj\3\2")
+        buf.write(u"\2\2hf\3\2\2\2hi\3\2\2\2i\23\3\2\2\2jh\3\2\2\2km\7c\2")
+        buf.write(u"\2ln\5\26\f\2ml\3\2\2\2mn\3\2\2\2n\25\3\2\2\2op\7\r\2")
+        buf.write(u"\2pq\5\60\31\2q\27\3\2\2\2rs\7\13\2\2s\31\3\2\2\2tu\5")
+        buf.write(u"\60\31\2uv\7\13\2\2v\33\3\2\2\2wx\7N\2\2xy\7\7\2\2yz")
+        buf.write(u"\5\60\31\2z{\7\b\2\2{~\5\b\5\2|}\7>\2\2}\177\5\b\5\2")
+        buf.write(u"~|\3\2\2\2~\177\3\2\2\2\177\35\3\2\2\2\u0080\u0081\7")
+        buf.write(u":\2\2\u0081\u0082\5\b\5\2\u0082\u0083\7H\2\2\u0083\u0084")
+        buf.write(u"\7\7\2\2\u0084\u0085\5\60\31\2\u0085\u0086\7\b\2\2\u0086")
+        buf.write(u"\u0087\58\35\2\u0087\u00ce\3\2\2\2\u0088\u0089\7H\2\2")
+        buf.write(u"\u0089\u008a\7\7\2\2\u008a\u008b\5\60\31\2\u008b\u008c")
+        buf.write(u"\7\b\2\2\u008c\u008d\5\b\5\2\u008d\u00ce\3\2\2\2\u008e")
+        buf.write(u"\u008f\7F\2\2\u008f\u0090\7\7\2\2\u0090\u0091\7@\2\2")
+        buf.write(u"\u0091\u0092\7c\2\2\u0092\u0093\7\r\2\2\u0093\u0094\5")
+        buf.write(u"\60\31\2\u0094\u0095\7\13\2\2\u0095\u0096\7c\2\2\u0096")
+        buf.write(u"\u0097\7\35\2\2\u0097\u0098\5\60\31\2\u0098\u0099\7\13")
+        buf.write(u"\2\2\u0099\u009a\7c\2\2\u009a\u009b\7\21\2\2\u009b\u009c")
+        buf.write(u"\7\b\2\2\u009c\u009d\5\b\5\2\u009d\u00ce\3\2\2\2\u009e")
+        buf.write(u"\u009f\7F\2\2\u009f\u00a1\7\7\2\2\u00a0\u00a2\5\60\31")
+        buf.write(u"\2\u00a1\u00a0\3\2\2\2\u00a1\u00a2\3\2\2\2\u00a2\u00a3")
+        buf.write(u"\3\2\2\2\u00a3\u00a5\7\13\2\2\u00a4\u00a6\5\60\31\2\u00a5")
+        buf.write(u"\u00a4\3\2\2\2\u00a5\u00a6\3\2\2\2\u00a6\u00a7\3\2\2")
+        buf.write(u"\2\u00a7\u00a9\7\13\2\2\u00a8\u00aa\5\60\31\2\u00a9\u00a8")
+        buf.write(u"\3\2\2\2\u00a9\u00aa\3\2\2\2\u00aa\u00ab\3\2\2\2\u00ab")
+        buf.write(u"\u00ac\7\b\2\2\u00ac\u00ce\5\b\5\2\u00ad\u00ae\7F\2\2")
+        buf.write(u"\u00ae\u00af\7\7\2\2\u00af\u00b0\7@\2\2\u00b0\u00b1\5")
+        buf.write(u"\22\n\2\u00b1\u00b3\7\13\2\2\u00b2\u00b4\5\60\31\2\u00b3")
+        buf.write(u"\u00b2\3\2\2\2\u00b3\u00b4\3\2\2\2\u00b4\u00b5\3\2\2")
+        buf.write(u"\2\u00b5\u00b7\7\13\2\2\u00b6\u00b8\5\60\31\2\u00b7\u00b6")
+        buf.write(u"\3\2\2\2\u00b7\u00b8\3\2\2\2\u00b8\u00b9\3\2\2\2\u00b9")
+        buf.write(u"\u00ba\7\b\2\2\u00ba\u00bb\5\b\5\2\u00bb\u00ce\3\2\2")
+        buf.write(u"\2\u00bc\u00bd\7F\2\2\u00bd\u00be\7\7\2\2\u00be\u00bf")
+        buf.write(u"\5\60\31\2\u00bf\u00c0\7Q\2\2\u00c0\u00c1\5\60\31\2\u00c1")
+        buf.write(u"\u00c2\7\b\2\2\u00c2\u00c3\5\b\5\2\u00c3\u00ce\3\2\2")
+        buf.write(u"\2\u00c4\u00c5\7F\2\2\u00c5\u00c6\7\7\2\2\u00c6\u00c7")
+        buf.write(u"\7@\2\2\u00c7\u00c8\5\24\13\2\u00c8\u00c9\7Q\2\2\u00c9")
+        buf.write(u"\u00ca\5\60\31\2\u00ca\u00cb\7\b\2\2\u00cb\u00cc\5\b")
+        buf.write(u"\5\2\u00cc\u00ce\3\2\2\2\u00cd\u0080\3\2\2\2\u00cd\u0088")
+        buf.write(u"\3\2\2\2\u00cd\u008e\3\2\2\2\u00cd\u009e\3\2\2\2\u00cd")
+        buf.write(u"\u00ad\3\2\2\2\u00cd\u00bc\3\2\2\2\u00cd\u00c4\3\2\2")
+        buf.write(u"\2\u00ce\37\3\2\2\2\u00cf\u00d1\7C\2\2\u00d0\u00d2\5")
+        buf.write(u"\60\31\2\u00d1\u00d0\3\2\2\2\u00d1\u00d2\3\2\2\2\u00d2")
+        buf.write(u"\u00d3\3\2\2\2\u00d3\u00d4\58\35\2\u00d4!\3\2\2\2\u00d5")
+        buf.write(u"\u00d6\7J\2\2\u00d6\u00d7\7c\2\2\u00d7\u00d9\7\7\2\2")
+        buf.write(u"\u00d8\u00da\5$\23\2\u00d9\u00d8\3\2\2\2\u00d9\u00da")
+        buf.write(u"\3\2\2\2\u00da\u00db\3\2\2\2\u00db\u00dc\7\b\2\2\u00dc")
+        buf.write(u"\u00dd\7\t\2\2\u00dd\u00de\5&\24\2\u00de\u00df\7\n\2")
+        buf.write(u"\2\u00df#\3\2\2\2\u00e0\u00e5\7c\2\2\u00e1\u00e2\7\f")
+        buf.write(u"\2\2\u00e2\u00e4\7c\2\2\u00e3\u00e1\3\2\2\2\u00e4\u00e7")
+        buf.write(u"\3\2\2\2\u00e5\u00e3\3\2\2\2\u00e5\u00e6\3\2\2\2\u00e6")
+        buf.write(u"%\3\2\2\2\u00e7\u00e5\3\2\2\2\u00e8\u00ea\5\4\3\2\u00e9")
+        buf.write(u"\u00e8\3\2\2\2\u00e9\u00ea\3\2\2\2\u00ea\'\3\2\2\2\u00eb")
+        buf.write(u"\u00ed\7\5\2\2\u00ec\u00ee\5*\26\2\u00ed\u00ec\3\2\2")
+        buf.write(u"\2\u00ed\u00ee\3\2\2\2\u00ee\u00ef\3\2\2\2\u00ef\u00f0")
+        buf.write(u"\7\6\2\2\u00f0)\3\2\2\2\u00f1\u00f6\5\60\31\2\u00f2\u00f3")
+        buf.write(u"\7\f\2\2\u00f3\u00f5\5\60\31\2\u00f4\u00f2\3\2\2\2\u00f5")
         buf.write(u"\u00f8\3\2\2\2\u00f6\u00f4\3\2\2\2\u00f6\u00f7\3\2\2")
         buf.write(u"\2\u00f7+\3\2\2\2\u00f8\u00f6\3\2\2\2\u00f9\u00fb\7\7")
         buf.write(u"\2\2\u00fa\u00fc\5.\30\2\u00fb\u00fa\3\2\2\2\u00fb\u00fc")
@@ -131,35 +131,36 @@ def serializedATN():
         buf.write(u"\u0103\5\60\31\2\u0102\u0100\3\2\2\2\u0103\u0106\3\2")
         buf.write(u"\2\2\u0104\u0102\3\2\2\2\u0104\u0105\3\2\2\2\u0105/\3")
         buf.write(u"\2\2\2\u0106\u0104\3\2\2\2\u0107\u0108\b\31\1\2\u0108")
-        buf.write(u"\u0109\7\26\2\2\u0109\u011b\5\60\31\16\u010a\u010b\7")
-        buf.write(u"c\2\2\u010b\u010c\7\r\2\2\u010c\u011b\5\60\31\7\u010d")
-        buf.write(u"\u010e\7c\2\2\u010e\u010f\7\20\2\2\u010f\u0110\7c\2\2")
-        buf.write(u"\u0110\u011b\5,\27\2\u0111\u0112\7c\2\2\u0112\u011b\5")
-        buf.write(u",\27\2\u0113\u011b\7c\2\2\u0114\u011b\5\64\33\2\u0115")
-        buf.write(u"\u011b\5(\25\2\u0116\u0117\7\7\2\2\u0117\u0118\5\60\31")
-        buf.write(u"\2\u0118\u0119\7\b\2\2\u0119\u011b\3\2\2\2\u011a\u0107")
-        buf.write(u"\3\2\2\2\u011a\u010a\3\2\2\2\u011a\u010d\3\2\2\2\u011a")
-        buf.write(u"\u0111\3\2\2\2\u011a\u0113\3\2\2\2\u011a\u0114\3\2\2")
-        buf.write(u"\2\u011a\u0115\3\2\2\2\u011a\u0116\3\2\2\2\u011b\u0133")
-        buf.write(u"\3\2\2\2\u011c\u011d\f\r\2\2\u011d\u011e\t\2\2\2\u011e")
-        buf.write(u"\u0132\5\60\31\16\u011f\u0120\f\f\2\2\u0120\u0121\t\3")
-        buf.write(u"\2\2\u0121\u0132\5\60\31\r\u0122\u0123\f\13\2\2\u0123")
-        buf.write(u"\u0124\t\4\2\2\u0124\u0132\5\60\31\f\u0125\u0126\f\n")
-        buf.write(u"\2\2\u0126\u0127\t\5\2\2\u0127\u0132\5\60\31\13\u0128")
-        buf.write(u"\u0129\f\t\2\2\u0129\u012a\7(\2\2\u012a\u0132\5\60\31")
-        buf.write(u"\n\u012b\u012c\f\b\2\2\u012c\u012d\7)\2\2\u012d\u0132")
-        buf.write(u"\5\60\31\t\u012e\u012f\f\17\2\2\u012f\u0130\7\20\2\2")
-        buf.write(u"\u0130\u0132\7c\2\2\u0131\u011c\3\2\2\2\u0131\u011f\3")
-        buf.write(u"\2\2\2\u0131\u0122\3\2\2\2\u0131\u0125\3\2\2\2\u0131")
-        buf.write(u"\u0128\3\2\2\2\u0131\u012b\3\2\2\2\u0131\u012e\3\2\2")
-        buf.write(u"\2\u0132\u0135\3\2\2\2\u0133\u0131\3\2\2\2\u0133\u0134")
-        buf.write(u"\3\2\2\2\u0134\61\3\2\2\2\u0135\u0133\3\2\2\2\u0136\u0137")
-        buf.write(u"\t\6\2\2\u0137\63\3\2\2\2\u0138\u013b\7\66\2\2\u0139")
-        buf.write(u"\u013b\5\66\34\2\u013a\u0138\3\2\2\2\u013a\u0139\3\2")
-        buf.write(u"\2\2\u013b\65\3\2\2\2\u013c\u013d\7\67\2\2\u013d\67\3")
-        buf.write(u"\2\2\2\u013e\u013f\t\7\2\2\u013f9\3\2\2\2\34;BNV]hm~")
+        buf.write(u"\u0109\t\2\2\2\u0109\u011d\5\60\31\17\u010a\u010b\7\26")
+        buf.write(u"\2\2\u010b\u011d\5\60\31\16\u010c\u010d\7c\2\2\u010d")
+        buf.write(u"\u010e\7\r\2\2\u010e\u011d\5\60\31\7\u010f\u0110\7c\2")
+        buf.write(u"\2\u0110\u0111\7\20\2\2\u0111\u0112\7c\2\2\u0112\u011d")
+        buf.write(u"\5,\27\2\u0113\u0114\7c\2\2\u0114\u011d\5,\27\2\u0115")
+        buf.write(u"\u011d\7c\2\2\u0116\u011d\5\64\33\2\u0117\u011d\5(\25")
+        buf.write(u"\2\u0118\u0119\7\7\2\2\u0119\u011a\5\60\31\2\u011a\u011b")
+        buf.write(u"\7\b\2\2\u011b\u011d\3\2\2\2\u011c\u0107\3\2\2\2\u011c")
+        buf.write(u"\u010a\3\2\2\2\u011c\u010c\3\2\2\2\u011c\u010f\3\2\2")
+        buf.write(u"\2\u011c\u0113\3\2\2\2\u011c\u0115\3\2\2\2\u011c\u0116")
+        buf.write(u"\3\2\2\2\u011c\u0117\3\2\2\2\u011c\u0118\3\2\2\2\u011d")
+        buf.write(u"\u0135\3\2\2\2\u011e\u011f\f\r\2\2\u011f\u0120\t\3\2")
+        buf.write(u"\2\u0120\u0134\5\60\31\16\u0121\u0122\f\f\2\2\u0122\u0123")
+        buf.write(u"\t\2\2\2\u0123\u0134\5\60\31\r\u0124\u0125\f\13\2\2\u0125")
+        buf.write(u"\u0126\t\4\2\2\u0126\u0134\5\60\31\f\u0127\u0128\f\n")
+        buf.write(u"\2\2\u0128\u0129\t\5\2\2\u0129\u0134\5\60\31\13\u012a")
+        buf.write(u"\u012b\f\t\2\2\u012b\u012c\7(\2\2\u012c\u0134\5\60\31")
+        buf.write(u"\n\u012d\u012e\f\b\2\2\u012e\u012f\7)\2\2\u012f\u0134")
+        buf.write(u"\5\60\31\t\u0130\u0131\f\20\2\2\u0131\u0132\7\20\2\2")
+        buf.write(u"\u0132\u0134\7c\2\2\u0133\u011e\3\2\2\2\u0133\u0121\3")
+        buf.write(u"\2\2\2\u0133\u0124\3\2\2\2\u0133\u0127\3\2\2\2\u0133")
+        buf.write(u"\u012a\3\2\2\2\u0133\u012d\3\2\2\2\u0133\u0130\3\2\2")
+        buf.write(u"\2\u0134\u0137\3\2\2\2\u0135\u0133\3\2\2\2\u0135\u0136")
+        buf.write(u"\3\2\2\2\u0136\61\3\2\2\2\u0137\u0135\3\2\2\2\u0138\u0139")
+        buf.write(u"\t\6\2\2\u0139\63\3\2\2\2\u013a\u013d\7\66\2\2\u013b")
+        buf.write(u"\u013d\5\66\34\2\u013c\u013a\3\2\2\2\u013c\u013b\3\2")
+        buf.write(u"\2\2\u013d\65\3\2\2\2\u013e\u013f\7\67\2\2\u013f\67\3")
+        buf.write(u"\2\2\2\u0140\u0141\t\7\2\2\u01419\3\2\2\2\34;BNV]hm~")
         buf.write(u"\u00a1\u00a5\u00a9\u00b3\u00b7\u00cd\u00d1\u00d9\u00e5")
-        buf.write(u"\u00e9\u00ed\u00f6\u00fb\u0104\u011a\u0131\u0133\u013a")
+        buf.write(u"\u00e9\u00ed\u00f6\u00fb\u0104\u011c\u0133\u0135\u013c")
         return buf.getvalue()
 
 
@@ -412,7 +413,7 @@ class ECMAScriptParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 57
             _la = self._input.LA(1)
-            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0):
+            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0):
                 self.state = 56
                 self.sourceElements()
 
@@ -476,7 +477,7 @@ class ECMAScriptParser ( Parser ):
                 self.state = 64 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0)):
+                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0)):
                     break
 
         except RecognitionException as re:
@@ -613,7 +614,7 @@ class ECMAScriptParser ( Parser ):
                 self.state = 70
                 self.emptyStatement()
 
-            elif token in [ECMAScriptParser.OpenBracket, ECMAScriptParser.OpenParen, ECMAScriptParser.Not, ECMAScriptParser.BooleanLiteral, ECMAScriptParser.DecimalLiteral, ECMAScriptParser.Identifier]:
+            elif token in [ECMAScriptParser.OpenBracket, ECMAScriptParser.OpenParen, ECMAScriptParser.Plus, ECMAScriptParser.Minus, ECMAScriptParser.Not, ECMAScriptParser.BooleanLiteral, ECMAScriptParser.DecimalLiteral, ECMAScriptParser.Identifier]:
                 self.enterOuterAlt(localctx, 4)
                 self.state = 71
                 self.expressionStatement()
@@ -744,7 +745,7 @@ class ECMAScriptParser ( Parser ):
             self.match(ECMAScriptParser.OpenBrace)
             self.state = 84
             _la = self._input.LA(1)
-            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0):
+            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0):
                 self.state = 83
                 self.statementList()
 
@@ -808,7 +809,7 @@ class ECMAScriptParser ( Parser ):
                 self.state = 91 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0)):
+                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0)):
                     break
 
         except RecognitionException as re:
@@ -1566,7 +1567,7 @@ class ECMAScriptParser ( Parser ):
                 self.match(ECMAScriptParser.OpenParen)
                 self.state = 159
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                     self.state = 158
                     self.singleExpression(0)
 
@@ -1575,7 +1576,7 @@ class ECMAScriptParser ( Parser ):
                 self.match(ECMAScriptParser.SemiColon)
                 self.state = 163
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                     self.state = 162
                     self.singleExpression(0)
 
@@ -1584,7 +1585,7 @@ class ECMAScriptParser ( Parser ):
                 self.match(ECMAScriptParser.SemiColon)
                 self.state = 167
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                     self.state = 166
                     self.singleExpression(0)
 
@@ -1610,7 +1611,7 @@ class ECMAScriptParser ( Parser ):
                 self.match(ECMAScriptParser.SemiColon)
                 self.state = 177
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                     self.state = 176
                     self.singleExpression(0)
 
@@ -1619,7 +1620,7 @@ class ECMAScriptParser ( Parser ):
                 self.match(ECMAScriptParser.SemiColon)
                 self.state = 181
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                     self.state = 180
                     self.singleExpression(0)
 
@@ -1727,7 +1728,7 @@ class ECMAScriptParser ( Parser ):
             self.match(ECMAScriptParser.Return)
             self.state = 207
             _la = self._input.LA(1)
-            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                 self.state = 206
                 self.singleExpression(0)
 
@@ -1918,7 +1919,7 @@ class ECMAScriptParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 231
             _la = self._input.LA(1)
-            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0):
+            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.T__0) | (1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.OpenBrace) | (1 << ECMAScriptParser.SemiColon) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral) | (1 << ECMAScriptParser.Do) | (1 << ECMAScriptParser.Var))) != 0) or ((((_la - 65)) & ~0x3f) == 0 and ((1 << (_la - 65)) & ((1 << (ECMAScriptParser.Return - 65)) | (1 << (ECMAScriptParser.For - 65)) | (1 << (ECMAScriptParser.While - 65)) | (1 << (ECMAScriptParser.If - 65)) | (1 << (ECMAScriptParser.Identifier - 65)))) != 0):
                 self.state = 230
                 self.sourceElements()
 
@@ -1972,7 +1973,7 @@ class ECMAScriptParser ( Parser ):
             self.match(ECMAScriptParser.OpenBracket)
             self.state = 235
             _la = self._input.LA(1)
-            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                 self.state = 234
                 self.elementList()
 
@@ -2090,7 +2091,7 @@ class ECMAScriptParser ( Parser ):
             self.match(ECMAScriptParser.OpenParen)
             self.state = 249
             _la = self._input.LA(1)
-            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
+            if (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.OpenBracket) | (1 << ECMAScriptParser.OpenParen) | (1 << ECMAScriptParser.Plus) | (1 << ECMAScriptParser.Minus) | (1 << ECMAScriptParser.Not) | (1 << ECMAScriptParser.BooleanLiteral) | (1 << ECMAScriptParser.DecimalLiteral))) != 0) or _la==ECMAScriptParser.Identifier:
                 self.state = 248
                 self.argumentList()
 
@@ -2529,6 +2530,31 @@ class ECMAScriptParser ( Parser ):
                 return visitor.visitChildren(self)
 
 
+    class UnaryExpressionContext(SingleExpressionContext):
+
+        def __init__(self, parser, ctx): # actually a ECMAScriptParser.SingleExpressionContext)
+            super(ECMAScriptParser.UnaryExpressionContext, self).__init__(parser)
+            self.copyFrom(ctx)
+
+        def singleExpression(self):
+            return self.getTypedRuleContext(ECMAScriptParser.SingleExpressionContext,0)
+
+
+        def enterRule(self, listener):
+            if isinstance( listener, ECMAScriptListener ):
+                listener.enterUnaryExpression(self)
+
+        def exitRule(self, listener):
+            if isinstance( listener, ECMAScriptListener ):
+                listener.exitUnaryExpression(self)
+
+        def accept(self, visitor):
+            if isinstance( visitor, ECMAScriptVisitor ):
+                return visitor.visitUnaryExpression(self)
+            else:
+                return visitor.visitChildren(self)
+
+
     class AdditiveExpressionContext(SingleExpressionContext):
 
         def __init__(self, parser, ctx): # actually a ECMAScriptParser.SingleExpressionContext)
@@ -2596,49 +2622,53 @@ class ECMAScriptParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 280
+            self.state = 282
             la_ = self._interp.adaptivePredict(self._input,22,self._ctx)
             if la_ == 1:
-                localctx = ECMAScriptParser.NotExpressionContext(self, localctx)
+                localctx = ECMAScriptParser.UnaryExpressionContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
 
                 self.state = 262
-                self.match(ECMAScriptParser.Not)
+                _la = self._input.LA(1)
+                if not(_la==ECMAScriptParser.Plus or _la==ECMAScriptParser.Minus):
+                    self._errHandler.recoverInline(self)
+                else:
+                    self.consume()
                 self.state = 263
-                self.singleExpression(12)
+                self.singleExpression(13)
                 pass
 
             elif la_ == 2:
-                localctx = ECMAScriptParser.AssignmentExpressionContext(self, localctx)
+                localctx = ECMAScriptParser.NotExpressionContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 264
-                self.match(ECMAScriptParser.Identifier)
+                self.match(ECMAScriptParser.Not)
                 self.state = 265
-                self.match(ECMAScriptParser.Assign)
-                self.state = 266
-                self.singleExpression(5)
+                self.singleExpression(12)
                 pass
 
             elif la_ == 3:
-                localctx = ECMAScriptParser.MethodExpressionContext(self, localctx)
+                localctx = ECMAScriptParser.AssignmentExpressionContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
+                self.state = 266
+                self.match(ECMAScriptParser.Identifier)
                 self.state = 267
-                self.match(ECMAScriptParser.Identifier)
+                self.match(ECMAScriptParser.Assign)
                 self.state = 268
-                self.match(ECMAScriptParser.Dot)
-                self.state = 269
-                self.match(ECMAScriptParser.Identifier)
-                self.state = 270
-                self.arguments()
+                self.singleExpression(5)
                 pass
 
             elif la_ == 4:
-                localctx = ECMAScriptParser.FunctionExpressionContext(self, localctx)
+                localctx = ECMAScriptParser.MethodExpressionContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
+                self.state = 269
+                self.match(ECMAScriptParser.Identifier)
+                self.state = 270
+                self.match(ECMAScriptParser.Dot)
                 self.state = 271
                 self.match(ECMAScriptParser.Identifier)
                 self.state = 272
@@ -2646,44 +2676,54 @@ class ECMAScriptParser ( Parser ):
                 pass
 
             elif la_ == 5:
-                localctx = ECMAScriptParser.IdentifierExpressionContext(self, localctx)
+                localctx = ECMAScriptParser.FunctionExpressionContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 273
                 self.match(ECMAScriptParser.Identifier)
+                self.state = 274
+                self.arguments()
                 pass
 
             elif la_ == 6:
-                localctx = ECMAScriptParser.LiteralExpressionContext(self, localctx)
-                self._ctx = localctx
-                _prevctx = localctx
-                self.state = 274
-                self.literal()
-                pass
-
-            elif la_ == 7:
-                localctx = ECMAScriptParser.ArrayLiteralExpressionContext(self, localctx)
+                localctx = ECMAScriptParser.IdentifierExpressionContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 275
-                self.arrayLiteral()
+                self.match(ECMAScriptParser.Identifier)
                 pass
 
-            elif la_ == 8:
-                localctx = ECMAScriptParser.ParenthesizedExpressionContext(self, localctx)
+            elif la_ == 7:
+                localctx = ECMAScriptParser.LiteralExpressionContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 276
-                self.match(ECMAScriptParser.OpenParen)
+                self.literal()
+                pass
+
+            elif la_ == 8:
+                localctx = ECMAScriptParser.ArrayLiteralExpressionContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
                 self.state = 277
-                self.singleExpression(0)
+                self.arrayLiteral()
+                pass
+
+            elif la_ == 9:
+                localctx = ECMAScriptParser.ParenthesizedExpressionContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
                 self.state = 278
+                self.match(ECMAScriptParser.OpenParen)
+                self.state = 279
+                self.singleExpression(0)
+                self.state = 280
                 self.match(ECMAScriptParser.CloseParen)
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 305
+            self.state = 307
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,24,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -2691,117 +2731,117 @@ class ECMAScriptParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 303
+                    self.state = 305
                     la_ = self._interp.adaptivePredict(self._input,23,self._ctx)
                     if la_ == 1:
                         localctx = ECMAScriptParser.MultiplicativeExpressionContext(self, ECMAScriptParser.SingleExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_singleExpression)
-                        self.state = 282
+                        self.state = 284
                         if not self.precpred(self._ctx, 11):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
-                        self.state = 283
+                        self.state = 285
                         _la = self._input.LA(1)
                         if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.Multiply) | (1 << ECMAScriptParser.Divide) | (1 << ECMAScriptParser.Modulus))) != 0)):
                             self._errHandler.recoverInline(self)
                         else:
                             self.consume()
-                        self.state = 284
+                        self.state = 286
                         self.singleExpression(12)
                         pass
 
                     elif la_ == 2:
                         localctx = ECMAScriptParser.AdditiveExpressionContext(self, ECMAScriptParser.SingleExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_singleExpression)
-                        self.state = 285
+                        self.state = 287
                         if not self.precpred(self._ctx, 10):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
-                        self.state = 286
+                        self.state = 288
                         _la = self._input.LA(1)
                         if not(_la==ECMAScriptParser.Plus or _la==ECMAScriptParser.Minus):
                             self._errHandler.recoverInline(self)
                         else:
                             self.consume()
-                        self.state = 287
+                        self.state = 289
                         self.singleExpression(11)
                         pass
 
                     elif la_ == 3:
                         localctx = ECMAScriptParser.RelationalExpressionContext(self, ECMAScriptParser.SingleExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_singleExpression)
-                        self.state = 288
+                        self.state = 290
                         if not self.precpred(self._ctx, 9):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 9)")
-                        self.state = 289
+                        self.state = 291
                         _la = self._input.LA(1)
                         if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.LessThan) | (1 << ECMAScriptParser.MoreThan) | (1 << ECMAScriptParser.LessThanEquals) | (1 << ECMAScriptParser.GreaterThanEquals))) != 0)):
                             self._errHandler.recoverInline(self)
                         else:
                             self.consume()
-                        self.state = 290
+                        self.state = 292
                         self.singleExpression(10)
                         pass
 
                     elif la_ == 4:
                         localctx = ECMAScriptParser.EqualityExpressionContext(self, ECMAScriptParser.SingleExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_singleExpression)
-                        self.state = 291
+                        self.state = 293
                         if not self.precpred(self._ctx, 8):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 8)")
-                        self.state = 292
+                        self.state = 294
                         _la = self._input.LA(1)
                         if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.Equals) | (1 << ECMAScriptParser.NotEquals) | (1 << ECMAScriptParser.IdentityEquals) | (1 << ECMAScriptParser.IdentityNotEquals))) != 0)):
                             self._errHandler.recoverInline(self)
                         else:
                             self.consume()
-                        self.state = 293
+                        self.state = 295
                         self.singleExpression(9)
                         pass
 
                     elif la_ == 5:
                         localctx = ECMAScriptParser.LogicalAndExpressionContext(self, ECMAScriptParser.SingleExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_singleExpression)
-                        self.state = 294
+                        self.state = 296
                         if not self.precpred(self._ctx, 7):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
-                        self.state = 295
+                        self.state = 297
                         self.match(ECMAScriptParser.And)
-                        self.state = 296
+                        self.state = 298
                         self.singleExpression(8)
                         pass
 
                     elif la_ == 6:
                         localctx = ECMAScriptParser.LogicalOrExpressionContext(self, ECMAScriptParser.SingleExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_singleExpression)
-                        self.state = 297
+                        self.state = 299
                         if not self.precpred(self._ctx, 6):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
-                        self.state = 298
+                        self.state = 300
                         self.match(ECMAScriptParser.Or)
-                        self.state = 299
+                        self.state = 301
                         self.singleExpression(7)
                         pass
 
                     elif la_ == 7:
                         localctx = ECMAScriptParser.MemberDotExpressionContext(self, ECMAScriptParser.SingleExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_singleExpression)
-                        self.state = 300
-                        if not self.precpred(self._ctx, 13):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 13)")
-                        self.state = 301
-                        self.match(ECMAScriptParser.Dot)
                         self.state = 302
+                        if not self.precpred(self._ctx, 14):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 14)")
+                        self.state = 303
+                        self.match(ECMAScriptParser.Dot)
+                        self.state = 304
                         self.match(ECMAScriptParser.Identifier)
                         pass
 
              
-                self.state = 307
+                self.state = 309
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,24,self._ctx)
 
@@ -2847,7 +2887,7 @@ class ECMAScriptParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 308
+            self.state = 310
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << ECMAScriptParser.MultiplyAssign) | (1 << ECMAScriptParser.DivideAssign) | (1 << ECMAScriptParser.ModulusAssign) | (1 << ECMAScriptParser.PlusAssign) | (1 << ECMAScriptParser.MinusAssign) | (1 << ECMAScriptParser.LeftShiftArithmeticAssign) | (1 << ECMAScriptParser.RightShiftArithmeticAssign) | (1 << ECMAScriptParser.RightShiftLogicalAssign) | (1 << ECMAScriptParser.BitAndAssign) | (1 << ECMAScriptParser.BitXorAssign) | (1 << ECMAScriptParser.BitOrAssign))) != 0)):
                 self._errHandler.recoverInline(self)
@@ -2899,16 +2939,16 @@ class ECMAScriptParser ( Parser ):
         localctx = ECMAScriptParser.LiteralContext(self, self._ctx, self.state)
         self.enterRule(localctx, 50, self.RULE_literal)
         try:
-            self.state = 312
+            self.state = 314
             token = self._input.LA(1)
             if token in [ECMAScriptParser.BooleanLiteral]:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 310
+                self.state = 312
                 self.match(ECMAScriptParser.BooleanLiteral)
 
             elif token in [ECMAScriptParser.DecimalLiteral]:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 311
+                self.state = 313
                 self.numericLiteral()
 
             else:
@@ -2957,7 +2997,7 @@ class ECMAScriptParser ( Parser ):
         self.enterRule(localctx, 52, self.RULE_numericLiteral)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 314
+            self.state = 316
             self.match(ECMAScriptParser.DecimalLiteral)
         except RecognitionException as re:
             localctx.exception = re
@@ -3006,7 +3046,7 @@ class ECMAScriptParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 316
+            self.state = 318
             _la = self._input.LA(1)
             if not(_la==ECMAScriptParser.EOF or _la==ECMAScriptParser.SemiColon):
                 self._errHandler.recoverInline(self)
@@ -3058,7 +3098,7 @@ class ECMAScriptParser ( Parser ):
          
 
             if predIndex == 6:
-                return self.precpred(self._ctx, 13)
+                return self.precpred(self._ctx, 14)
          
 
 

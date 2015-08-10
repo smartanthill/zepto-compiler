@@ -325,9 +325,7 @@ class ExecOpNode(OpcodeNode):
         '''
         super(ExecOpNode, self).__init__()
         self.bodypart_id = 0
-        self.encode_helper = None
-        self.data_value = None
-        self.data = None
+        self.data = bytearray()
 
     def write(self, writer):
         '''
@@ -335,13 +333,6 @@ class ExecOpNode(OpcodeNode):
         '''
         writer.write_opcode(Op.EXEC)
         writer.write_int_2(self.bodypart_id)
-
-        if not self.data:
-            if self.encode_helper is None:
-                pass
-            else:
-                self.data = self.encode_helper.encode_value(
-                    writer.get_compiler(), self.ctx, self.data_value)
 
         writer.write_opaque_data_2(self.data)
 

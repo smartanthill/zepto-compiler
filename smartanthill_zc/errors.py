@@ -19,10 +19,16 @@ class CompilerError(Exception):
     '''
     Generic error raised when compilation problem occurs
     '''
-    pass
+
+    def __init__(self, text):
+        '''
+        Constructor
+        '''
+        super(CompilerError, self).__init__()
+        self.text = text
 
 
-class ResolutionCycleError(CompilerError):
+class ResolutionCycleError(Exception):
 
     '''
     Raised when a resolution cycle is detected
@@ -30,7 +36,7 @@ class ResolutionCycleError(CompilerError):
     pass
 
 
-class UnresolvedError(CompilerError):
+class UnresolvedError(Exception):
 
     '''
     Raised when accessing resolution info on
@@ -38,7 +44,7 @@ class UnresolvedError(CompilerError):
     '''
 
 
-class PreviousResolutionError(CompilerError):
+class PreviousResolutionError(Exception):
 
     '''
     Raised when accessing resolution info on
@@ -47,7 +53,7 @@ class PreviousResolutionError(CompilerError):
     pass
 
 
-class ResolutionError(CompilerError):
+class ResolutionError(Exception):
 
     '''
     Raised when a resolution error occurs that needs to raise

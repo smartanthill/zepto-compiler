@@ -356,7 +356,7 @@ singleExpression // mb: oversimplified to begin with
 // | '++' singleExpression                                                  # PreIncrementExpression
 // | '--' singleExpression                                                  # PreDecreaseExpression
 // | '+' singleExpression                                                   # UnaryPlusExpression
-// | '-' singleExpression                                                   # UnaryMinusExpression
+ | ( '+' | '-' ) singleExpression                                           # UnaryExpression
 // | '~' singleExpression                                                   # BitNotExpression
  | '!' singleExpression                                                   # NotExpression
  | singleExpression ( '*' | '/' | '%' ) singleExpression                  # MultiplicativeExpression
