@@ -20,12 +20,18 @@ class CompilerError(Exception):
     Generic error raised when compilation problem occurs
     '''
 
-    def __init__(self, text):
+    def __init__(self, value):
         '''
         Constructor
         '''
         super(CompilerError, self).__init__()
-        self.text = text
+        self.value = value
+
+    def __str__(self):
+        '''
+        String representation
+        '''
+        return ';'.join(self.value)
 
 
 class ResolutionCycleError(Exception):

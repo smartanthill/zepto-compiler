@@ -78,7 +78,7 @@ def test_no_param_error():
         zp.compile()
         assert False
     except errors.CompilerError as e:
-        assert e.text == ["line 1, Unresolved variable 'PARAM'"]
+        assert e.value == ["line 1, Unresolved variable 'PARAM'"]
 
 
 def test_no_arg_error():
@@ -94,7 +94,7 @@ def test_no_arg_error():
         zp.compile()
         assert False
     except errors.CompilerError as e:
-        assert e.text == [
+        assert e.value == [
             "line 1, Wrong number of arguments, need 1 but given 0"]
 
 
@@ -218,8 +218,7 @@ def test_bad_dynamic_data_error():
         assert False
 
     except errors.CompilerError as e:
-        assert e.text == [
-            "parameter PARAM1, Value 'x' is not valid"]
+        assert e.value == ["parameter PARAM1, Value 'x' is not valid"]
 
 
 def test_bad_dynamic_data_error_2():
@@ -236,6 +235,7 @@ def test_bad_dynamic_data_error_2():
         assert False
 
     except errors.CompilerError as e:
-        assert e.text == [
+        print '%s' % e
+        assert e.value == [
             "parameter PARAM1, Value 100000.0 outside valid range [-32768, 32767]",
             "parameter PARAM2, Value -1.0 outside valid range [0, 255]"]
