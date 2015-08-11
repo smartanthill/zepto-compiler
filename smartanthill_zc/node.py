@@ -530,8 +530,9 @@ class ArgumentListNode(Node):
                 e.set_parent(self)
                 self.childs_arguments[i] = e
             else:
-                # shouldn't reach here
-                assert False
+                compiler.report_error(
+                    self.ctx, "Invalid argument type at %s" % i)
+                compiler.raise_error()
 
 
 class ParameterDeclNode(Node, ResolutionHelper):

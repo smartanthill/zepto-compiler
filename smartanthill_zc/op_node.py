@@ -13,6 +13,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+from smartanthill_zc.compiler import BuiltinCtx
 from smartanthill_zc.encode import field_sequence_to_str
 from smartanthill_zc.node import Node
 
@@ -191,7 +192,6 @@ class OpcodeNode(Node):
         Constructor
         '''
         super(OpcodeNode, self).__init__()
-        self._byte_size = None
 
     def write(self, writer):
         '''
@@ -199,30 +199,14 @@ class OpcodeNode(Node):
         '''
         pass
 
-    def get_byte_size(self):
-        '''
-        byte_size getter that makes sure size if different from zero
-        '''
-        assert self._byte_size
-        return self._byte_size
-
-    def reset_byte_size(self):
-        '''
-        Resets the size for this node.
-        Allows for recalculation
-        '''
-        self._byte_size = None
-
     def calculate_byte_size(self, writer):
         '''
         Calculates the size in bytes for this node.
         Needed by jumps to calculate jump offsets
         '''
-        assert not self._byte_size
         begin = writer.get_size()
         self.write(writer)
-        self._byte_size = writer.get_size() - begin
-        return self._byte_size
+        return writer.get_size() - begin
 
 
 class OpListNode(Node):
@@ -282,6 +266,7 @@ class TargetProgramNode(Node):
         self.vm_level = None
         self.mcusleep_invoked = False
         self.reply_type = None
+        self.execs = []
         self.byte_size = 0
 # entry=NOT_ISFIRST,exit=IS_FIRST
 
@@ -292,6 +277,13 @@ class TargetProgramNode(Node):
         assert isinstance(child, OpListNode)
         child.set_parent(self)
         self.child_op_list = child
+
+    def parameters_encode(self, compiler, parameters):
+        '''
+        Encode Execute body part calls arguements
+        '''
+        for each in self.execs:
+            each.parameters_encode(compiler, parameters)
 
     def write(self, writer):
         '''
@@ -313,6 +305,22 @@ class TargetProgramNode(Node):
         self.byte_size = self.child_op_list.calculate_byte_size(writer)
 
 
+class _ExecOpArgument(object):
+
+    '''
+    Helper class to hold either an argument value or a parametric argument name
+    and its encoder
+    '''
+
+    def __init__(self, helper, value, name):
+        '''
+        Constructor
+        '''
+        self.helper = helper
+        self.value = value
+        self.name = name
+
+
 class ExecOpNode(OpcodeNode):
 
     '''
@@ -325,15 +333,50 @@ class ExecOpNode(OpcodeNode):
         '''
         super(ExecOpNode, self).__init__()
         self.bodypart_id = 0
+        self._arguments = []
+        self.data = None
+
+    def add_value_argument(self, compiler, ctx, helper, value):
+        helper.check_value(compiler, ctx, value)
+        self._arguments.append(_ExecOpArgument(helper, value, None))
+
+    def add_parametric_argument(self, helper, name):
+        self._arguments.append(_ExecOpArgument(helper, None, name))
+
+    def parameters_encode(self, compiler, parameters):
+        '''
+        Encode Execute body part calls arguments,
+        using parameter values if needed
+        '''
         self.data = bytearray()
+        for each in self._arguments:
+
+            if each.value is not None:
+                data = each.helper.encode_value(each.value)
+                self.data.extend(data)
+            elif each.name in parameters:
+                ctx = BuiltinCtx('parameter ' + each.name)
+                try:
+                    value = float(parameters[each.name])
+                    if each.helper.check_value(compiler, ctx, value):
+                        data = each.helper.encode_value(value)
+                        self.data.extend(data)
+                except ValueError:
+                    compiler.report_error(
+                        ctx,
+                        "Value '%s' is not valid" % parameters[each.name])
+            else:
+                compiler.report_error(
+                    self.ctx, "Missing parameter '%s' value" % each.name)
 
     def write(self, writer):
         '''
         Write this node to the output writer
         '''
+        assert self.data is not None
+
         writer.write_opcode(Op.EXEC)
         writer.write_int_2(self.bodypart_id)
-
         writer.write_opaque_data_2(self.data)
 
 
@@ -525,9 +568,7 @@ class IfOpNode(OpcodeNode):
 
             begin += current.calculate_byte_size(writer)
 
-        self._byte_size = begin + body
-
-        return self._byte_size
+        return begin + body
 
     def write(self, writer):
         '''
@@ -689,12 +730,10 @@ class LoopOpNode(OpcodeNode):
         while prev != jump:
             prev = jump
             self.child_condition.delta = -(body + jump)
-            self.child_condition.reset_byte_size()
+            # recalculate
             jump = self.child_condition.calculate_byte_size(writer)
 
-        self._byte_size = body + jump
-
-        return self._byte_size
+        return body + jump
 
 
 class JumpLoopOpNode(OpcodeNode):

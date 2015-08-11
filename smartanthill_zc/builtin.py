@@ -43,6 +43,9 @@ def create_builtins(compiler, ctx):
         compiler.init_node(LiteralTypeDeclNode('_zc_boolean_literal', bool_t),
                            ctx))
 
+    param_t = compiler.init_node(BasicTypeDeclNode('_zc_parameter'), ctx)
+    decls.add_declaration(param_t)
+
     mcu = compiler.init_node(McuSleepDeclNode(), ctx)
     mcu.set_parameter_list(
         create_parameter_list(compiler, ctx, ['_zc_number_literal']))

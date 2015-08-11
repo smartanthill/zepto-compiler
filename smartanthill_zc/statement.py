@@ -125,7 +125,6 @@ class VariableDeclarationStmtNode(StatementNode, ResolutionHelper):
         '''
         super(VariableDeclarationStmtNode, self).__init__()
         self.txt_name = None
-        self.flg_root_scope = False
         self.child_initializer = None
 
     def set_initializer(self, child):
@@ -141,14 +140,51 @@ class VariableDeclarationStmtNode(StatementNode, ResolutionHelper):
         resolve_expression(compiler, self, 'child_initializer')
         # we are adding variable name after resolution of initializer
         # because we don't allow that kind of resolution cycle
-        if self.flg_root_scope:
-            self.get_scope(RootScope).add_parameter(
-                compiler, self.txt_name, self)
-        else:
-            self.get_scope(StatementListScope).add_variable(
-                compiler, self.txt_name, self)
+        self.get_scope(StatementListScope).add_variable(
+            compiler, self.txt_name, self)
 
         return self.child_initializer.get_type()
+
+    def get_static_value(self):
+        '''
+        Returns compile-time value of this declaration is possible,
+        Returns None otherwise
+        '''
+
+        if self.child_initializer is not None:
+            return self.child_initializer.get_static_value()
+        else:
+            return None
+
+
+class ParameterDeclarationStmtNode(StatementNode, ResolutionHelper):
+
+    '''
+    Node class representing a place holder for a parametric (late bind) value
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        super(ParameterDeclarationStmtNode, self).__init__()
+        self.txt_name = None
+
+    def do_resolve_declaration(self, compiler):
+
+        # we are adding variable name after resolution of initializer
+        # because we don't allow that kind of resolution cycle
+        self.get_scope(RootScope).add_parameter(
+            compiler, self.txt_name, self)
+
+        return self.get_scope(RootScope).lookup_type('_zc_parameter')
+
+    def get_static_value(self):
+        '''
+        Always returns None, since value will be binded later
+        '''
+        # pylint: disable=no-self-use
+        return None
 
 
 class ExpressionStmtNode(StatementNode):

@@ -202,7 +202,6 @@ def test_dynamic_data_1():
     assert opcode == zp.compile({"PARAM1": "5"})
     assert opcode == zp.compile({"PARAM1": 5.0})
     assert opcode == zp.compile({"PARAM1": "5.0"})
-    assert opcode == zp.compile({"PARAM1": "2 + 3"})
 
 
 def test_bad_dynamic_data_error():
@@ -219,7 +218,8 @@ def test_bad_dynamic_data_error():
         assert False
 
     except errors.CompilerError as e:
-        assert e.text == ["<parameter>, Unsupported parameter value 'x'"]
+        assert e.text == [
+            "parameter PARAM1, Value 'x' is not valid"]
 
 
 def test_bad_dynamic_data_error_2():
@@ -237,5 +237,5 @@ def test_bad_dynamic_data_error_2():
 
     except errors.CompilerError as e:
         assert e.text == [
-            "line 1, Value 100000.0 outside valid range [-32768, 32767]",
-            "line 1, Value -1.0 outside valid range [0, 255]"]
+            "parameter PARAM1, Value 100000.0 outside valid range [-32768, 32767]",
+            "parameter PARAM2, Value -1.0 outside valid range [0, 255]"]

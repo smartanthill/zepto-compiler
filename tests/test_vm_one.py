@@ -90,7 +90,7 @@ def common_test_run(code):
 
     target = vm.convert_to_zepto_vm_one(comp, root)
 
-    return writer.write_text_op_codes(comp, target)
+    return writer.write_text_op_codes(comp, target, param_dict)
 
 
 def test_js_pattern_1():

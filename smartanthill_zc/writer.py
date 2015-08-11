@@ -19,25 +19,33 @@ from smartanthill_zc import encode
 from smartanthill_zc.encode import (field_sequence_to_str, Encoding)
 
 
-def write_text_op_codes(compiler, node):
+def write_text_op_codes(compiler, target, parameters):
     '''
     Writes target code to text format
     Used for development and testing
     '''
+    target.parameters_encode(compiler, parameters)
+    compiler.check_stage('encode')
+    target.calculate_byte_size(BinaryWriter(compiler))
+
     w = _TextWriter(compiler)
-    node.write(w)
+    target.write(w)
 
     compiler.check_stage('write_text')
 
     return w.get_result()
 
 
-def write_binary(compiler, node):
+def write_binary(compiler, target, parameters):
     '''
     Writes target code to binary format
     '''
+    target.parameters_encode(compiler, parameters)
+    compiler.check_stage('encode')
+    target.calculate_byte_size(BinaryWriter(compiler))
+
     w = BinaryWriter(compiler)
-    node.write(w)
+    target.write(w)
 
     compiler.check_stage('write_binary')
 

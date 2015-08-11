@@ -79,6 +79,9 @@ def main():
         u'</smartanthill_zc.test>'
     ]
 
+    a = float(10)
+    b = float('perepepe')
+
     xml = '\n'.join(xml)
  #   xml2 = '\n'.join(xml2)
     code = '\n'.join(code)

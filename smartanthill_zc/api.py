@@ -19,6 +19,8 @@ from xml.etree import ElementTree
 from smartanthill_zc import parse_xml, parse_js, builtin, visitor,\
     vm, writer, op_node, encode
 from smartanthill_zc.compiler import Compiler, Ctx, process_syntax_tree
+from smartanthill_zc.writer import BinaryWriter
+
 from smartanthill_zc.root import RootNode
 
 
@@ -146,44 +148,45 @@ class ZeptoProgram(object):
         assert all([isinstance(bp, ZeptoBodyPart) for bp in bodyparts])
         self._js_source = js_source
         self._bodyparts = bodyparts
-        self._response_type = None
+        self._target = None
 
     def compile(self, parameters=None):
 
         compiler = Compiler()
-        root = compiler.init_node(RootNode(), Ctx.ROOT)
 
-        builtins = builtin.create_builtins(compiler, Ctx.BUILTIN)
-        root.set_builtins(builtins)
+        if parameters is None:
+            parameters = {}
 
-        bodyparts = parse_xml.create_bodyparts(
-            compiler, self._bodyparts, Ctx.BODYPART)
-        root.set_bodyparts(bodyparts)
+        if self._target is None:
 
-        if parameters:
+            root = compiler.init_node(RootNode(), Ctx.ROOT)
+
+            builtins = builtin.create_builtins(compiler, Ctx.BUILTIN)
+            root.set_builtins(builtins)
+
+            bodyparts = parse_xml.create_bodyparts(
+                compiler, self._bodyparts, Ctx.BODYPART)
+            root.set_bodyparts(bodyparts)
+
             params = parse_js.create_parameters(
                 compiler, parameters, Ctx.PARAM)
             root.set_parameters(params)
 
-        js_tree = parse_js.parse_js_string(compiler, self._js_source)
-        source = parse_js.js_parse_tree_to_syntax_tree(compiler, js_tree)
-        root.set_source_program(source)
+            js_tree = parse_js.parse_js_string(compiler, self._js_source)
+            source = parse_js.js_parse_tree_to_syntax_tree(compiler, js_tree)
+            root.set_source_program(source)
 
-        visitor.check_all_nodes_reachables(compiler, root)
-        process_syntax_tree(compiler, root)
+            visitor.check_all_nodes_reachables(compiler, root)
+            process_syntax_tree(compiler, root)
 
-        target = vm.convert_to_zepto_vm_small(compiler, root)
+            self._target = vm.convert_to_zepto_vm_small(compiler, root)
 
-        self._response_type = target.reply_type
-
-        code = writer.write_binary(compiler, target)
-
-        return code
+        return writer.write_binary(compiler, self._target, parameters)
 
     def process_response(self, data):
 
-        assert self._response_type
-        assert self._response_type.is_message_type()
+        assert self._target.reply_type
+        assert self._target.reply_type.is_message_type()
 
         data = data[:]  # make a copy
         data.reverse()
@@ -193,7 +196,7 @@ class ZeptoProgram(object):
         if size != len(data):
             data = data[-size:]
 
-        return self._response_type.process_reverse_response(data)
+        return self._target.reply_type.process_reverse_response(data)
 
 
 def zepto_exec_cmd(bodypart_id, data):
@@ -206,6 +209,7 @@ def zepto_exec_cmd(bodypart_id, data):
     op.bodypart_id = bodypart_id
     op.data = bytearray(data)
 
-    code = writer.write_binary(compiler, op)
+    w = BinaryWriter(compiler)
+    op.write(w)
 
-    return code
+    return w.get_result()

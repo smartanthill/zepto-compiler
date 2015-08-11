@@ -14,15 +14,15 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-from smartanthill_zc import array
+from smartanthill_zc import array, statement
 from smartanthill_zc import expression, op_node, comparison
 from smartanthill_zc.antlr_helper import (get_reference_lines,
                                           get_reference_text)
 from smartanthill_zc.compiler import Ctx
+from smartanthill_zc.expression import LiteralCastExprNode
 from smartanthill_zc.lookup import ReturnStmtScope
 from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node
-from smartanthill_zc.writer import BinaryWriter
 
 
 def convert_to_zepto_vm_one(compiler, root):
@@ -54,8 +54,8 @@ def _convert_to_zepto_vm(compiler, root, level):
     visit_node(v, root.child_source_program)
 
     target = v.finish()
-    target.calculate_byte_size(BinaryWriter(compiler))
     compiler.check_stage('zepto_vm')
+
     return target
 
 
@@ -441,6 +441,7 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         self._target.vm_level = self._vm.level
 
         self._exits = []
+        self._execs = []
         self._mcusleep_invoked = False
 
     def _add_exit(self, node):
@@ -449,6 +450,13 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         '''
         self._add_op(node)
         self._exits.append(node)
+
+    def _add_exec(self, node):
+        '''
+        Keep a list of EXEC ops
+        '''
+        self._add_op(node)
+        self._target.execs.append(node)
 
     def _add_op(self, node):
         '''
@@ -633,13 +641,22 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         ex.bodypart_id = node.ref_bodypart_decl.bodypart_id
 
         for each in node.child_argument_list.childs_arguments:
-            encode_helper = each.get_type().get_encoding()
+            encoder = each.get_type().get_encoding()
             value = each.get_static_value()
+            if value is not None:
+                ex.add_value_argument(self._compiler, each.ctx, encoder, value)
+            else:
+                assert isinstance(each, LiteralCastExprNode)
+                assert isinstance(
+                    each.child_expression, expression.VariableExprNode)
+                assert isinstance(
+                    each.child_expression.ref_decl,
+                    statement.ParameterDeclarationStmtNode)
 
-            data = encode_helper.encode_value(self._compiler, each.ctx, value)
-            ex.data.extend(data)
+                ex.add_parametric_argument(
+                    encoder, each.child_expression.ref_decl.txt_name)
 
-        self._add_op(ex)
+        self._add_exec(ex)
 
     def visit_IfElseStmtNode(self, node):
 

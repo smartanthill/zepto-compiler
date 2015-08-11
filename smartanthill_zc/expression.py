@@ -84,14 +84,14 @@ class BodyPartCallExprNode(ExpressionNode):
         bp = self.get_scope(RootScope).lookup_bodypart(self.txt_bodypart)
 
         if not bp:
-            compiler.report_error(self.ctx, "Unresolved plug-in name '%s'" %
+            compiler.report_error(self.ctx, "Unresolved body-part name '%s'" %
                                   self.txt_bodypart)
             compiler.raise_error()
 
         method = bp.ref_plugin.lookup_method(self.txt_method)
         if not method:
             compiler.report_error(self.ctx,
-                                  "Method '%s' not found at plug-in '%s'" %
+                                  "Method '%s' not found at body-part '%s'" %
                                   (self.txt_method,
                                    self.txt_bodypart))
             compiler.raise_error()
@@ -308,11 +308,13 @@ class VariableExprNode(ExpressionNode):
         return None
 
     def get_static_value(self):
+        '''
+        Returns compile-time value of this expression is possible,
+        Returns None otherwise
+        '''
         assert self.ref_decl
-        if self.ref_decl.child_initializer is not None:
-            return self.ref_decl.child_initializer.get_static_value()
-        else:
-            return None
+
+        return self.ref_decl.get_static_value()
 
 
 class AssignmentExprNode(ExpressionNode):

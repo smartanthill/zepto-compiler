@@ -94,16 +94,25 @@ class EncodingHelper(object):
         self._min_value = min_value
         self._max_value = max_value
 
-    def encode_value(self, compiler, ctx, value):
+    def check_value(self, compiler, ctx, value):
         '''
         Check value range and encode
         '''
-        if value < self._min_value or value > self._max_value:
+        if value >= self._min_value and value <= self._max_value:
+            return True
+        else:
             compiler.report_error(
                 ctx,
                 'Value %s outside valid range [%s, %s]' %
                 (value, self._min_value, self._max_value))
-            value = self._min_value
+            return False
+
+    def encode_value(self, value):
+        '''
+        Check value range and encode
+        '''
+        assert value >= self._min_value
+        assert value <= self._max_value
 
         if self.encoding == Encoding.UNSIGNED_INT:
             return encode.encode_unsigned_int(value)
@@ -422,6 +431,7 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
         super(CommandFieldTypeDeclNode, self).__init__(type_name)
         self.encoding = None
         self.ref_number_literal_type = None
+        self.ref_parameter_type = None
 
     def resolve(self, compiler):
         '''
@@ -429,6 +439,8 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
         '''
         self.ref_number_literal_type = self.get_scope(RootScope).lookup_type(
             '_zc_number_literal')
+        self.ref_parameter_type = self.get_scope(RootScope).lookup_type(
+            '_zc_parameter')
         super(CommandFieldTypeDeclNode, self).resolve(compiler)
 
     def can_cast_from(self, source_type):
@@ -436,15 +448,17 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
         If self can be constructed from source_type returns True
         Otherwise returns False
         '''
-        return source_type == self.ref_number_literal_type
+        return (source_type == self.ref_number_literal_type or
+                source_type == self.ref_parameter_type)
 
     def insert_cast_from(self, compiler, source_type, expr):
         '''
         Inserts a cast to the target (number) type
         TODO add value and range check
         '''
-        assert self.ref_number_literal_type == expr.get_type()
-        assert self.ref_number_literal_type == source_type
+        assert source_type == expr.get_type()
+        assert (source_type == self.ref_number_literal_type or
+                source_type == self.ref_parameter_type)
 
         c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
 

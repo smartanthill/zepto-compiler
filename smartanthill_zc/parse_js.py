@@ -153,30 +153,14 @@ def create_parameters(compiler, data, ctx):
 
     decls = compiler.init_node(node.DeclarationListNode(), ctx)
 
-    if data is not None:
-        for key, value in data.iteritems():
+    for key in data.keys():
 
-            assert isinstance(key, str)
-            var = compiler.init_node(
-                statement.VariableDeclarationStmtNode(), ctx)
-            var.txt_name = key
-            var.flg_root_scope = True
+        assert isinstance(key, str)
+        var = compiler.init_node(
+            statement.ParameterDeclarationStmtNode(), ctx)
+        var.txt_name = key
 
-            if isinstance(value, (int, float)):
-                expr = compiler.init_node(
-                    expression.NumberLiteralExprNode(), ctx)
-                expr.txt_literal = str(value)
-                var.set_initializer(expr)
-            elif isinstance(value, str):
-                expr = _parse_js_expression(compiler, value, ctx)
-                var.set_initializer(expr)
-
-            else:
-                compiler.report_error(
-                    ctx, "Invalid data type '%s' at parameter '%s'" %
-                    (type(value).__name__, key))
-
-            decls.add_declaration(var)
+        decls.add_declaration(var)
 
     compiler.check_stage('parameter')
 
