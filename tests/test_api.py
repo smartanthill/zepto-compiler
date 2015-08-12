@@ -206,19 +206,20 @@ def test_dynamic_data_1():
 
 def test_bad_dynamic_data_error():
     try:
-        plugin = api.ZeptoPlugin('tests/test_plugin_1.xml')
+        plugin = api.ZeptoPlugin('tests/test_plugin_3.xml')
 
         sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
 
         zp = api.ZeptoProgram(
-            "return BodyPartName.Execute(PARAM1)", [sensor1])
+            "return BodyPartName.Execute(PARAM1, PARAM2)", [sensor1])
 
-        zp.compile({"PARAM1": "x"})
+        zp.compile({"PARAM1": "x", "PARAM2": []})
 
         assert False
 
     except errors.CompilerError as e:
-        assert e.value == ["parameter PARAM1, Value 'x' is not valid"]
+        assert e.value == ["parameter PARAM1, Value 'x' is not valid",
+                           "parameter PARAM2, Value type must be string or number"]
 
 
 def test_bad_dynamic_data_error_2():

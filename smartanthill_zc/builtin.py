@@ -208,13 +208,9 @@ class LiteralTypeDeclNode(TypeDeclNode):
         Inserts a cast to the target (non-literal) type
         '''
         assert self == expr.get_type()
-        assert self._base_type == target_type
+        assert self.can_cast_to(target_type)
 
-        c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
-        c.set_expression(expr)
-        c.set_type(target_type)
-
-        return c
+        return expression.create_trivial_cast(compiler, expr, target_type)
 
 
 def _create_operator(compiler, ctx, operator, ret_type, type_list):

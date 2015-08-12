@@ -19,7 +19,7 @@ from smartanthill_zc import expression, op_node, comparison
 from smartanthill_zc.antlr_helper import (get_reference_lines,
                                           get_reference_text)
 from smartanthill_zc.compiler import Ctx
-from smartanthill_zc.expression import LiteralCastExprNode
+from smartanthill_zc.expression import TrivialCastExprNode
 from smartanthill_zc.lookup import ReturnStmtScope
 from smartanthill_zc.op_node import ExprOpArg
 from smartanthill_zc.visitor import NodeVisitor, visit_node
@@ -640,21 +640,26 @@ class _ZeptoVmOneVisitor(NodeVisitor):
         ex = self._compiler.init_node(op_node.ExecOpNode(), node.ctx)
         ex.bodypart_id = node.ref_bodypart_decl.bodypart_id
 
-        for each in node.child_argument_list.childs_arguments:
-            encoder = each.get_type().get_encoding()
-            value = each.get_static_value()
+        pars = node.ref_method_decl.child_parameter_list.childs_parameters
+        args = node.child_argument_list.childs_arguments
+        assert len(pars) == len(args)
+        for i in range(len(pars)):
+
+            encoder = pars[i].get_type().get_encoding()
+            value = args[i].get_static_value()
             if value is not None:
-                ex.add_value_argument(self._compiler, each.ctx, encoder, value)
+                ex.add_value_argument(
+                    self._compiler, args[i].ctx, encoder, value)
             else:
-                assert isinstance(each, LiteralCastExprNode)
+                assert isinstance(args[i], TrivialCastExprNode)
                 assert isinstance(
-                    each.child_expression, expression.VariableExprNode)
+                    args[i].child_expression, expression.VariableExprNode)
                 assert isinstance(
-                    each.child_expression.ref_decl,
+                    args[i].child_expression.ref_decl,
                     statement.ParameterDeclarationStmtNode)
 
                 ex.add_parametric_argument(
-                    encoder, each.child_expression.ref_decl.txt_name)
+                    encoder, args[i].child_expression.ref_decl.txt_name)
 
         self._add_exec(ex)
 
@@ -1000,8 +1005,7 @@ class _ZeptoVmExprVisitor(NodeVisitor):
     def visit_VariableExprNode(self, node):
         self._vm.stack.push_variable(node.ref_decl)
 
-    def visit_LiteralCastExprNode(self, node):
-        # TODO insert real convertion here
+    def visit_TrivialCastExprNode(self, node):
         visit_node(self, node.child_expression)
 
     def visit_FieldCastExprNode(self, node):

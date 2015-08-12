@@ -365,6 +365,10 @@ class ExecOpNode(OpcodeNode):
                     compiler.report_error(
                         ctx,
                         "Value '%s' is not valid" % parameters[each.name])
+                except TypeError:
+                    compiler.report_error(
+                        ctx,
+                        "Value type must be string or number")
             else:
                 compiler.report_error(
                     self.ctx, "Missing parameter '%s' value" % each.name)

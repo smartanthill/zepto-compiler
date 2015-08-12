@@ -252,7 +252,19 @@ class StaticEvaluatedExprNode(ExpressionNode):
         return self._static_value
 
 
-class LiteralCastExprNode(ExpressionNode):
+def create_trivial_cast(compiler, expr, target_type):
+    '''
+    Helper funtion to create a TrivialCastExprNode
+    '''
+
+    c = compiler.init_node(TrivialCastExprNode(), expr.ctx)
+    c.set_expression(expr)
+    c.set_type(target_type)
+
+    return c
+
+
+class TrivialCastExprNode(ExpressionNode):
 
     '''
     Node class representing an automatic cast from literal to non-literal type
@@ -262,7 +274,7 @@ class LiteralCastExprNode(ExpressionNode):
         '''
         Constructor
         '''
-        super(LiteralCastExprNode, self).__init__()
+        super(TrivialCastExprNode, self).__init__()
         self.child_expression = None
 
     def set_expression(self, child):

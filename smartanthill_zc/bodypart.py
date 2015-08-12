@@ -247,14 +247,14 @@ class FieldTypeDeclNode(TypeDeclNode):
         TODO use scaling and <meaning>
         '''
         assert self == expr.get_type()
-        assert self._number_type == target_type
+        assert self.can_cast_to(target_type)
 
         c = None
 
         if self.meaning:
             c = compiler.init_node(self.meaning.create_cast(), expr.ctx)
         else:
-            c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
+            c = compiler.init_node(expression.TrivialCastExprNode(), expr.ctx)
 
         c.set_expression(expr)
         c.set_type(target_type)
@@ -454,18 +454,12 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
     def insert_cast_from(self, compiler, source_type, expr):
         '''
         Inserts a cast to the target (number) type
-        TODO add value and range check
+        Value and range check will be done at encoding
         '''
         assert source_type == expr.get_type()
-        assert (source_type == self.ref_number_literal_type or
-                source_type == self.ref_parameter_type)
+        assert self.can_cast_from(source_type)
 
-        c = compiler.init_node(expression.LiteralCastExprNode(), expr.ctx)
-
-        c.set_expression(expr)
-        c.set_type(self)
-
-        return c
+        return expression.create_trivial_cast(compiler, expr, self)
 
     def get_encoding(self):
         '''
