@@ -218,8 +218,9 @@ def test_bad_dynamic_data_error():
         assert False
 
     except errors.CompilerError as e:
-        assert e.value == ["parameter PARAM1, Value 'x' is not valid",
-                           "parameter PARAM2, Value type must be string or number"]
+        assert e.value == [
+            "parameter PARAM1, Value 'x' is not valid",
+            "parameter PARAM2, Value type must be string or number"]
 
 
 def test_bad_dynamic_data_error_2():
@@ -236,7 +237,6 @@ def test_bad_dynamic_data_error_2():
         assert False
 
     except errors.CompilerError as e:
-        print '%s' % e
-        assert e.value == [
-            "parameter PARAM1, Value 100000.0 outside valid range [-32768, 32767]",
-            "parameter PARAM2, Value -1.0 outside valid range [0, 255]"]
+        assert '%s' % e == "parameter PARAM1, Value 100000.0 outside valid "\
+            "range [-32768, 32767]; "\
+            "parameter PARAM2, Value -1.0 outside valid range [0, 255]"

@@ -31,7 +31,7 @@ class CompilerError(Exception):
         '''
         String representation
         '''
-        return ';'.join(self.value)
+        return '; '.join(self.value)
 
 
 class ResolutionCycleError(Exception):
