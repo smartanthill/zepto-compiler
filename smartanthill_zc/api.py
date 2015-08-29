@@ -43,10 +43,11 @@ class ZeptoPlugin(object):
         return self.xml.find("description").text
 
     def get_request_fields(self):
-        return self._get_items_by_path(
+        items = self._get_items_by_path(
             "./request",
             ("type", "name", "title", "min", "max", "default")
         )
+        return self._cast_attributes(items)
 
     def get_response_fields(self):
 
@@ -80,18 +81,11 @@ class ZeptoPlugin(object):
         )
 
     def get_options(self):
-        options = self._get_items_by_path(
+        items = self._get_items_by_path(
             "./configuration/options",
             ("type", "name", "title", "min", "max", "default")
         )
-
-        for index, item in enumerate(options or []):
-            if item['default'] is not None:
-                if "int" in item['type']:
-                    options[index]['default'] = int(item['default'])
-                elif "float" in item['type']:
-                    options[index]['default'] = float(item['default'])
-        return options
+        return self._cast_attributes(items)
 
     def _get_items_by_path(self, path, attrs):
         elements = self.xml.find(path)
@@ -100,10 +94,38 @@ class ZeptoPlugin(object):
         items = []
         for element in elements:
             data = {}
+
             for attr in attrs:
                 data[attr] = element.get(attr, None)
+
+            _values = element.find("./values")
+            if _values is not None:
+                data['_values'] = []
+                for _v in _values:
+                    data['_values'].append(
+                        {"value": _v.get("value"), "title": _v.get("title")})
+
             items.append(data)
         return items
+
+    def _cast_attributes(self, items):
+        for item in items:
+            for attr in ("min", "max", "default"):
+                if item[attr] is None:
+                    continue
+                item[attr] = self._cast_to_type(item['type'], item[attr])
+            if "_values" in item:
+                for _v in item['_values']:
+                    _v['value'] = self._cast_to_type(item['type'], _v['value'])
+        return items
+
+    @staticmethod
+    def _cast_to_type(type_, value):
+        if "int" in type_:
+            value = int(value)
+        elif "float" in type_:
+            value = float(value)
+        return value
 
 
 class ZeptoBodyPart(object):
