@@ -18,7 +18,6 @@ import re
 from xml.etree import ElementTree
 
 from smartanthill_zc import bodypart, node
-from smartanthill_zc.bodypart import DiscreteSetChecker
 from smartanthill_zc.encode import Encoding
 
 
