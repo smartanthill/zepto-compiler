@@ -240,3 +240,43 @@ def test_bad_dynamic_data_error_2():
         assert '%s' % e == "parameter PARAM1, Value 100000.0 outside valid "\
             "range [-32768, 32767]; "\
             "parameter PARAM2, Value -1.0 outside valid range [0, 255]"
+
+
+def test_discrete_argument_1():
+
+    plugin = api.ZeptoPlugin('tests/test_plugin_4.xml')
+
+    sensor1 = api.ZeptoBodyPart(plugin, 3, 'BodyPartName')
+
+    zp = api.ZeptoProgram(
+        "return BodyPartName.Execute(1)", [sensor1])
+
+    opcode = zp.compile()
+
+    # 0x02 opcode for ZEPTOVM_OP_EXEC
+    # 0x06 signed encode for bodypart-id '3'
+    # 0x01 data length
+    # 0x04 unsigned encode for data value '1'
+    # 0x02 opcode for ZEPTOVM_OP_EXEC
+    # 0x06 signed encode for bodypart-id '1'
+    # 0x01 data length
+    # 0x06 signed encode for data value '3'
+
+    assert opcode == bytearray(
+        [0x02, 0x06, 0x01, 0x01])
+
+
+def test_discrete_argument_error_1():
+
+    try:
+        plugin = api.ZeptoPlugin('tests/test_plugin_4.xml')
+
+        sensor1 = api.ZeptoBodyPart(plugin, 4, 'BodyPartName')
+
+        zp = api.ZeptoProgram(
+            "return BodyPartName.Execute(2)", [sensor1])
+
+        zp.compile()
+
+    except errors.CompilerError as e:
+        assert '%s' % e == "line 1, Value 2.0 not allowed"

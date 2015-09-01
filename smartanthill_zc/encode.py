@@ -309,14 +309,12 @@ class _EncodingImpl(object):
     Helper class to hold encodings extra data
     '''
 
-    def __init__(self, name, code, min_value, max_value):
+    def __init__(self, name, code):
         '''
         Constructor
         '''
         self.name = name
         self.code = code
-        self.min_value = min_value
-        self.max_value = max_value
 
     def __repr__(self):
         '''
@@ -325,14 +323,61 @@ class _EncodingImpl(object):
         return self.name
 
 
+class _EncodingInt(_EncodingImpl):
+
+    '''
+    Helper class to hold encodings extra data
+    '''
+
+    def __init__(self, name, code):
+        '''
+        Constructor
+        '''
+        super(_EncodingInt, self).__init__(name, code)
+
+    def get_min_max(self, max_bytes):
+        '''
+        Returns [min, max] pair
+        '''
+        # pylint: disable=no-self-use
+
+        type_min = -2 ** (max_bytes * 8 - 1)
+        type_max = 2 ** (max_bytes * 8 - 1) - 1
+
+        return (type_min, type_max)
+
+
+class _EncodingUInt(_EncodingImpl):
+
+    '''
+    Helper class represent unsigned encodings
+    '''
+
+    def __init__(self, name, code):
+        '''
+        Constructor
+        '''
+        super(_EncodingUInt, self).__init__(name, code)
+
+    def get_min_max(self, max_bytes):
+        '''
+        Returns [min, max] pair
+        '''
+        # pylint: disable=no-self-use
+
+        type_max = 2 ** (max_bytes * 8) - 1
+
+        return (0, type_max)
+
+
 class Encoding(object):
 
     '''
     Enum like, for FIELD-SEQUENCE
     '''
-    END_OF_SEQUENCE = _EncodingImpl('<eos>', 0, 0, 0)
-    SIGNED_INT = _EncodingImpl('INT', 1, -32768L, 32767L)
-    UNSIGNED_INT = _EncodingImpl('UINT', 2, 0L, 65535)
+    END_OF_SEQUENCE = _EncodingImpl('<eos>', 0)
+    SIGNED_INT = _EncodingInt('INT', 1)
+    UNSIGNED_INT = _EncodingUInt('UINT', 2)
 
 
 def field_sequence_to_str(field_sequence):

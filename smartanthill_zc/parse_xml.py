@@ -18,6 +18,7 @@ import re
 from xml.etree import ElementTree
 
 from smartanthill_zc import bodypart, node
+from smartanthill_zc.bodypart import DiscreteSetChecker
 from smartanthill_zc.encode import Encoding
 
 
@@ -298,50 +299,72 @@ def get_enconding_helper(compiler, ctx, att):
         compiler.raise_error()
 
     encoding = None
-    type_min = 0
-    type_max = 0
 
     if match.group(1) == 'int':
         encoding = Encoding.SIGNED_INT
-        type_min = -2 ** (max_bytes * 8 - 1)
-        type_max = 2 ** (max_bytes * 8 - 1) - 1
-
     elif match.group(1) == 'uint':
         encoding = Encoding.UNSIGNED_INT
-        type_min = 0
-        type_max = 2 ** (max_bytes * 8) - 1
-
     else:
         assert False
 
-    min_value = type_min
-    max_value = type_max
-    try:
-        if 'min' in att and att['min'] is not None:
-            min_value = long(att['min'])
-            if min_value < type_min or min_value > type_max:
-                compiler.report_error(ctx, "Bad min %d" % min_value)
-                min_value = type_min
+    type_min, type_max = encoding.get_min_max(max_bytes)
 
-    except:
-        compiler.report_error(ctx, "Bad min '%s'" % att['min'])
+    checker = _get_value_checker(compiler, ctx, att, type_min, type_max)
+    return bodypart.EncodingHelper(encoding, checker)
 
-    try:
-        if 'max' in att and att['max'] is not None:
-            max_value = long(att['max'])
-            if max_value > type_max or max_value < type_min:
-                compiler.report_error(ctx, "Bad max %d" % max_value)
-                max_value = type_max
-    except:
-        compiler.report_error(ctx, "Bad max '%s'" % att['max'])
 
-    if min_value > max_value:
-        compiler.report_error(ctx, "Bad min %d max %d" % (min_value,
-                                                          max_value))
-        max_value = type_max
+def _get_value_checker(compiler, ctx, att, type_min, type_max):
+    '''
+    Process min and max values, or discrete value set
+    '''
+
+    if '_values' in att and att['_values'] is not None:
+        s = []
+        try:
+            for each in att['_values']:
+                v = long(each['value'])
+
+                if v >= type_min and v <= type_max:
+                    s.append(v)
+                else:
+                    compiler.report_error(
+                        ctx,
+                        "Discrete value %d is outside range [%d,%d]" %
+                        (v, type_min, type_max))
+        except:
+            compiler.report_error(ctx, "Bad value set")
+
+        return bodypart.DiscreteSetChecker(s)
+
+    else:
         min_value = type_min
+        max_value = type_max
+        try:
+            if 'min' in att and att['min'] is not None:
+                min_value = long(att['min'])
+                if min_value < type_min or min_value > type_max:
+                    compiler.report_error(ctx, "Bad min %d" % min_value)
+                    min_value = type_min
 
-    return bodypart.EncodingHelper(encoding, min_value, max_value)
+        except:
+            compiler.report_error(ctx, "Bad min '%s'" % att['min'])
+
+        try:
+            if 'max' in att and att['max'] is not None:
+                max_value = long(att['max'])
+                if max_value > type_max or max_value < type_min:
+                    compiler.report_error(ctx, "Bad max %d" % max_value)
+                    max_value = type_max
+        except:
+            compiler.report_error(ctx, "Bad max '%s'" % att['max'])
+
+        if min_value > max_value:
+            compiler.report_error(ctx, "Bad min %d max %d" % (min_value,
+                                                              max_value))
+            max_value = type_max
+            min_value = type_min
+
+        return bodypart.RangeChecker(min_value, max_value)
 
 
 def _make_command_parameters(compiler, manager, ctx, fields):

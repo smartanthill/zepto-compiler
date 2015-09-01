@@ -85,38 +85,21 @@ class EncodingHelper(object):
     Integer encoding helper
     '''
 
-    def __init__(self, encoding, min_value, max_value):
+    def __init__(self, encoding, checker):
         '''
         Constructor
         '''
-        assert min_value <= max_value
         self.encoding = encoding
-        self._min_value = min_value
-        self._max_value = max_value
-
-    def check_value(self, compiler, ctx, value):
-        '''
-        Check value range and encode
-        '''
-        if value >= self._min_value and value <= self._max_value:
-            return True
-        else:
-            compiler.report_error(
-                ctx,
-                'Value %s outside valid range [%s, %s]' %
-                (value, self._min_value, self._max_value))
-            return False
+        self.checker = checker
 
     def encode_value(self, value):
         '''
-        Check value range and encode
+        Encode value
         '''
-        assert value >= self._min_value
-        assert value <= self._max_value
+#        assert self.checker.check_value(value)
 
         if self.encoding == Encoding.UNSIGNED_INT:
             return encode.encode_unsigned_int(value)
-
         elif self.encoding == Encoding.SIGNED_INT:
             return encode.encode_signed_int(value)
         else:
@@ -129,11 +112,62 @@ class EncodingHelper(object):
 
         if self.encoding == Encoding.UNSIGNED_INT:
             return encode.decode_unsigned_int(reversed_data)
-
         elif self.encoding == Encoding.SIGNED_INT:
             return encode.decode_signed_int(reversed_data)
         else:
             assert False
+
+
+class RangeChecker(object):
+
+    '''
+    Integer range checker
+    '''
+
+    def __init__(self, min_value, max_value):
+        '''
+        Constructor
+        '''
+        assert min_value <= max_value
+        self._min_value = min_value
+        self._max_value = max_value
+
+    def check_value(self, compiler, ctx, value):
+        '''
+        Check value range
+        '''
+        if value >= self._min_value and value <= self._max_value:
+            return True
+        else:
+            compiler.report_error(
+                ctx,
+                'Value %s outside valid range [%s, %s]' %
+                (value, self._min_value, self._max_value))
+            return False
+
+
+class DiscreteSetChecker(object):
+
+    '''
+    Integer range checker
+    '''
+
+    def __init__(self, values):
+        '''
+        Constructor
+        '''
+        self._values = values
+
+    def check_value(self, compiler, ctx, value):
+        '''
+        Check value range
+        '''
+        if value in self._values:
+            return True
+        else:
+            compiler.report_error(
+                ctx, 'Value %s not allowed' % value)
+            return False
 
 
 class LinearConvertionFloat(object):
@@ -430,6 +464,7 @@ class CommandFieldTypeDeclNode(TypeDeclNode):
         '''
         super(CommandFieldTypeDeclNode, self).__init__(type_name)
         self.encoding = None
+        self.checker = None
         self.ref_number_literal_type = None
         self.ref_parameter_type = None
 
