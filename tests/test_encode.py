@@ -251,8 +251,8 @@ def test_encode_min_max_1():
                                   {'type': 'encoded-int[max=1]'})
 
     assert helper.encoding == Encoding.SIGNED_INT
-    assert helper.checker._min_value == -128
-    assert helper.checker._max_value == 127
+    assert helper._checker._min_value == -128
+    assert helper._checker._max_value == 127
 
 
 def test_encode_min_max_2():
@@ -264,8 +264,8 @@ def test_encode_min_max_2():
                                    'max': '1'})
 
     assert helper.encoding == Encoding.SIGNED_INT
-    assert helper.checker._min_value == 1
-    assert helper.checker._max_value == 1
+    assert helper._checker._min_value == 1
+    assert helper._checker._max_value == 1
 
 
 def test_encode_min_max_3():
@@ -277,8 +277,8 @@ def test_encode_min_max_3():
                                    'max': '1'})
 
     assert helper.encoding == Encoding.UNSIGNED_INT
-    assert helper.checker._min_value == 1
-    assert helper.checker._max_value == 1
+    assert helper._checker._min_value == 1
+    assert helper._checker._max_value == 1
 
 
 def main():

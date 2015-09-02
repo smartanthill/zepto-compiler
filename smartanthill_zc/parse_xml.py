@@ -309,27 +309,28 @@ def get_enconding_helper(compiler, ctx, att):
     type_min, type_max = encoding.get_min_max(max_bytes)
 
     checker = _get_value_checker(compiler, ctx, att, type_min, type_max)
-    return bodypart.EncodingHelper(encoding, checker)
+    return bodypart.EncodingHelper(encoding, checker, max_bytes)
 
 
 def _get_value_checker(compiler, ctx, att, type_min, type_max):
     '''
     Process min and max values, or discrete value set
     '''
+    # pylint: disable=too-many-branches
 
     if '_values' in att and att['_values'] is not None:
         s = []
         try:
             for each in att['_values']:
                 v = long(each['value'])
+                s.append(v)
 
-                if v >= type_min and v <= type_max:
-                    s.append(v)
-                else:
+            for each in s:
+                if each < type_min or each > type_max:
                     compiler.report_error(
                         ctx,
                         "Discrete value %d is outside range [%d,%d]" %
-                        (v, type_min, type_max))
+                        (each, type_min, type_max))
         except:
             compiler.report_error(ctx, "Bad value set")
 

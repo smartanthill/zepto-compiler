@@ -337,7 +337,7 @@ class ExecOpNode(OpcodeNode):
         self.data = None
 
     def add_value_argument(self, compiler, ctx, helper, value):
-        helper.checker.check_value(compiler, ctx, value)
+        helper.check_value(compiler, ctx, value)
         self._arguments.append(_ExecOpArgument(helper, value, None))
 
     def add_parametric_argument(self, helper, name):
@@ -358,7 +358,7 @@ class ExecOpNode(OpcodeNode):
                 ctx = BuiltinCtx('parameter ' + each.name)
                 try:
                     value = float(parameters[each.name])
-                    if each.helper.checker.check_value(compiler, ctx, value):
+                    if each.helper.check_value(compiler, ctx, value):
                         data = each.helper.encode_value(value)
                         self.data.extend(data)
                 except ValueError:

@@ -85,12 +85,13 @@ class EncodingHelper(object):
     Integer encoding helper
     '''
 
-    def __init__(self, encoding, checker):
+    def __init__(self, encoding, checker, max_bytes):
         '''
         Constructor
         '''
         self.encoding = encoding
-        self.checker = checker
+        self._checker = checker
+        self._max_bytes = max_bytes
 
     def encode_value(self, value):
         '''
@@ -116,6 +117,12 @@ class EncodingHelper(object):
             return encode.decode_signed_int(reversed_data)
         else:
             assert False
+
+    def check_value(self, compiler, ctx, value):
+        '''
+        Check value range
+        '''
+        return self._checker.check_value(compiler, ctx, value)
 
 
 class RangeChecker(object):
